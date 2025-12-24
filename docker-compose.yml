@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # 1. 스프링 부트 (백엔드)
+  backend:
+    container_name: incheon_mate-backend
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+      - redis
+    restart: on-failure
+    environment:
+      DB_HOST: mongodb
+      REDIS_HOST: redis
+      # [필수] 구글 로그인 정보
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      # 리다이렉트 주소 (Spring의 app.frontend.redirect-url 매핑)
+      APP_FRONTEND_REDIRECT_URL: http://localhost:3000/oauth/callback
+
+  # 2. 몽고DB
+  mongodb:
+    image: mongo:latest
+    container_name: incheon_mate-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo:/data/db
+    restart: always
+
+  # 3. 몽고DB 관리툴
+  mongo-express:
+    image: mongo-express
+    container_name: incheon_mate-mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
+    depends_on:
+      - mongodb
+
+  # 4. Redis
+  redis:
+    image: redis:alpine
+    container_name: incheon_mate-redis
+    ports:
+      - "6379:6379"
+    restart: always
