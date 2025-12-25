@@ -7,7 +7,9 @@ spring:
 
   #  Spring Boot 4.x Mongo 설정 (deprecated 아님)
   mongodb:
-    uri: mongodb://${DB_HOST:mongodb}:27017/incheon_mate_db
+    uri: mongodb://${DB_HOST:localhost}:27017/incheon_mate_db
+    #uri: mongodb://${DB_HOST:mongodb}:27017/incheon_mate_db
+
 
 
   data:
@@ -15,24 +17,42 @@ spring:
       auto-index-creation: true
     #  Redis는 spring.data.redis 아래가 정석
     redis:
-      host: ${REDIS_HOST:redis}
+      #host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: 6379
 
   security:
     oauth2:
       client:
         registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+          #google:
+          #client-id: ${GOOGLE_CLIENT_ID}
+          #client-secret: ${GOOGLE_CLIENT_SECRET}
+          #scope:
+          #- email
+          #- profile
+          #redirect-uri: "http://localhost:8080/login/oauth2/code/google"
+          #client-name: Google
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            client-name: Kakao
             scope:
-              - email
-              - profile
-            redirect-uri: "http://localhost:8080/login/oauth2/code/google"
-            client-name: Google
+              - account_email
+              - profile_nickname
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
 
 jwt:
-  secret: ${JWT_SECRET:vladimir_putin_is_not_my_president_just_a_random_long_secret_key_for_dev}
+  #secret: ${JWT_SECRET:vladimir_putin_is_not_my_president_just_a_random_long_secret_key_for_dev}
+  secret: ${JWT_SECRET:VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKd3RFeGFtcGxlV2hpY2hJc0xvbmdFbm91Z2hUb0F2b2lkV2Vha0tleUV4Y2VwdGlvbg==}
 
 
 app:
