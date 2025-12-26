@@ -2,6 +2,7 @@ package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.member.dto.OnboardingDto;
+import com.example.IncheonMate.member.dto.SasangQuestionDto;
 import com.example.IncheonMate.member.service.OnboardingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -36,10 +38,11 @@ public class OnboardingController {
     @GetMapping("/check")
     public ResponseEntity<Boolean> checkNicknameAvailability(@RequestParam("nickname") String nickname,
                                                              @AuthenticationPrincipal CustomOAuth2User user){
-        log.info("'{}' 닉네임 중복 검사 요청: {}",user.getEmail(),nickname);
+        String email = user.getEmail();
+        log.info("'{}' 닉네임 중복 검사 요청: {}",email,nickname);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.isNicknameAvailability(nickname));
+                .body(onboardingService.isNicknameAvailability(email, nickname));
     }
 
     //사상의학 테스트 시작
@@ -49,7 +52,7 @@ public class OnboardingController {
         log.info("'{}' 사상의학 테스트 시작 요청", user.getEmail());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.getSasangQuestions());
+                .body(onboardingService.getSasangQuestions(user.getEmail()));
     }
 
     //사상의학 테스트 결과

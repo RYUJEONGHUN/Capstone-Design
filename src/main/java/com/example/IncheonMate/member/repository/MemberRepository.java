@@ -2,6 +2,8 @@ package com.example.IncheonMate.member.repository;
 
 import com.example.IncheonMate.member.domain.Member;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+
 import java.util.Optional;
 
 // <Entity 타입, ID 타입>
@@ -15,4 +17,8 @@ public interface MemberRepository extends MongoRepository<Member, String> {
 
     // 이메일 존재 여부 확인 (JWT 검증 시 가끔 사용)
     boolean existsByEmail(String email);
+
+    //이메일로 언어 설정 찾기
+    @Query(value = "{ 'email' : ?0 }", fields = "{ 'lang' : 1}")
+    String findLangByEmail(String email);
 }
