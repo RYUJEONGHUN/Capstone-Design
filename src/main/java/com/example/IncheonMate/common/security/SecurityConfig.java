@@ -37,7 +37,7 @@ public class SecurityConfig {
                 // 로그인, 메인, 헬스체크는 누구나 접근 가능
                 .requestMatchers("/", "/login/**", "/oauth2/**", "/api/health").permitAll()
                 // 스웨거 문서도 열어둠
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
                 // 나머지는 로그인한 사람만
                 .anyRequest().authenticated());
 
