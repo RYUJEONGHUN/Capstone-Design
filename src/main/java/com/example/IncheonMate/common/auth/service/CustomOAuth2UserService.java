@@ -21,13 +21,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        // 1. 구글에서 유저 정보 가져오기
+        // 1. 유저 정보 가져오기
         OAuth2User oAuth2User = super.loadUser(userRequest);
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        // 2. 정보 추출 (구글 기준)
-        String email = (String) attributes.get("email");
-        String name = (String) attributes.get("name");
+        // 2. 정보 추출-provicer에 따라서 다르게 추출/에러처리
+        String provider = userRequest.getClientRegistration().getRegistrationId();
+        String email;
+        String name;
+        if("google".equals(provider)){
+            email = (String) attributes.get("email");
+            name = (String) attributes.get("name");
+        }
+        else if("kakao".equals(provider)){
+            Map<String, Object> kakaoAccount = (Map<String,Object>) attributes.get("kakao_account");
+            Map<String, Object> profile = (Map<String,Object>) kakaoAccount.get("profile");
+            email = (String) kakaoAccount.get("email");
+            name = (String) profile.get("nickname");
+        } else {
+            email = "";
+            name = "";
+        }
 
         // 3. DB 저장 또는 업데이트 (MongoDB)
         Member member = memberRepository.findByEmail(email)
