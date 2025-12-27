@@ -1,5 +1,6 @@
 package com.example.IncheonMate.member.service;
 
+import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.dto.SasangQuestionDto;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import jakarta.annotation.PostConstruct;
@@ -7,12 +8,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
@@ -106,7 +110,6 @@ public class OnboardingService {
 
     }
 
-
     //닉네임 정책 검사
     //영어,한글,숫자만 포함하고 글자수는 2-10글자로 제한
     private boolean checkNicknamePolicy(String nickname){
@@ -118,5 +121,17 @@ public class OnboardingService {
             return false;
 
         return true;
+    }
+
+    //saveLanguage 컨트롤러
+    //언어 설정 저장
+    @Transactional
+    public void setLanguage(String email, String language) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
+        member.updateLang(language);
+        memberRepository.save(member);
+        log.info("'{}' 언어 설정을 완료했습니다: {}",email,language);
+
     }
 }

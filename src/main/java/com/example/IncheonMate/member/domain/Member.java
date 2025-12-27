@@ -1,5 +1,6 @@
 package com.example.IncheonMate.member.domain;
 
+import com.example.IncheonMate.member.dto.ProfileUpdateDto;
 import com.example.IncheonMate.member.type.CompanionType;
 import com.example.IncheonMate.member.type.MbtiType;
 import com.example.IncheonMate.member.type.SasangType;
@@ -11,7 +12,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -72,12 +72,24 @@ public class Member {
     private LocalDateTime updatedAt; // 수정일
 
     // --- 편의 메서드 (데이터 수정용) ---
-    public void updateProfile(String nickname, MbtiType mbti, SasangType sasang, CompanionType companion,LocalDate birthDate) {
-        this.nickname = nickname;
-        this.mbti = mbti;
-        this.sasang = sasang;
-        this.companion = companion;
-        this.birthDate = birthDate;
+    //Builder 패턴 적용
+    //ProfileUpdateDto에서 속성 수정하고 추가해야함
+    public void updateProfile(ProfileUpdateDto profileUpdateDto) {
+        if(profileUpdateDto.getNickname() != null) this.nickname = nickname;
+        if(profileUpdateDto.getMbti() != null) this.mbti = mbti;
+        if(profileUpdateDto.getSasang() != null) this.sasang = sasang;
+        if(profileUpdateDto.getCompanion() != null) this.companion = companion;
+        if(profileUpdateDto.getBirthDate() != null) this.birthDate = birthDate;
+    }
+
+    public void updateLang(String lang){
+        if(lang == null || lang.trim().isEmpty()){
+            throw new IllegalArgumentException("언어 설정값은 비어있을 수 없습니다.");
+        }
+        if("kor".equals(lang) || "eng".equals(lang)) {
+            this.lang = lang;
+        }
+        throw new IllegalArgumentException("지원하지 않는 언어입니다: " + lang);
     }
 
 

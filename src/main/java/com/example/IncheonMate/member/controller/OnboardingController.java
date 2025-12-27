@@ -21,6 +21,17 @@ import java.util.Map;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
+    
+    //언어 설정(kor,eng)
+    @PostMapping
+    public ResponseEntity<Void> saveLanguage(@RequestParam("lang") String language,
+                                             @AuthenticationPrincipal CustomOAuth2User user){
+        String email = user.getEmail();
+        log.info("'{}' {}로 언어 설정",email,language);
+
+        onboardingService.setLanguage(email,language);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
 
     //사용자 정보 입력(온보딩) 시작
     //리턴: 입력받아야 할 값들을 key:value(null) 형태
@@ -59,7 +70,7 @@ public class OnboardingController {
     //인자: Http Body- 문항 번호(key): 선택한 답(value)
     //리턴: 체질 결과
     @PostMapping("/sasang/result")    //결과를 어떻게 받을지와 무엇을 넘겨줄지 아직 결정 안함
-    public ResponseEntity<SasangResultDto> submitSasangTest(@RequestBody Map<Integer,String> testResult,
+    public ResponseEntity<SasangResultDto> submitSasangTest(@RequestBody Map<String,Integer> testResult,
                                               @AuthenticationPrincipal CustomOAuth2User user){
         log.info("'{}' 사상의학 테스트 결과 판별 요청",user.getEmail());
 
@@ -88,8 +99,8 @@ public class OnboardingController {
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
 
         if (onboardingService.isValidOnboarding(onboardingDto)) {
-            log.info("'{}' 가입 완료",email);
             onboardingService.saveOnboarding(email, onboardingDto);
+            log.info("'{}' 가입 완료",email);
             return ResponseEntity.ok("가입이 완료되었습니다.");
         } else {
             log.warn("'{}' 잘못된 온보딩 정보 입력", email);
