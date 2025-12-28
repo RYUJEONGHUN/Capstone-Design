@@ -1,4 +1,4 @@
-package com.example.IncheonMate.member.type;
+package com.example.IncheonMate.member.domain.type;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,7 +8,7 @@ import lombok.Getter;
 public enum CompanionType {
     SOLE("혼자"),
     FAMILY("가족"),
-    COUPLE("커플"),
+    COUPLE("연인"),
     FRIEND("친구");
 
     private final String description;

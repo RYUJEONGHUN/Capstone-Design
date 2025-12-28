@@ -1,4 +1,4 @@
-package com.example.IncheonMate.member.type;
+package com.example.IncheonMate.member.domain.type;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

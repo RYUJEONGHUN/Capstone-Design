@@ -1,10 +1,11 @@
 package com.example.IncheonMate.member.domain;
 
 import com.example.IncheonMate.member.dto.ProfileUpdateDto;
-import com.example.IncheonMate.member.type.CompanionType;
-import com.example.IncheonMate.member.type.MbtiType;
-import com.example.IncheonMate.member.type.SasangType;
+import com.example.IncheonMate.member.domain.type.CompanionType;
+import com.example.IncheonMate.member.domain.type.MbtiType;
+import com.example.IncheonMate.member.domain.type.SasangType;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.mongodb.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "members") // MongoDB의 'members' 컬렉션에 저장됨
@@ -46,9 +47,9 @@ public class Member {
     private String lang; //kor,eng
     @Indexed(unique = true)
     private String nickname;      // 닉네임
-    private String profileImage;  // 프로필 사진 URL
-    @Builder.Default
-    private Boolean profileImageAsMarker = false; //프로필 사진 마커로 사용할지 말지-🔺🔺
+    @Nullable
+    private String profileImageURL;  // 프로필 사진 URL
+    private boolean profileImageAsMarker; //프로필 사진 마커로 사용할지 말지-🔺🔺
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDate birthDate;     // 생년월일 (YYYY-MM-DD)
 
@@ -90,6 +91,10 @@ public class Member {
             this.lang = lang;
         }
         throw new IllegalArgumentException("지원하지 않는 언어입니다: " + lang);
+    }
+
+    public void updateSasang(SasangType sasangType){
+        this.sasang = sasangType;
     }
 
 
