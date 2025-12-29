@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Data
 public class OnboardingDto {
     /*
-    String nickname -> 최소 2글자/'사용자' 미포함
+    String nickname -> 최소 2글자,공백 허용/'사용자' 미포함
     String birthdate -> 6자리 숫자
     String mbti -> 대소문자 허용
     String profileImage; -> nullable
@@ -24,10 +24,9 @@ public class OnboardingDto {
      */
 
     @NotBlank(message = "닉네임은 필수입니다.")
-    @Size(min = 2, message = "닉네임은 최소 2글자 이상이여야 합니다.")
     @Pattern(
-            regexp = "^((?!사용자).)*$",
-            message = "'사용자'라는 단어는 닉네임에 포함할 수 없습니다."
+            regexp = "^(?!.*사용자)[가-힣a-zA-Z0-9\\s]{2,10}$",
+            message = "닉네임은 한글, 영문, 숫자, 공백을 포함한 2~10자여야 하며 '사용자'를 포함할 수 없습니다."
     )
     private String nickname;
 
@@ -58,3 +57,14 @@ public class OnboardingDto {
     @NotNull
     private String selectedPersonaId;
 }
+/*테스트 JSON
+{
+  "nickname": "인천여행자",
+  "birthDate": "990101",
+  "mbti": "ENFJ",
+  "profileImageURL": "https://example.com/profiles/user1.png",
+  "companion": "COUPLE",
+  "sasang": "SOEUM",
+  "selectedPersonaId": "persona_bear"
+}
+ */

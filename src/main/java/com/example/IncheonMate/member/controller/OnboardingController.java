@@ -1,6 +1,7 @@
 package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
+import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.dto.OnboardingDto;
 import com.example.IncheonMate.member.dto.SasangAnswerDto;
 import com.example.IncheonMate.member.dto.SasangResultDto;
@@ -25,7 +26,7 @@ public class OnboardingController {
     private final OnboardingService onboardingService;
     
     //언어 설정(kor,eng)
-    @PostMapping
+    @PostMapping("/lang")
     public ResponseEntity<Void> setLanguage(@RequestParam("lang") String language,
                                             @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
@@ -52,7 +53,7 @@ public class OnboardingController {
     public ResponseEntity<Boolean> checkNicknameAvailability(@RequestParam("nickname") String nickname,
                                                              @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
-        log.info("'{}' 닉네임 중복 검사 요청: {}",email,nickname);
+        log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}",email,nickname);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(onboardingService.isNicknameAvailability(email, nickname));
@@ -78,7 +79,7 @@ public class OnboardingController {
     //리턴: 저장 성공-String || 저장 실패-OnboardingDto 그대로
     //저장: 온보딩 정보 member doc에 저장
     @PostMapping("/complete")
-    public ResponseEntity<Void> completeOnboarding(@RequestBody @Valid OnboardingDto onboardingDto,
+    public ResponseEntity<OnboardingDto> completeOnboarding(@RequestBody @Valid OnboardingDto onboardingDto,
                                                             @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getEmail();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
@@ -86,7 +87,8 @@ public class OnboardingController {
         onboardingService.saveOnboarding(email, onboardingDto);
         log.info("'{}' 가입 완료",email);
 
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(onboardingDto);
     }
 
 

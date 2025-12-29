@@ -83,14 +83,20 @@ public class Member {
         if(profileUpdateDto.getBirthDate() != null) this.birthDate = birthDate;
     }
 
-    public void updateLang(String lang){
-        if(lang == null || lang.trim().isEmpty()){
+    //가드 절(Guard Clause) 패턴-Gemini
+    public void updateLang(String lang) {
+        // 1. 유효성 검증: null 또는 빈 값 체크
+        if (lang == null || lang.trim().isEmpty()) {
             throw new IllegalArgumentException("언어 설정값은 비어있을 수 없습니다.");
         }
-        if("kor".equals(lang) || "eng".equals(lang)) {
-            this.lang = lang;
+
+        // 2. 유효성 검증: 지원하지 않는 언어 체크 (부정 조건 사용)
+        if (!"kor".equals(lang) && !"eng".equals(lang)) {
+            throw new IllegalArgumentException("지원하지 않는 언어입니다: " + lang);
         }
-        throw new IllegalArgumentException("지원하지 않는 언어입니다: " + lang);
+
+        // 3. 실제 로직 수행
+        this.lang = lang;
     }
 
     public void updateSasang(SasangType sasangType){

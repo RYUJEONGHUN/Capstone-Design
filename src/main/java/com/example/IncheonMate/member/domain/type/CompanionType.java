@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum CompanionType {
-    SOLE("혼자"),
+    SOLO("혼자"),
     FAMILY("가족"),
     COUPLE("연인"),
     FRIEND("친구");

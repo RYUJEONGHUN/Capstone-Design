@@ -7,9 +7,11 @@ import com.example.IncheonMate.member.dto.SasangAnswerDto;
 import com.example.IncheonMate.member.dto.SasangResultDto;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.domain.type.SasangType;
+import com.example.IncheonMate.persona.repository.PersonaRepository;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+
 import java.util.regex.Pattern;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,6 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.NoSuchElementException;
 
 @Slf4j
@@ -28,9 +29,10 @@ import java.util.NoSuchElementException;
 public class OnboardingService {
 
     private final MemberRepository memberRepository;
+    private final PersonaRepository personaRepository;
 
-    // 정규식 컴파일 최적화 (상수화)
-    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9가-힣]{2,10}$");
+    // 한글, 영문, 숫자, 공백 포함 2~10자-Gemini
+    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9\\s]{2,10}$");
 
     //checkNicknameAvailability 컨트롤러
     //닉네임 중복 및 정책 검사
@@ -57,7 +59,16 @@ public class OnboardingService {
     private boolean checkNicknamePolicy(String nickname) {
         //nickname이 null이면 NullPointerExecption(unchecked) 발생 -> null check 제일 앞에
         //띄어쓰기만 있는 빈 문자열도 허용하지 않음
-        if (!StringUtils.hasText(nickname)) return false; // null 및 공백 체크 유틸 활용
+        if (!StringUtils.hasText(nickname)) {
+            log.info("null이거나 공백인 닉네임입니다: {}" ,nickname);
+            return false; // null 및 공백 체크 유틸 활용
+        }
+        String cleanNickname = nickname.replace(" ", "");
+        if (cleanNickname.contains("사용자")) {
+            log.info("금칙어(사용자)가 포함된 닉네임입니다: {}", nickname);
+            return false;
+        }
+
         return NICKNAME_PATTERN.matcher(nickname).matches();
     }
 
@@ -163,48 +174,77 @@ public class OnboardingService {
         SasangType sasang -> not null
         String selectedPersonaId -> not blank,not null
         */
+        if (onboardingDto == null) {
+            throw new IllegalArgumentException("온보딩 데이터가 없습니다.");
+        }
+
         Member targetMember = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
 
+        String validatedPersonaId = vaildatePersoanId(onboardingDto.getSelectedPersonaId());
+
+        if (!checkNicknamePolicy(onboardingDto.getNickname())) {
+            throw new IllegalArgumentException("닉네임 정책에 맞지 않습니다: " + onboardingDto.getNickname());
+        }
+        LocalDate birthDate = parseLocalDate(onboardingDto.getBirthDate());
+
+
         //기존 멤버에 온보딩 DTO를 반영함
-        Member updatedMember = targetMember.toBuilder()
+        //생년월일-현재보다 미래의 날짜도 통과하는 문제 => isAfter()로 해결
+        //profileImageURL-null이면 exception나오는 문제 => 반드시 profileImageURL: null 형태로 전달받아야함(없으면 exception)
+        //selectedPersonaId-컬렉션에 있는 personaId와 달라도 통과하는 문제 => 해결(vaildatePersoanId)
+        Member updateMember = targetMember.toBuilder()
                 .nickname(onboardingDto.getNickname())
-                .birthDate(parseLocalDate(onboardingDto.getBirthDate()))
+                .birthDate(birthDate)
                 .mbti(parseMbti(onboardingDto.getMbti()))
                 .profileImageURL(onboardingDto.getProfileImageURL())
                 .profileImageAsMarker(StringUtils.hasText(onboardingDto.getProfileImageURL()))
                 .companion(onboardingDto.getCompanion())
                 .sasang(onboardingDto.getSasang())
-                .selectedPersonaId(onboardingDto.getSelectedPersonaId())
+                .selectedPersonaId(validatedPersonaId)
                 .build();
 
-        memberRepository.save(updatedMember);
+        memberRepository.save(updateMember);
+    }
+
+    private String vaildatePersoanId(String selectedPersonaId) {
+        if(!personaRepository.existsById(selectedPersonaId)){
+            log.error("({})에 해당하는 페르소나ID가 없습니다.",selectedPersonaId);
+            throw new NoSuchElementException("(" + selectedPersonaId + ")에 해당하는 페르소나ID가 없습니다.");
+        }
+        return selectedPersonaId;
     }
 
     private MbtiType parseMbti(String mbti) {
         return MbtiType.valueOf(mbti.toUpperCase());
     }
 
-    private LocalDate parseLocalDate(String birthdate) { // 입력값: "990101"
-        // 1. 문자열 자르기 (String -> int)
-        int yearTwoDigit = Integer.parseInt(birthdate.substring(0, 2)); // 99
-        int month = Integer.parseInt(birthdate.substring(2, 4));        // 01
-        int day = Integer.parseInt(birthdate.substring(4, 6));          // 01
+    //yyMMdd를 yyyy-MM-dd형식으로 변경
+    private LocalDate parseLocalDate(String birthdate) {
+        int yearTwoDigit = Integer.parseInt(birthdate.substring(0, 2));
+        int month = Integer.parseInt(birthdate.substring(2, 4));
+        int day = Integer.parseInt(birthdate.substring(4, 6));
 
-        // 2. 연도 보정 로직 (1900년 vs 2000년)
-        // 현재 연도의 뒷자리(예: 25)를 구함
-        int currentYearTwoDigit = LocalDate.now().getYear() % 100;
+        int currentYear = LocalDate.now().getYear();
+        int currentYearTwoDigit = currentYear % 100;
 
-        int fullYear;
-        // 입력된 연도(99)가 현재(25)보다 크면 -> 과거(1999년)
-        // 입력된 연도(10)가 현재(25)보다 작으면 -> 최근(2010년)
-        if (yearTwoDigit > currentYearTwoDigit) {
-            fullYear = 1900 + yearTwoDigit;
-        } else {
-            fullYear = 2000 + yearTwoDigit;
+        // 1. 우선 2000년대라고 가정
+        int fullYear = 2000 + yearTwoDigit;
+
+        // 2. 만약 계산된 연도가 내년(올해+1)보다 크다면, 1900년대일 확률이 높음
+        // 1년의 여유를 두는 이유는 '26'이 내년(미래 오타)인지 '1926'인지 구분하기 위함
+        if (fullYear > currentYear + 1) {
+            fullYear -= 100;
         }
 
-        // 3. LocalDate 객체 생성 (이게 yyyy-MM-dd 형식의 객체가 됨)
-        return LocalDate.of(fullYear, month, day);
+        // 3. 실제 날짜 객체 생성 (존재하지 않는 날짜면 예외 발생)
+        LocalDate result = LocalDate.of(fullYear, month, day);
+
+        // 4. 최종 미래 날짜 검증 (이제 '26'이 2026년으로 유지되어 여기서 걸러짐)
+        if (result.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("미래 날짜는 생년월일로 설정할 수 없습니다.");
+        }
+
+        return result;
     }
 }
