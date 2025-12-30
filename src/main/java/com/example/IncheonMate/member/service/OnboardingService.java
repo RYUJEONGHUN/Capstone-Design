@@ -4,6 +4,7 @@ import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.domain.type.MbtiType;
 import com.example.IncheonMate.member.dto.OnboardingDto;
 import com.example.IncheonMate.member.dto.SasangAnswerDto;
+import com.example.IncheonMate.member.dto.SasangResultDto;
 import com.example.IncheonMate.member.dto.TermsAgreementDto;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.domain.type.SasangType;
@@ -77,16 +78,15 @@ public class OnboardingService {
     }
 
 
-    public record SasangResultResponse(String eamil,SasangType sasangType){}
     //submitSasangTest컨트롤러
     //사상의학 테스트 결과 도출
-    public SasangResultResponse deriveSasangResult(List<SasangAnswerDto> testResult, String email) {
+    public SasangResultDto deriveSasangResult(List<SasangAnswerDto> testResult, String email) {
         //체질 도출 로직
         SasangType sasangType = analyzeSasangType(testResult);
 
         log.info("'{}' 사상의학 테스트 결과: {}", email, sasangType);
 
-        return new SasangResultResponse(email,sasangType);
+        return new SasangResultDto(email,sasangType);
     }
 
     private SasangType analyzeSasangType(List<SasangAnswerDto> testResult) {

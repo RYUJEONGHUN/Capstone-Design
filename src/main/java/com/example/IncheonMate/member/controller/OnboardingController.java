@@ -3,6 +3,7 @@ package com.example.IncheonMate.member.controller;
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.member.dto.OnboardingDto;
 import com.example.IncheonMate.member.dto.SasangAnswerDto;
+import com.example.IncheonMate.member.dto.SasangResultDto;
 import com.example.IncheonMate.member.dto.TermsAgreementDto;
 import com.example.IncheonMate.member.service.OnboardingService;
 import jakarta.validation.Valid;
@@ -51,6 +52,7 @@ public class OnboardingController {
     //닉네임 중복검사
     //인자: URI 파라미터-닉네임
     //리턴: true (사용불가/중복) or false (사용가능)
+    //key:value로 수정해야함****************************************************************************************************************************************************
     @GetMapping("/check")
     public ResponseEntity<Boolean> checkNicknameAvailability(@RequestParam("nickname") String nickname,
                                                              @AuthenticationPrincipal CustomOAuth2User user){
@@ -66,7 +68,7 @@ public class OnboardingController {
     //인자: Http Body- 문항 번호(key): 선택한 답(value)
     //리턴: 체질 결과
     @PostMapping("/sasang/result")    //결과를 어떻게 받을지와 무엇을 넘겨줄지 아직 결정 안함
-    public ResponseEntity<OnboardingService.SasangResultResponse> submitSasangTest(@RequestBody List<SasangAnswerDto> testResult,
+    public ResponseEntity<SasangResultDto> submitSasangTest(@RequestBody List<SasangAnswerDto> testResult,
                                                             @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
         log.info("'{}' 사상의학 테스트 결과 판별 요청",email);
