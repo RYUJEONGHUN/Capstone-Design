@@ -51,11 +51,18 @@ public class OnboardingDto {
 
     @NotNull(message = "동반자는 필수입니다.")
     private CompanionType companion;
+
     @NotNull(message = "사상의학 테스트는 필수입니다.")
     private SasangType sasang;
+
     @NotBlank(message = "페르소나를 선택해주세요")
     @NotNull
     private String selectedPersonaId;
+
+    @NotBlank(message = "언어는 필수입니다.")
+    @Pattern(regexp = "^(kor|eng)$", message = "지원하지 않는 언어입니다. (kor 또는 eng만 가능)")
+    @NotNull(message = "언어는 필수입니다.: 현재 언어는 null입니다.")
+    private String lang;
 }
 /*테스트 JSON
 {
@@ -65,6 +72,7 @@ public class OnboardingDto {
   "profileImageURL": "https://example.com/profiles/user1.png",
   "companion": "COUPLE",
   "sasang": "SOEUM",
-  "selectedPersonaId": "persona_bear"
+  "selectedPersonaId": "persona_bear",
+  "lang": "kor"
 }
  */

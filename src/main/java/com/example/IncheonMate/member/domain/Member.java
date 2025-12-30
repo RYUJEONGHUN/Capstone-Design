@@ -43,6 +43,17 @@ public class Member {
     private String role; // ROLE_USER, ROLE_ADMIN
     private String provider; //google,kakao
 
+    // --- 추가. 사용자 약관
+    //동의 여부
+    private boolean isPrivacyPolicyAgreed; //개인정보 처리방침 동의
+    private boolean isLocationServiceAgreed; //위치기반 서비스 동의
+    private boolean isTermsOfServiceAgreed; //개인정보 동의
+    //동의 시점-@CreatedDate 사용하면 안됨
+    private LocalDateTime allTermsAgreedAt; //필수 약관 3개에 동의한 시간
+    //약관 버전
+    private String termsVersion; //약관 버전 관리
+
+
     // --- 2. 사용자 입력 프로필 [기획안 5-15 참고] ---
     private String lang; //kor,eng
     @Indexed(unique = true)
@@ -81,26 +92,6 @@ public class Member {
         if(profileUpdateDto.getSasang() != null) this.sasang = sasang;
         if(profileUpdateDto.getCompanion() != null) this.companion = companion;
         if(profileUpdateDto.getBirthDate() != null) this.birthDate = birthDate;
-    }
-
-    //가드 절(Guard Clause) 패턴-Gemini
-    public void updateLang(String lang) {
-        // 1. 유효성 검증: null 또는 빈 값 체크
-        if (lang == null || lang.trim().isEmpty()) {
-            throw new IllegalArgumentException("언어 설정값은 비어있을 수 없습니다.");
-        }
-
-        // 2. 유효성 검증: 지원하지 않는 언어 체크 (부정 조건 사용)
-        if (!"kor".equals(lang) && !"eng".equals(lang)) {
-            throw new IllegalArgumentException("지원하지 않는 언어입니다: " + lang);
-        }
-
-        // 3. 실제 로직 수행
-        this.lang = lang;
-    }
-
-    public void updateSasang(SasangType sasangType){
-        this.sasang = sasangType;
     }
 
 

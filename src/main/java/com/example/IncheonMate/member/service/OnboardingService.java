@@ -4,12 +4,13 @@ import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.domain.type.MbtiType;
 import com.example.IncheonMate.member.dto.OnboardingDto;
 import com.example.IncheonMate.member.dto.SasangAnswerDto;
-import com.example.IncheonMate.member.dto.SasangResultDto;
+import com.example.IncheonMate.member.dto.TermsAgreementDto;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.domain.type.SasangType;
 import com.example.IncheonMate.persona.repository.PersonaRepository;
 import jakarta.validation.Valid;
 
+import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,9 @@ public class OnboardingService {
 
     // 한글, 영문, 숫자, 공백 포함 2~10자-Gemini
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9\\s]{2,10}$");
+
+    //현재 약관 버전
+    private static final String CURRENT_TERMS_VERSION = "v1.0.0";
 
     //checkNicknameAvailability 컨트롤러
     //닉네임 중복 및 정책 검사
@@ -60,7 +64,7 @@ public class OnboardingService {
         //nickname이 null이면 NullPointerExecption(unchecked) 발생 -> null check 제일 앞에
         //띄어쓰기만 있는 빈 문자열도 허용하지 않음
         if (!StringUtils.hasText(nickname)) {
-            log.info("null이거나 공백인 닉네임입니다: {}" ,nickname);
+            log.info("null이거나 공백인 닉네임입니다: {}", nickname);
             return false; // null 및 공백 체크 유틸 활용
         }
         String cleanNickname = nickname.replace(" ", "");
@@ -72,35 +76,17 @@ public class OnboardingService {
         return NICKNAME_PATTERN.matcher(nickname).matches();
     }
 
-    //setLanguage 컨트롤러
-    //언어 설정 저장
-    @Transactional
-    public void setLanguage(String email, String language) {
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
-        member.updateLang(language);
-        memberRepository.save(member);
-        log.info("'{}' 언어 설정을 완료했습니다: {}", email, language);
 
-    }
-
+    public record SasangResultResponse(String eamil,SasangType sasangType){}
     //submitSasangTest컨트롤러
     //사상의학 테스트 결과 도출
-    @Transactional
-    public SasangResultDto deriveSasangResult(List<SasangAnswerDto> testResult, String email) {
+    public SasangResultResponse deriveSasangResult(List<SasangAnswerDto> testResult, String email) {
         //체질 도출 로직
         SasangType sasangType = analyzeSasangType(testResult);
 
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
-        member.updateSasang(sasangType);
-        memberRepository.save(member);
-        log.info("'{}' 체질 저장 완료: {}", email, sasangType);
+        log.info("'{}' 사상의학 테스트 결과: {}", email, sasangType);
 
-        return SasangResultDto.builder()
-                .sasangType(sasangType)
-                .email(email)
-                .build();
+        return new SasangResultResponse(email,sasangType);
     }
 
     private SasangType analyzeSasangType(List<SasangAnswerDto> testResult) {
@@ -173,21 +159,25 @@ public class OnboardingService {
         CompanionType companion ->not null
         SasangType sasang -> not null
         String selectedPersonaId -> not blank,not null
+        lang -> kor or eng
         */
+        //온보딩DTO null 검증
         if (onboardingDto == null) {
             throw new IllegalArgumentException("온보딩 데이터가 없습니다.");
         }
 
+        //저장할 멤버
         Member targetMember = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
 
-        String validatedPersonaId = vaildatePersoanId(onboardingDto.getSelectedPersonaId());
-
+        //페르소나ID가 컬렉션에 있는것과 맞는지 검증
+        String validatedPersonaId = validatePersoanId(onboardingDto.getSelectedPersonaId());
+        //닉네임이 정책에 맞게 들어왔는지 검증
         if (!checkNicknamePolicy(onboardingDto.getNickname())) {
             throw new IllegalArgumentException("닉네임 정책에 맞지 않습니다: " + onboardingDto.getNickname());
         }
+        //yyMMdd형식을 yyyy-MM-dd형식으로 변환하고 미래의 날짜인지 검증
         LocalDate birthDate = parseLocalDate(onboardingDto.getBirthDate());
-
 
         //기존 멤버에 온보딩 DTO를 반영함
         //생년월일-현재보다 미래의 날짜도 통과하는 문제 => isAfter()로 해결
@@ -202,14 +192,15 @@ public class OnboardingService {
                 .companion(onboardingDto.getCompanion())
                 .sasang(onboardingDto.getSasang())
                 .selectedPersonaId(validatedPersonaId)
+                .lang(onboardingDto.getLang())
                 .build();
 
         memberRepository.save(updateMember);
     }
 
-    private String vaildatePersoanId(String selectedPersonaId) {
-        if(!personaRepository.existsById(selectedPersonaId)){
-            log.error("({})에 해당하는 페르소나ID가 없습니다.",selectedPersonaId);
+    private String validatePersoanId(String selectedPersonaId) {
+        if (!personaRepository.existsById(selectedPersonaId)) {
+            log.error("({})에 해당하는 페르소나ID가 없습니다.", selectedPersonaId);
             throw new NoSuchElementException("(" + selectedPersonaId + ")에 해당하는 페르소나ID가 없습니다.");
         }
         return selectedPersonaId;
@@ -247,4 +238,31 @@ public class OnboardingService {
 
         return result;
     }
+
+    //일회성인 약관 응답을 위한 java record(java 16이상)
+    public record AgreementResponse(String email, LocalDateTime agreedAt, String version) {}
+
+    //saveAgreements컨트롤러
+    @Transactional
+    public AgreementResponse saveAgreements(String email, TermsAgreementDto termsAgreementDto) {
+        //저장할 멤버
+        Member targetMember = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
+        //현재 시간
+        LocalDateTime now = LocalDateTime.now();
+        //약관 버전->버전관리 필요하면 메소드 형태로 변형
+        String currentTermsVersion = CURRENT_TERMS_VERSION;
+
+        //멤버 약관 동의 저장
+        memberRepository.save(targetMember.toBuilder()
+                .isPrivacyPolicyAgreed(termsAgreementDto.isPrivacyPolicyAgreed())
+                .isLocationServiceAgreed(termsAgreementDto.isLocationServiceAgreed())
+                .isTermsOfServiceAgreed(termsAgreementDto.isTermsOfServiceAgreed())
+                .allTermsAgreedAt(now)
+                .termsVersion(currentTermsVersion)
+                .build());
+        log.info("'{}' 약관 동의 내역 저장 완료",email);
+        return new AgreementResponse(email, now, currentTermsVersion);
+    }
+
 }

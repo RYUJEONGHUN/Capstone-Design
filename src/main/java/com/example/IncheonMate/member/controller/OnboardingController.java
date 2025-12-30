@@ -1,10 +1,9 @@
 package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
-import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.dto.OnboardingDto;
 import com.example.IncheonMate.member.dto.SasangAnswerDto;
-import com.example.IncheonMate.member.dto.SasangResultDto;
+import com.example.IncheonMate.member.dto.TermsAgreementDto;
 import com.example.IncheonMate.member.service.OnboardingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -24,17 +22,21 @@ import java.util.Map;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
-    
-    //언어 설정(kor,eng)
-    @PostMapping("/lang")
-    public ResponseEntity<Void> setLanguage(@RequestParam("lang") String language,
-                                            @AuthenticationPrincipal CustomOAuth2User user){
-        String email = user.getEmail();
-        log.info("'{}' {}로 언어 설정",email,language);
 
-        onboardingService.setLanguage(email,language);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    //약관 동의 저장
+    //인자: HTTP body-약관1,2,3:ture
+    //응답: HTTP body-이메일,동의한 시간,약관 버전
+    @PostMapping("/agreements")
+    public ResponseEntity<OnboardingService.AgreementResponse> saveAgreements(@AuthenticationPrincipal CustomOAuth2User user,
+                                                            @RequestBody @Valid TermsAgreementDto termsAgreementDto){
+        String email = user.getEmail();
+        log.info("'{}' 약관 동의 내역 저장 요청",email);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(onboardingService.saveAgreements(email,termsAgreementDto));
     }
+
+
 
     //사용자 정보 입력(온보딩) 시작
     //리턴: 입력받아야 할 값들을 key:value(null) 형태
@@ -64,7 +66,7 @@ public class OnboardingController {
     //인자: Http Body- 문항 번호(key): 선택한 답(value)
     //리턴: 체질 결과
     @PostMapping("/sasang/result")    //결과를 어떻게 받을지와 무엇을 넘겨줄지 아직 결정 안함
-    public ResponseEntity<SasangResultDto> submitSasangTest(@RequestBody List<SasangAnswerDto> testResult,
+    public ResponseEntity<OnboardingService.SasangResultResponse> submitSasangTest(@RequestBody List<SasangAnswerDto> testResult,
                                                             @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
         log.info("'{}' 사상의학 테스트 결과 판별 요청",email);
