@@ -6,13 +6,13 @@ package com.example.IncheonMate.chat.controller;
 6. 채팅 기록 -> 키워드 검색: 전체 채팅 세션에서 검색한 결과를 보내줌 => Get + URI searchChatHistory |도메인: chatSession
  */
 
-import com.example.IncheonMate.chat.repository.ChatSessionRepository;
 import com.example.IncheonMate.chat.service.ChatSessionService;
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.example.IncheonMate.chat.dto.ChatSessionResponse;
 
 import java.util.List;
 

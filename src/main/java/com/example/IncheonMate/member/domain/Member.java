@@ -107,6 +107,9 @@ public class Member {
         private String googleMapUrl; //구글 맵 주소
     }
 
+    //---- 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
+    private String externalServiceUri; //default URL넣어줘야함
+
 
 
 }
