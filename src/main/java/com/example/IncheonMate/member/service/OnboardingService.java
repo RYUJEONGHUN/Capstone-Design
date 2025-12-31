@@ -40,21 +40,23 @@ public class OnboardingService {
 
     //checkNicknameAvailability 컨트롤러
     //닉네임 중복 및 정책 검사
+    public record NicknameAvailabilityResponse(boolean isOk){}
+
     @Transactional(readOnly = true)
-    public boolean isNicknameAvailability(String email, String nickname) {
+    public NicknameAvailabilityResponse isNicknameAvailability(String email, String nickname) {
         //정책 검사
         if (!checkNicknamePolicy(nickname)) {
             log.info("'{}' 닉네임 정책 위반", email);
-            return false;
+            return new NicknameAvailabilityResponse(false);
         }
         //중복 검사
         if (memberRepository.existsByNickname(nickname)) {
             log.info("'{}' 닉네임 중복", email);
-            return false;
+            return new NicknameAvailabilityResponse(false);
         }
 
         log.info("'{}' 닉네임 검사 통과", email);
-        return true;
+        return new NicknameAvailabilityResponse(true);
     }
 
 
@@ -240,7 +242,7 @@ public class OnboardingService {
     }
 
     //일회성인 약관 응답을 위한 java record(java 16이상)
-    public record AgreementResponse(String email, LocalDateTime agreedAt, String version) {}
+    public record AgreementResponse(boolean isAgreed, LocalDateTime agreedAt, String version) {}
 
     //saveAgreements컨트롤러
     @Transactional
@@ -262,7 +264,7 @@ public class OnboardingService {
                 .termsVersion(currentTermsVersion)
                 .build());
         log.info("'{}' 약관 동의 내역 저장 완료",email);
-        return new AgreementResponse(email, now, currentTermsVersion);
+        return new AgreementResponse(true, now, currentTermsVersion);
     }
 
 }

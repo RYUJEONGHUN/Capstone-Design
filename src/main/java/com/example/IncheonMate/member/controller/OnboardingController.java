@@ -52,7 +52,7 @@ public class OnboardingController {
     //인자: URI 파라미터-닉네임
     //리턴: true (사용불가/중복) or false (사용가능)
     @GetMapping("/check")
-    public ResponseEntity<Boolean> checkNicknameAvailability(@RequestParam("nickname") String nickname,
+    public ResponseEntity<OnboardingService.NicknameAvailabilityResponse> checkNicknameAvailability(@RequestParam("nickname") String nickname,
                                                              @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
         log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}",email,nickname);
