@@ -48,12 +48,12 @@ public class ChatSessionResponse {
              AuthorType authorType,
              String content
     ){
-        public static SearchedMessageDto from(ChatSession.Message messages){
+        public static SearchedMessageDto from(ChatSession.Message message){
             return new SearchedMessageDto(
-                    messages.getId(),
-                    messages.getCreatedAt(),
-                    messages.getAuthorType(),
-                    messages.getContent()
+                    message.getId(),
+                    message.getCreatedAt(),
+                    message.getAuthorType(),
+                    message.getContent()
             );
         }
     }

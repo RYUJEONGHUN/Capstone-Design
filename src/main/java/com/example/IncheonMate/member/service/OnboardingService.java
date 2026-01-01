@@ -89,7 +89,8 @@ public class OnboardingService {
         return new SasangResultDto(email,sasangType);
     }
 
-    private SasangType analyzeSasangType(List<SasangAnswerDto> testResult) {
+    // 나중에 domain shared service로 분리하고 의존성 주입해서 사용해야함
+    protected static SasangType analyzeSasangType(List<SasangAnswerDto> testResult) {
         // 🛡️ 안전장치: 문항 번호(questionId) 기준으로 오름차순 정렬-Gemini
         testResult.sort(Comparator.comparingInt(SasangAnswerDto::getQuestionId));
 

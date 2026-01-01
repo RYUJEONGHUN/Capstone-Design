@@ -2,6 +2,7 @@ package com.example.IncheonMate.chat.domain;
 
 import com.example.IncheonMate.chat.domain.type.AuthorType;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -16,6 +17,8 @@ import java.util.List;
 @Document(collection = "chatSessions")
 @Getter
 @NoArgsConstructor
+@Builder
+@AllArgsConstructor
 public class ChatSession {
 
     //---세션 기본 정보
@@ -36,6 +39,7 @@ public class ChatSession {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @Builder
     public static class Message{
         //메시지 기본 정보
         //MongoDB는 메시지가 추가될 때마다 전 세계 모든 메시지 ID를 뒤져서 중복을 검사해야 하므로 채팅 속도가 느려질 수 있습니다.

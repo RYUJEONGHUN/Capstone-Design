@@ -17,4 +17,7 @@ public interface MemberRepository extends MongoRepository<Member, String> {
 
     // 이메일 존재 여부 확인 (JWT 검증 시 가끔 사용)
     boolean existsByEmail(String email);
+
+    @Query(value = "{ 'email': ?0 }", fields = "{ 'favoritePlaces' : 1, '_id': 0 }")
+    Optional<Member> findFavoritePlacesByEmail(String email);
 }

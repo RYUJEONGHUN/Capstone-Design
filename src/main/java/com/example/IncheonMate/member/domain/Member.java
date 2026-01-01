@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.geo.GeoJson;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -84,9 +83,10 @@ public class Member {
     private LocalDateTime updatedAt; // 수정일
 
     // --- 5. 찜 목록 ---
-    private List<String> favoritePlaces = new ArrayList<>(); // 찜한 장소들의 ID 목록
+    private List<FavoritePlace> favoritePlaces = new ArrayList<>(); // 찜한 장소들
 
     @Getter
+    @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     public static class FavoritePlace{
