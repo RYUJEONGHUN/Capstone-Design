@@ -45,6 +45,7 @@ public class TestDataInitializer {
     @Bean
     CommandLineRunner initMemberData(MemberRepository memberRepository) {
         return args -> {
+
             String myEmail = "246813579246813579q@gmail.com";
 
             memberRepository.findByEmail(myEmail).ifPresent(member -> {

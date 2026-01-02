@@ -11,5 +11,5 @@ public interface ChatSessionRepository extends MongoRepository<ChatSession, Stri
     //memberId에 해당하는 전체 채팅 세션 조회
     List<ChatSession> findAllByMemberId(String memberId);
 
-    List<ChatSession> findByMessagesContentContaining(String keyword);
+    List<ChatSession> findByMemberIdAndMessagesContentContaining(String id, String keyword);
 }

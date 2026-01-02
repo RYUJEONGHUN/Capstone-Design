@@ -1,12 +1,12 @@
 package com.example.IncheonMate.member.service;
 
+import com.example.IncheonMate.common.exception.CustomException;
+import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.domain.Member;
-import com.example.IncheonMate.member.domain.type.MbtiType;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.domain.type.SasangType;
 import com.example.IncheonMate.persona.repository.PersonaRepository;
-import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +18,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
@@ -33,18 +32,18 @@ public class OnboardingService {
     private static final String CURRENT_TERMS_VERSION = "v1.0.0";
 
     //사상의학 테스트 결과 도출
-    public MemberCommonDto.SasangResultDto deriveSasangResult(List<MemberCommonDto.SasangAnswerDto> testResult, String email) {
+    public MemberCommonDto.SasangResponseDto deriveSasangResult(List<MemberCommonDto.SasangAnswerDto> testResult, String email) {
         //체질 도출 로직
         SasangType sasangType = memberCommonService.analyzeSasangType(testResult);
 
         log.info("'{}' 사상의학 테스트 결과: {}", email, sasangType);
 
-        return new MemberCommonDto.SasangResultDto(email,sasangType);
+        return new MemberCommonDto.SasangResponseDto(email,sasangType);
     }
 
 
     @Transactional
-    public void saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto) {
+    public OnboardingBundle.OnboardingDto saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto) {
         /*
         String nickname -> 최소 2글자/'사용자' 미포함
         String birthdate -> 6자리 숫자
@@ -57,18 +56,17 @@ public class OnboardingService {
         */
         //온보딩DTO null 검증
         if (onboardingDto == null) {
-            throw new IllegalArgumentException("온보딩 데이터가 없습니다.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"저장할 온보딩 데이터가 업습니다.");
         }
 
         //저장할 멤버
-        Member targetMember = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
+        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
 
         //페르소나ID가 컬렉션에 있는것과 맞는지 검증
         String validatedPersonaId = validatePersonaId(onboardingDto.selectedPersonaId());
         //닉네임이 정책에 맞게 들어왔는지 검증
         if (!memberCommonService.checkNicknamePolicy(onboardingDto.nickname())) {
-            throw new IllegalArgumentException("닉네임 정책에 맞지 않습니다: " + onboardingDto.nickname());
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,onboardingDto.nickname() + "은(는) 정책을 위배한 닉네임입니다");
         }
         //yyMMdd형식을 yyyy-MM-dd형식으로 변환하고 미래의 날짜인지 검증
         LocalDate birthDate = memberCommonService.parseLocalDate(onboardingDto.birthDate());
@@ -80,7 +78,7 @@ public class OnboardingService {
         Member updateMember = targetMember.toBuilder()
                 .nickname(onboardingDto.nickname())
                 .birthDate(birthDate)
-                .mbti(parseMbti(onboardingDto.mbti()))
+                .mbti(memberCommonService.parseMbti(onboardingDto.mbti()))
                 .profileImageURL(onboardingDto.profileImageURL())
                 .profileImageAsMarker(StringUtils.hasText(onboardingDto.profileImageURL()))
                 .companion(onboardingDto.companion())
@@ -90,27 +88,25 @@ public class OnboardingService {
                 .build();
 
         memberRepository.save(updateMember);
+        log.info("'{}' 가입 완료",email);
+        return OnboardingBundle.OnboardingDto.from(updateMember);
     }
 
     private String validatePersonaId(String selectedPersonaId) {
         if (!personaRepository.existsById(selectedPersonaId)) {
-            log.error("({})에 해당하는 페르소나ID가 없습니다.", selectedPersonaId);
-            throw new NoSuchElementException("(" + selectedPersonaId + ")에 해당하는 페르소나ID가 없습니다.");
+            log.warn("({})에 해당하는 페르소나ID가 없습니다.", selectedPersonaId);
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, selectedPersonaId + "에 해당하는 페르소나ID가 없습니다.");
         }
         return selectedPersonaId;
     }
 
-    private MbtiType parseMbti(String mbti) {
-        return MbtiType.valueOf(mbti.toUpperCase());
-    }
 
 
     //saveAgreements컨트롤러
     @Transactional
     public OnboardingBundle.TermsAgreementResponse saveAgreements(String email, OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
         //저장할 멤버
-        Member targetMember = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("해당 이메일을 가진 멤버를 찾을 수 없습니다: " + email));
+        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
         //현재 시간
         LocalDateTime now = LocalDateTime.now();
         //약관 버전->버전관리 필요하면 메소드 형태로 변형

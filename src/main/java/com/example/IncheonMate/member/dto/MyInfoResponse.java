@@ -82,7 +82,7 @@ public class MyInfoResponse {
             )
             String birthdate,
 
-            MbtiType mbti,
+            String mbti,
             SasangType sasang,
 
             @Nullable
@@ -95,7 +95,7 @@ public class MyInfoResponse {
             return new MyProfileDto(
                     member.getNickname(),
                     formattedBirthdate,
-                    member.getMbti(),
+                    member.getMbti().toString(),
                     member.getSasang(),
                     member.getProfileImageURL()
             );

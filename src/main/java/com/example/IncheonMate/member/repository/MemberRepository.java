@@ -1,6 +1,11 @@
 package com.example.IncheonMate.member.repository;
 
+import com.example.IncheonMate.common.exception.CustomException;
+import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.domain.Member;
+import com.example.IncheonMate.member.domain.type.SasangType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -20,4 +25,16 @@ public interface MemberRepository extends MongoRepository<Member, String> {
 
     @Query(value = "{ 'email': ?0 }", fields = "{ 'favoritePlaces' : 1, '_id': 0 }")
     Optional<Member> findFavoritePlacesByEmail(String email);
+
+    //findByEmail의 orElseThrow() 중복을 피하기 위해서 작성
+    default Member findByEmailOrElseThrow(String email){
+        return findByEmail(email)
+                .orElseThrow(() -> {
+                    //인터페이스에서는 @Slf4j를 못쓰니 직접 호출
+                    Logger log = LoggerFactory.getLogger(MemberRepository.class);
+                    log.warn("{}에 해당하는 멤버를 찾을 수 없습니다.",email);
+
+                    return new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+                });
+    }
 }

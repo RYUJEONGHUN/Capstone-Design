@@ -4,7 +4,6 @@ import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.MemberService;
-import com.example.IncheonMate.member.service.OnboardingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -78,7 +77,7 @@ public class MemberController {
                 .body(memberService.getProfileInfoForEdit(email));
     }
 
-    //8. 정보 수정 -> 닉네임 중복 체크: 온보딩의 닉네임 중복 체크와 같은 로직 => Get + URI checkNicknamePolicy |도메인: member
+    //8. 정보 수정 -> 닉네임 정책 체크: 온보딩의 닉네임 중복 체크와 같은 로직 => Get + URI checkNicknamePolicy |도메인: member
     @GetMapping("/profile/check")
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknamePolicy(@AuthenticationPrincipal CustomOAuth2User user,
                                                                                  @RequestParam("nickname") String nickname){
@@ -93,13 +92,13 @@ public class MemberController {
     //9. 정보 수정 -> 사상의학 정보 도출: 사상의학 테스트를 끝내면 정보를 도출해서 결과를 보냄(온보딩과 똑같음) => Pacth updateSasang |도메인: member
     //사상의학 정보 저장해야함
     @PatchMapping("/profile/sasang")
-    public ResponseEntity<MemberCommonDto.SasangResultDto> updateSasang(@AuthenticationPrincipal CustomOAuth2User user,
-                                                        @RequestBody List<MemberCommonDto.SasangAnswerDto> sasangAnswerDtos){
+    public ResponseEntity<MemberCommonDto.SasangResponseDto> updateSasang(@AuthenticationPrincipal CustomOAuth2User user,
+                                                                          @RequestBody @Valid MemberCommonDto.SasangRequestDto sasangAnswerDtos){
         String email = user.getEmail();
         log.info("'{}' MyInfo 사상의학 결과 및 저장 요청",email);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(memberService.deriveSasangResult(email,sasangAnswerDtos));
+                .body(memberService.deriveSasangResult(email,sasangAnswerDtos.answers()));
     }
 
     //10. 정보 수정 -> 메인: 바뀐 정보를 저장하는 기능 => Patch updateProfile |도메인: member
