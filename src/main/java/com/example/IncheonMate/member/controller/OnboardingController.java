@@ -1,10 +1,8 @@
 package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
-import com.example.IncheonMate.member.dto.OnboardingDto;
-import com.example.IncheonMate.member.dto.SasangAnswerDto;
-import com.example.IncheonMate.member.dto.SasangResultDto;
-import com.example.IncheonMate.member.dto.TermsAgreementDto;
+import com.example.IncheonMate.member.dto.*;
+import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.OnboardingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,18 +21,19 @@ import java.util.List;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
+    private final MemberCommonService memberCommonService;
 
     //약관 동의 저장
     //인자: HTTP body-약관1,2,3:ture
     //응답: HTTP body-이메일,동의한 시간,약관 버전
     @PostMapping("/agreements")
-    public ResponseEntity<OnboardingService.AgreementResponse> saveAgreements(@AuthenticationPrincipal CustomOAuth2User user,
-                                                            @RequestBody @Valid TermsAgreementDto termsAgreementDto){
+    public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@AuthenticationPrincipal CustomOAuth2User user,
+                                                                                  @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest){
         String email = user.getEmail();
         log.info("'{}' 약관 동의 내역 저장 요청",email);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.saveAgreements(email,termsAgreementDto));
+                .body(onboardingService.saveAgreements(email, termsAgreementRequest));
     }
 
 
@@ -42,25 +41,24 @@ public class OnboardingController {
     //사용자 정보 입력(온보딩) 시작
     //리턴: 입력받아야 할 값들을 key:value(null) 형태
     @GetMapping
-    public ResponseEntity<OnboardingDto> getOnboardingData(@AuthenticationPrincipal CustomOAuth2User user){
+    public ResponseEntity<OnboardingBundle.OnboardingDto> getOnboardingData(@AuthenticationPrincipal CustomOAuth2User user){
         log.info("'{}' 온보딩 시작 요청",user.getEmail());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(new OnboardingDto());
+                .body(OnboardingBundle.OnboardingDto.from(null));
     }
 
     //닉네임 중복검사
     //인자: URI 파라미터-닉네임
     //리턴: true (사용불가/중복) or false (사용가능)
-    //key:value로 수정해야함****************************************************************************************************************************************************
     @GetMapping("/check")
-    public ResponseEntity<Boolean> checkNicknameAvailability(@RequestParam("nickname") String nickname,
-                                                             @AuthenticationPrincipal CustomOAuth2User user){
+    public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@RequestParam("nickname") String nickname,
+                                                                     @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
         log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}",email,nickname);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.isNicknameAvailability(email, nickname));
+                .body(memberCommonService.isNicknameAvailability(email, nickname));
     }
 
 
@@ -68,7 +66,7 @@ public class OnboardingController {
     //인자: Http Body- 문항 번호(key): 선택한 답(value)
     //리턴: 체질 결과
     @PostMapping("/sasang/result")    //결과를 어떻게 받을지와 무엇을 넘겨줄지 아직 결정 안함
-    public ResponseEntity<SasangResultDto> submitSasangTest(@RequestBody List<SasangAnswerDto> testResult,
+    public ResponseEntity<MemberCommonDto.SasangResultDto> submitSasangTest(@RequestBody List<MemberCommonDto.SasangAnswerDto> testResult,
                                                             @AuthenticationPrincipal CustomOAuth2User user){
         String email = user.getEmail();
         log.info("'{}' 사상의학 테스트 결과 판별 요청",email);
@@ -83,7 +81,7 @@ public class OnboardingController {
     //리턴: 저장 성공-String || 저장 실패-OnboardingDto 그대로
     //저장: 온보딩 정보 member doc에 저장
     @PostMapping("/complete")
-    public ResponseEntity<OnboardingDto> completeOnboarding(@RequestBody @Valid OnboardingDto onboardingDto,
+    public ResponseEntity<OnboardingBundle.OnboardingDto> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
                                                             @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getEmail();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);

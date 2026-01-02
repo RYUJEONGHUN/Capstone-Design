@@ -1,10 +1,8 @@
 package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
-import com.example.IncheonMate.member.dto.MyInfoResponse;
-import com.example.IncheonMate.member.dto.OnboardingDto;
-import com.example.IncheonMate.member.dto.SasangAnswerDto;
-import com.example.IncheonMate.member.dto.SasangResultDto;
+import com.example.IncheonMate.member.dto.*;
+import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.MemberService;
 import com.example.IncheonMate.member.service.OnboardingService;
 import jakarta.validation.Valid;
@@ -38,6 +36,7 @@ DTO는 MyInfoDTO클래스 안에 여러개의 record만들어서 사용
 public class MemberController {
 
     private final MemberService memberService;
+    private final MemberCommonService memberCommonService;
 
     //1. 메인:사상의학과 MBTI를 보내줌 => Get getMyProfile |도메인 member
     @GetMapping
@@ -81,25 +80,24 @@ public class MemberController {
 
     //8. 정보 수정 -> 닉네임 중복 체크: 온보딩의 닉네임 중복 체크와 같은 로직 => Get + URI checkNicknamePolicy |도메인: member
     @GetMapping("/profile/check")
-    public ResponseEntity<MyInfoResponse.NicknamePolicyDto> checkNicknamePolicy(@AuthenticationPrincipal CustomOAuth2User user,
-                                                                                @RequestParam("nickname") String nickname){
+    public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknamePolicy(@AuthenticationPrincipal CustomOAuth2User user,
+                                                                                 @RequestParam("nickname") String nickname){
         String email = user.getEmail();
             log.info("'{}' MyInfo 내 정보 수정을 위한 닉네임 검사 요청: {}",email,nickname);
 
         //온보딩 서비스에 같은 기능 있음 -> 나중에 sharedMemberService로 합쳐야함
         return ResponseEntity.status(HttpStatus.OK)
-                .body(memberService.isNicknameAvailability(email,nickname));
+                .body(memberCommonService.isNicknameAvailability(email,nickname));
     }
 
     //9. 정보 수정 -> 사상의학 정보 도출: 사상의학 테스트를 끝내면 정보를 도출해서 결과를 보냄(온보딩과 똑같음) => Pacth updateSasang |도메인: member
     //사상의학 정보 저장해야함
     @PatchMapping("/profile/sasang")
-    public ResponseEntity<SasangResultDto> updateSasang(@AuthenticationPrincipal CustomOAuth2User user,
-                                                        @RequestBody List<SasangAnswerDto> sasangAnswerDtos){
+    public ResponseEntity<MemberCommonDto.SasangResultDto> updateSasang(@AuthenticationPrincipal CustomOAuth2User user,
+                                                        @RequestBody List<MemberCommonDto.SasangAnswerDto> sasangAnswerDtos){
         String email = user.getEmail();
         log.info("'{}' MyInfo 사상의학 결과 및 저장 요청",email);
 
-        //온보딩 서비스에 같은 기능 있음 -> 나중에 sharedMemberService로 합쳐야함
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.deriveSasangResult(email,sasangAnswerDtos));
     }

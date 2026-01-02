@@ -102,14 +102,7 @@ public class MyInfoResponse {
         }
     }
 
-    //정보 수정 -> 닉네임 중복 체크: 온보딩의 닉네임 중복 체크와 같은 로직
-    public record NicknamePolicyDto(
-            boolean isOk
-    ) {
-        public static NicknamePolicyDto from(boolean isOk) {
-            return new NicknamePolicyDto(isOk);
-        }
-    }
+
 }
 
 /*profileDto테스트
