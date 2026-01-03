@@ -27,6 +27,7 @@ public class PersonaController {
     //리턴: 선택가능한 페르소나들-List<persona>형태
     @GetMapping("/onboarding")
     public ResponseEntity<List<PersonaDto>> getAllPersonas(@AuthenticationPrincipal CustomOAuth2User user){
+
         log.info("'{}' 온보딩 목적 페르소나 목록 조회 요청 ",user.getEmail());
 
         return ResponseEntity.status(HttpStatus.OK)
