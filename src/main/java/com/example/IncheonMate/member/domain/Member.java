@@ -1,10 +1,10 @@
 package com.example.IncheonMate.member.domain;
 
-import com.example.IncheonMate.member.dto.ProfileUpdateDto;
 import com.example.IncheonMate.member.domain.type.CompanionType;
 import com.example.IncheonMate.member.domain.type.MbtiType;
 import com.example.IncheonMate.member.domain.type.SasangType;
 import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.mongodb.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -20,6 +21,8 @@ import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Builder(toBuilder = true)
@@ -60,7 +63,7 @@ public class Member {
     private String nickname;      // 닉네임
     @Nullable
     private String profileImageURL;  // 프로필 사진 URL
-    private boolean profileImageAsMarker; //프로필 사진 마커로 사용할지 말지-🔺🔺
+    private boolean profileImageAsMarker; //프로필 사진 마커로 사용할지 말지
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDate birthDate;     // 생년월일 (YYYY-MM-DD)
 
@@ -73,26 +76,40 @@ public class Member {
     private CompanionType companion;     // 주 여행 동반자 (친구, 연인, 가족, 혼자)
     private String selectedPersonaId; // 현재 선택한 AI 페르소나
 
-    // --- 4. 앱 활동 데이터 ---
-    //@Builder.Default
-    //private List<String> bookmarkedPlaceIds = new ArrayList<>(); // 찜한 장소들의 ID 목록
-
-    // --- 5. 시간 정보 (자동 관리) ---
+    // --- 4. 시간 정보 (자동 관리) ---
     @CreatedDate
     private LocalDateTime createdAt; // 가입일
     @LastModifiedDate
     private LocalDateTime updatedAt; // 수정일
 
-    // --- 편의 메서드 (데이터 수정용) ---
-    //Builder 패턴 적용
-    //ProfileUpdateDto에서 속성 수정하고 추가해야함
-    public void updateProfile(ProfileUpdateDto profileUpdateDto) {
-        if(profileUpdateDto.getNickname() != null) this.nickname = nickname;
-        if(profileUpdateDto.getMbti() != null) this.mbti = mbti;
-        if(profileUpdateDto.getSasang() != null) this.sasang = sasang;
-        if(profileUpdateDto.getCompanion() != null) this.companion = companion;
-        if(profileUpdateDto.getBirthDate() != null) this.birthDate = birthDate;
+    // --- 5. 찜 목록 ---
+    private List<FavoritePlace> favoritePlaces = new ArrayList<>(); // 찜한 장소들
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FavoritePlace{
+
+        // 내장 객체의 ID에는 @Indexed(unique=true)를 절대 걸면 안 됨! (UUID 생성 후 저장)
+        private String id; //수동 UUID
+        @CreatedDate
+        private LocalDateTime createdAt;
+
+        @Nullable
+        private String googlePlaceId; //구글에서 제공해주는 장소 Id값-구글에 없는 장소는 null
+        private String name; //장소 이름
+        private GeoJsonPoint location; //좌표
+        private String address; //주소
+        private float rating; //평점
+
+        @Nullable
+        private String googleMapUrl; //구글 맵 주소
     }
+
+    //---- 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
+    private String externalServiceUri; //default URL넣어줘야함
+
 
 
 }
