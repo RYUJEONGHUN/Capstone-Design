@@ -63,3 +63,12 @@ jwt:
 app:
   frontend:
     redirect-url: https://4cd2403d53b0.ngrok-free.app/oauth/callback
+
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
