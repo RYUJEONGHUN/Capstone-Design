@@ -25,7 +25,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        // 2. 정보 추출-provicer에 따라서 다르게 추출/에러처리
+        // 2. 정보 추출-provider에 따라서 다르게 추출/에러처리
         String provider = userRequest.getClientRegistration().getRegistrationId();
         String email;
         String name;
@@ -51,6 +51,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             .email(email)
                             .name(name)
                             .role("ROLE_USER")
+                            .provider(provider) //provider도 저장하도록 확장 25/12/25
                             .build();
                     return memberRepository.save(newMember);
                 });
