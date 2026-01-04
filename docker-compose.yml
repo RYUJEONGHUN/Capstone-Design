@@ -14,7 +14,7 @@ services:
     environment:
       DB_HOST: mongodb
       REDIS_HOST: redis
-      # [필수] 구글 로그인 정보
+      #[필수] 구글 로그인 정보
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
