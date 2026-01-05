@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import java.time.LocalDateTime;
 
 @Builder
+//모든 에러를 에러코드,에러메시지,에러발생시간으로 일관성 있게 응답하기 위해 만든 DTO
 public record ErrorResponse(
         String code,
         String message,

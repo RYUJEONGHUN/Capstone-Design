@@ -8,7 +8,7 @@ import java.util.List;
 
 public class ChatSessionResponse {
 
-    //채팅 기록:어떤 채팅을 했는지 날짜와 제목만 보내줌
+    //채팅 세션 기록:채팅 세션의 압축된 정보만 보여줌
     public record SummaryDto( //class
             String chatSessionId,
             LocalDateTime createdAt,

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
+//상황에 맞는 에러를 응답하기 위한 에러 모음
 public enum ErrorCode {
     //400
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON 001", "잘못된 입력값입니다."),

@@ -50,6 +50,7 @@ public class ChatSessionService {
     }
 
     public List<ChatSessionResponse.SearchedMessageDto> searchMessagesByKeyword(String email, String keyword) {
+        //검색어가 있는지 검사
         if(keyword == null || keyword.trim().isEmpty()){
             log.warn("검색어가 없습니다.");
             throw new CustomException(ErrorCode.INVALID_KEYWORD_VALUE);

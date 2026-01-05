@@ -22,6 +22,7 @@ public class PersonaService {
     //getAllPersonas 컨트롤러
     public List<PersonaDto> getAllPersonas() {
 
+        //DB에 저장한 페르소나 전체 목록 가져오기
         List<Persona> personaList = personaRepository.findAll();
 
         if(personaList.isEmpty()){
@@ -29,6 +30,7 @@ public class PersonaService {
             throw new CustomException(ErrorCode.PERSONA_NOT_FOUND);
         }
 
+        //DTO에 필요한 속성들만 담아서 리턴
         return personaList.stream()
                 .map(persona -> PersonaDto.builder()
                         .name(persona.getName())

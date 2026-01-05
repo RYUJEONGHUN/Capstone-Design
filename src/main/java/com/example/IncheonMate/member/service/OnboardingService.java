@@ -41,7 +41,7 @@ public class OnboardingService {
         return new MemberCommonDto.SasangResponseDto(email,sasangType);
     }
 
-
+    //초기 입력 화면(온보딩)에서 사용자가 입력한 정보 전체의 정책을 검사하고 저장하는 서비스
     @Transactional
     public OnboardingBundle.OnboardingDto saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto) {
         /*
@@ -92,6 +92,7 @@ public class OnboardingService {
         return OnboardingBundle.OnboardingDto.from(updateMember);
     }
 
+    //PersonaId가 persona collection에 있는 id와 맞는지 검증
     private String validatePersonaId(String selectedPersonaId) {
         if (!personaRepository.existsById(selectedPersonaId)) {
             log.warn("({})에 해당하는 페르소나ID가 없습니다.", selectedPersonaId);
@@ -103,6 +104,7 @@ public class OnboardingService {
 
 
     //saveAgreements컨트롤러
+    //약관 동의 내역을 검사하고 모두 동의 했을때에만 저장하는 서비스
     @Transactional
     public OnboardingBundle.TermsAgreementResponse saveAgreements(String email, OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
         //저장할 멤버

@@ -43,13 +43,12 @@ public class ChatSession {
     public static class Message{
         //메시지 기본 정보
         //MongoDB는 메시지가 추가될 때마다 전 세계 모든 메시지 ID를 뒤져서 중복을 검사해야 하므로 채팅 속도가 느려질 수 있습니다.
-        private String id; //내장 doc는 자동으로 Id 생성이 안됨 => 직접 UUID 생성
+        private String id; //inner doc는 자동으로 Id 생성이 안됨 => 직접 UUID 생성
         @CreatedDate
         private LocalDateTime createdAt;
         private AuthorType authorType; //USER,AI enum
-
-        //메시지 내용
-        private String content;
+        
+        private String content; //메시지 내용
         //private ???? messageVector; //AI용 메시지 벡터
     }
 }

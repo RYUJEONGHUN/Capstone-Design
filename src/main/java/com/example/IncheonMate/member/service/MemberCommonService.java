@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 @Service
 @Slf4j
-public class MemberCommonService {
+public class MemberCommonService { //memberService와 onboardingService에서 공통 기능만 빼와서 2개의 서비스에 사용하는 용도 
 
     private final MemberRepository memberRepository;
 
@@ -162,6 +162,7 @@ public class MemberCommonService {
         }
     }
 
+    //MBTI가 대문자,소문자 어떤 형식으로 들어오던 간에 항상 전부 대문자로 저장하게 toUpperCase하는 로직
     public MbtiType parseMbti(String mbti) {
         try {
             return MbtiType.valueOf(mbti.toUpperCase());

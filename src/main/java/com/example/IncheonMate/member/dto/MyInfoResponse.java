@@ -11,10 +11,10 @@ import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-
+//MyInfo에 필요한 데이터를 응답하는 DTO들을 모아놓은 클래스
 public class MyInfoResponse {
 
-    //메인:사상의학과 MBTI를 보내줌
+    //MyInfo 메인:사상의학과 MBTI를 보내줌
     public record MyProfileMainDto(
             String nickname,
             String profileImageURL,
@@ -33,6 +33,7 @@ public class MyInfoResponse {
     }
 
     //메인 -> 찜한 장소:찜한 모든 장소 정보 보내줌
+    //찜한 장소 응답 DTO
     public record FavoritePlaceDto(
             String favoritePlaceId,
             String googlePlaceId,
@@ -56,6 +57,7 @@ public class MyInfoResponse {
     }
 
     //메인 -> 나의 지갑:내기프트와 연결함-URL필요
+    //나의 지갑 URL 응답 DTO
     public record ExternalServiceDto(
             String externalServiceUri
     ) {
@@ -67,6 +69,7 @@ public class MyInfoResponse {
     }
 
     //메인 -> 정보 수정: 사용자의 닉네임,나이,MBTI,사상의학을 변경할 수 있게 보내줌
+    //MyInfo 내정보 수정화면 응답 데이터 DTO
     public record MyProfileDto(
             @NotBlank(message = "닉네임은 필수입니다.")
             @Pattern(

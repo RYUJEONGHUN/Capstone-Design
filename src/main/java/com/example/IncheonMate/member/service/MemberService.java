@@ -29,6 +29,7 @@ public class MemberService {
 
 
     //1. 메인:사상의학과 MBTI를 보내줌 => Get getMyProfile |도메인 member
+    //myinfo 메인화면에 필요한 데이터를 찾는 서비스
     public MyInfoResponse.MyProfileMainDto getMyProfileMainInfo(String email) {
         //이메일로 사용자 전체 정보 꺼내오기
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
@@ -39,6 +40,7 @@ public class MemberService {
     }
 
 
+    //사용자가 찜한 장소 전체를 가져오는 서비스
     public List<MyInfoResponse.FavoritePlaceDto> getFavoritePlaces(String email) {
         //이메일로 사용자의 찜목록만 가져오기
         List<Member.FavoritePlace> favoritePlaces = memberRepository.findFavoritePlacesByEmail(email)
@@ -51,6 +53,7 @@ public class MemberService {
                 .toList();
     }
 
+    //내지갑으로 연동하는 URL를 가져오는 서비스
     public MyInfoResponse.ExternalServiceDto getMyWalletUri(String email) {
         //이메일로 사용자 엔티티 가져오기
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
@@ -59,6 +62,7 @@ public class MemberService {
         return MyInfoResponse.ExternalServiceDto.from(targetMember);
     }
 
+    //MyInfo의 내 정보 수정 페이지에 보여줄 데이터를 가져오는 서비스
     public MyInfoResponse.MyProfileDto getProfileInfoForEdit(String email) {
         //이메일로 사용자 엔티티 가져오기
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
@@ -67,6 +71,7 @@ public class MemberService {
         return MyInfoResponse.MyProfileDto.from(targetMember);
     }
 
+    //MyInfo 내 정보 수정 페이지에서 사상의학 테스트를 다시 할 때 결과를 도출하고 변한 결과를 저장하는 서비스
     @Transactional
     public MemberCommonDto.SasangResponseDto deriveSasangResult(String email, List<MemberCommonDto.SasangAnswerDto> sasangAnswerDtos) {
         //체질 도출 로직
@@ -86,6 +91,7 @@ public class MemberService {
     }
 
 
+    //MyInfo의 내정보 수정 화면에서 변경한 데이터들을 저장하는 서비스
     @Transactional
     public MyInfoResponse.MyProfileDto updateProfile(String email, MyInfoResponse.MyProfileDto myProfileDto) {
         /*
@@ -135,6 +141,7 @@ public class MemberService {
 
 
     //11. 찜한 장소: 찜한 장소 목록에서 하트를 눌르면 찜 목록에서 빼주는 기능 => Delete deleteFavoritePlace |도메인: member
+    //찜 목록 보기 화면에서 찜 목록 중 하나를 삭제할 경우 DB의 찜 목록에서 빼는 서비스
     @Transactional
     public void deleteFavoritePlace(String email, String favoritePlaceId) {
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
