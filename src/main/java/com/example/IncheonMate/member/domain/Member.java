@@ -83,6 +83,7 @@ public class Member {
     private LocalDateTime updatedAt; // 수정일
 
     // --- 5. 찜 목록 ---
+    @Builder.Default // 빌더 사용 시 null 방지
     private List<FavoritePlace> favoritePlaces = new ArrayList<>(); // 찜한 장소들(FavoritePlace의 List형태)
 
     @Getter
@@ -107,8 +108,44 @@ public class Member {
         private String googleMapUrl; //구글 맵 주소
     }
 
-    //---- 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
+    //---- 6. 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
     private String externalServiceUri; //default URL넣어줘야함
+
+    //--- 7. 길찾기 탭의 검색어 기록(최대 개수 일단 20개로 만들고 나중에 수정)
+    @Builder.Default // 빌더 사용 시 null 방지
+    private List<RecentSearch> recentSearches = new ArrayList<>();
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RecentSearch{
+        private String id; //수동 UUID
+        private String keyword; //검색어
+        private GeoJsonPoint location;//좌표
+        @CreatedDate
+        private LocalDateTime searchedAt; //검색한 시간
+    }
+
+    //--- 8. 길찾기 탭의 경로 검색 기록(최대 개수 일단 20개로 만들고 나중에 수정)
+    @Builder.Default // 빌더 사용 시 null 방지
+    private List<RecentRoute> recentRoutes = new ArrayList<>();
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RecentRoute{
+        private String id; //수동 UUID
+        private String departureName; //출발 장소 이름
+        private String arrivalName; //도착 장소 이름
+        private GeoJsonPoint departureLocation; //출발 장소 좌표
+        private GeoJsonPoint arrivalLocation;//도착 장소 좌표
+        @CreatedDate
+        private LocalDateTime searchedAt; //검색한 시간
+        //@Nullable private int searchPathType; //경로검색결과 정렬방식을 적용하려면 주석 해제(모두,지하철만,버스만)
+    }
+
 
 
 
