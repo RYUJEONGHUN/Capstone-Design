@@ -60,7 +60,7 @@ public class Member {
     // --- 2. 사용자 입력 프로필 [기획안 5-15 참고] ---
     private String lang; //kor,eng
     @Indexed(unique = true)
-    private String nickname;      // 닉네임
+    private String nickname;  // 닉네임
     @Nullable
     private String profileImageURL;  // 프로필 사진 URL
     private boolean profileImageAsMarker; //프로필 사진 마커로 사용할지 말지
@@ -69,12 +69,12 @@ public class Member {
 
     // --- 3. 여행 취향 데이터 (AI 추천 핵심) ---
     @Field(targetType = FieldType.STRING)
-    private MbtiType mbti;          // ENFP, ISTJ 등
+    private MbtiType mbti;          // ENFP, ISTJ 등,Enum
     @Field(targetType = FieldType.STRING)
-    private SasangType sasang;        // 사상의학 (태양인, 태음인, 소양인, 소음인)
+    private SasangType sasang;        // 사상의학 (태양인, 태음인, 소양인, 소음인), Enum
     @Field(targetType = FieldType.STRING)
-    private CompanionType companion;     // 주 여행 동반자 (친구, 연인, 가족, 혼자)
-    private String selectedPersonaId; // 현재 선택한 AI 페르소나
+    private CompanionType companion;     // 주 여행 동반자 (친구, 연인, 가족, 혼자), Enum
+    private String selectedPersonaId; // 현재 선택한 AI 페르소나ID
 
     // --- 4. 시간 정보 (자동 관리) ---
     @CreatedDate
@@ -83,7 +83,7 @@ public class Member {
     private LocalDateTime updatedAt; // 수정일
 
     // --- 5. 찜 목록 ---
-    private List<FavoritePlace> favoritePlaces = new ArrayList<>(); // 찜한 장소들
+    private List<FavoritePlace> favoritePlaces = new ArrayList<>(); // 찜한 장소들(FavoritePlace의 List형태)
 
     @Getter
     @Builder

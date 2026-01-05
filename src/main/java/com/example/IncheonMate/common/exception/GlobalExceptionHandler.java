@@ -11,14 +11,17 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
+//전역 예외 처리
 public class GlobalExceptionHandler {
 
+    //모든 ErrorCode에 예외를 처리하기 위한 method
     @ExceptionHandler(CustomException.class)
     protected ResponseEntity<ErrorResponse> handleCustomException(CustomException e){
         ErrorCode errorCode = e.getErrorCode();
         return ErrorResponse.from(errorCode,e.getMessage());
     }
 
+    //ErrorCode의 500번 INTERNAL_SERVER_ERROR를 위한 method
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("[Server Error] 예상하지 못한 예외 발생: ", e);

@@ -1,9 +1,9 @@
 package com.example.IncheonMate.common.exception;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
+//ErrorCode를 사용하기 위해서 만든 Interface성격의 예외 클래스
 public class CustomException extends RuntimeException {
   private final ErrorCode errorCode;
   // message 필드는 굳이 따로 안 만들어도 됩니다. (부모 클래스인 RuntimeException이 이미 가지고 있음)

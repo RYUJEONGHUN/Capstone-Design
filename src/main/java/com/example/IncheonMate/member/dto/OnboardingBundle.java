@@ -13,8 +13,10 @@ import jakarta.validation.constraints.Pattern;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+//초기 정보 입력(온보딩)에 필요한 DTO들을 모아놓은 클래스
 public class OnboardingBundle {
 
+    //약관 동의 결과 응답 DTO
     public record TermsAgreementResponse(
             String email,
             LocalDateTime agreedAt,
@@ -28,6 +30,7 @@ public class OnboardingBundle {
     }
 
 
+    //약관 동의 내역 요청 DTO
     public record TermsAgreementRequest(
             @JsonProperty("isPrivacyPolicyAgreed")
             @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
@@ -58,6 +61,7 @@ public class OnboardingBundle {
     }
      */
 
+    //온보딩에서 입력해야 하는 요청,응답 DTO
     public record OnboardingDto(
             /*
             String nickname -> 최소 2글자,공백 허용/'사용자' 미포함
