@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.aggregation.VectorSearchOperation;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -120,11 +121,18 @@ public class Member {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class RecentSearch{
+        //키워드 저장할떄 사용
         private String id; //수동 UUID
-        private String keyword; //검색어
-        private GeoJsonPoint location;//좌표
+        private String title; //검색어 또는 장소명
+        private VectorSearchOperation.SearchType type; //몽고DB 내장 타입(KEYWORD(돋보기 아이콘), PLACE(핀 아이콘))
         @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
+
+        //장소 저장
+        @Nullable
+        private String kakaoPlaceId; //카카오 장소 ID
+        @Nullable
+        private GeoJsonPoint location;//좌표
     }
 
     //--- 8. 길찾기 탭의 경로 검색 기록(최대 개수 일단 20개로 만들고 나중에 수정)
