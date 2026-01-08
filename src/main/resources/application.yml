@@ -41,7 +41,7 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: "https://localhost:8080/login/oauth2/code/kakao"
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao" #https -> http(카카오에 등록한 URI: http://localhost:8080/login/oauth2/code/kakao)
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             client-name: Kakao
@@ -63,7 +63,8 @@ jwt:
 
 app:
   frontend:
-    redirect-url: https://4cd2403d53b0.ngrok-free.app/oauth/callback
+    redirect-url: http://localhost:3000/oauth/callback #https://4cd2403d53b0.ngrok-free.app/oauth/callback
+
 
 
 springdoc:
@@ -73,3 +74,9 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
+
+#com.example.IncheonMate만 로깅 레벨을 Debug로 조정
+logging:
+  level:
+    root: INFO
+    com.example.IncheonMate: DEBUG
