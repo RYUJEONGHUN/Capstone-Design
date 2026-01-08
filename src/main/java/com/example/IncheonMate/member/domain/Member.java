@@ -6,10 +6,7 @@ import com.example.IncheonMate.member.domain.type.SasangType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import com.mongodb.lang.Nullable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -29,6 +26,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"recentSearches", "recentRoutes", "favoritePlaces"})
 @Document(collection = "members") // MongoDB의 'members' 컬렉션에 저장됨
 public class Member {
     /*
@@ -123,16 +121,9 @@ public class Member {
     public static class RecentSearch{
         //키워드 저장할떄 사용
         private String id; //수동 UUID
-        private String title; //검색어 또는 장소명
-        private VectorSearchOperation.SearchType type; //몽고DB 내장 타입(KEYWORD(돋보기 아이콘), PLACE(핀 아이콘))
+        private String keyword; //검색어 또는 장소명
         @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
-
-        //장소 저장
-        @Nullable
-        private String kakaoPlaceId; //카카오 장소 ID
-        @Nullable
-        private GeoJsonPoint location;//좌표
     }
 
     //--- 8. 길찾기 탭의 경로 검색 기록(최대 개수 일단 20개로 만들고 나중에 수정)
@@ -151,10 +142,7 @@ public class Member {
         private GeoJsonPoint arrivalLocation;//도착 장소 좌표
         @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
-        //@Nullable private int searchPathType; //경로검색결과 정렬방식을 적용하려면 주석 해제(모두,지하철만,버스만)
     }
-
-
 
 
 }
