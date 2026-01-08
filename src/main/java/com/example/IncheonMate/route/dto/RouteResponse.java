@@ -52,26 +52,18 @@ public class RouteResponse {
         }
     }
 
-    //최근 검색 장소
+    //최근 검색 기록
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record RecentPlaceDto(
+    public record RecentSearchDto(
         String recentSearchedId,
-        String title,
-        VectorSearchOperation.SearchType type,
-        double longitude, //경도
-        double latitude,//위도
-        LocalDateTime searchedAt,//검색한 시간
-        String kakaoPlaceId
+        String keyword,
+        LocalDateTime searchedAt//검색한 시간
     ){
-        public static RecentPlaceDto from(Member.RecentSearch recentSearch){
-            return new RecentPlaceDto(
+        public static RecentSearchDto from(Member.RecentSearch recentSearch){
+            return new RecentSearchDto(
                     recentSearch.getId(),
-                    recentSearch.getTitle(),
-                    recentSearch.getType(),
-                    recentSearch.getLocation().getX(),
-                    recentSearch.getLocation().getY(),
-                    recentSearch.getSearchedAt(),
-                    recentSearch.getKakaoPlaceId()
+                    recentSearch.getKeyword(),
+                    recentSearch.getSearchedAt()
             );
         }
     }
@@ -106,8 +98,13 @@ public class RouteResponse {
     }
 
     //현재 길찾기 정보
-    //프론트에서 OdsayRouteSearchResponse의 필요한 key값들을 정리해서 알려주면 이 DTO로 선언
+    //OdsayRouteSearchResponse에서 필요한 key값들을 정리해서 알려주면 이 DTO로 선언
+    //나중에
     public record CurrentRouteDto(
 
-    ){}
+    ){
+        public static CurrentRouteDto from(OdsayRouteSearchResponse response){
+            return new CurrentRouteDto();
+        }
+    }
 }
