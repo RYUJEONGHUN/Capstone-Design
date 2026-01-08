@@ -1,5 +1,6 @@
 package com.example.IncheonMate.route.client;
 
+import com.example.IncheonMate.route.dto.OdsayRouteSearchResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,7 +21,7 @@ public interface OdsayClient {
 
     //길찾기 Get요청
     @GetMapping("/searchPubTransPathT")
-    Map<String, Object> searchRoute(
+    OdsayRouteSearchResponse searchRoute(
             @RequestParam("SX") String sx,
             @RequestParam("SY") String sy,
             @RequestParam("EX") String ex,
