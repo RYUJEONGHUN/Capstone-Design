@@ -1,13 +1,17 @@
 package com.example.IncheonMate.route.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public record OdsayRouteSearchResponse(
         /** 1. 데이터를 포함하는 최 상위 노드 */
-        @JsonProperty("result") Result result
-) {
+        @JsonProperty("result") Result result,
 
+        @JsonProperty("error")
+        @JsonInclude(JsonInclude.Include.NON_NULL)        //정상 응답할 때는 보이지 않게
+        ErrorInfo error
+) {
     public record Result(
             /** 1-1. 결과 구분 (0:도시내, 1:도시간 직통, 2:도시간 환승) */
             @JsonProperty("searchType") Integer searchType,
@@ -303,4 +307,9 @@ public record OdsayRouteSearchResponse(
             /** 1-9-3-36-1-12. 미정차 정류장 여부 Y/N */
             @JsonProperty("isNonStop") String isNonStop
     ) {}
+
+    public record ErrorInfo(
+            @JsonProperty("msg") String message,
+            @JsonProperty("code") String code
+    ){}
 }
