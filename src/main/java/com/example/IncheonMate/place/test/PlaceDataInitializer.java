@@ -29,6 +29,7 @@ public class PlaceDataInitializer implements CommandLineRunner {
                     .kakaoId(testKakaoId)      // ⭐ 가장 중요! (이 번호로 매칭함)
                     .name("인천대 대표 안스베이커리 송도점") // 우리가 관리할 이름
                     .ourRating(4.8)            // 우리가 줄 별점
+                    .expertComment("대한민국 제과명장의 집. 소금빵 나오는 시간 맞춰가면 천국을 맛봄!")
                     .tags(List.of("#소금빵존맛", "#주차가능", "#인천메이트픽")) // 태그
                     .thumbnailUrl("https://place.map.kakao.com/26379511")
                     .build();

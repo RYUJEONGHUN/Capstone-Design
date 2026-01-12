@@ -8,7 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/places")
@@ -28,6 +31,20 @@ public class PlaceController {
     @GetMapping("/search/category")
     public ResponseEntity<List<PlaceResponseDto>> searchCategoryPlaces(@RequestParam PlaceCategory category,@RequestParam double x, @RequestParam double y) {
         List<PlaceResponseDto> result = placeService.searchCategoryAndOverlay(category,x,y);
+        return ResponseEntity.ok(result);
+    }
+
+    // Enum -> List<Map> 변환
+    // 결과 예시: [{"code": "FD6", "name": "음식점"}, {"code": "CE7", "name": "카페"} ...]
+    @GetMapping
+    public ResponseEntity<List<Map<String, String>>> getCategories() {
+        List<Map<String, String>> result = Arrays.stream(PlaceCategory.values())
+                .map(c -> Map.of(
+                        "code", c.getCode(),
+                        "name", c.getDescription()
+                ))
+                .collect(Collectors.toList());
+
         return ResponseEntity.ok(result);
     }
 }
