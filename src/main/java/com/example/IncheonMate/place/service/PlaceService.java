@@ -1,20 +1,28 @@
 package com.example.IncheonMate.place.service;
 
 
+import com.example.IncheonMate.common.exception.CustomException;
+import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.place.client.KakaoFeignClient;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.dto.KakaoApiResponseDto;
+import com.example.IncheonMate.place.dto.PlaceData;
+import com.example.IncheonMate.place.dto.PlaceRequestDto;
 import com.example.IncheonMate.place.dto.PlaceResponseDto;
 import com.example.IncheonMate.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.usermodel.*;
+import java.io.IOException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -126,4 +134,120 @@ public class PlaceService {
             return 0.0;
         }
     }
+
+    @Transactional
+    public void registerPlace(PlaceRequestDto requestDto) {
+        // 1. 이미 등록된 가게인지 확인 (중복 방지)
+        if (placeRepository.findByKakaoId(requestDto.getKakaoId()).isPresent()) {
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE);
+        }
+
+        // 2. 저장
+        Place place = Place.builder()
+                .kakaoId(requestDto.getKakaoId())
+                .ourRating(requestDto.getOurRating())
+                .tags(requestDto.getTags())
+                .thumbnailUrl(requestDto.getThumbnailUrl())
+                .build();
+
+        Place savedPlace = placeRepository.save(place);
+    }
+
+    @Transactional // 엑셀 데이터 db 저장
+    public String uploadPlaceExcel(MultipartFile file) {
+        // 파일이 비어있는지
+        if (file == null || file.isEmpty()) return "파일이 비어있습니다.";
+
+        DataFormatter formatter = new DataFormatter();
+
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            // 1. 엑셀 데이터 파싱 & 중복 제거
+            Map<String, PlaceData.RowData> rowDataMap = new LinkedHashMap<>();
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String kakaoId = getCellString(row.getCell(0), formatter);
+                if (kakaoId.isBlank()) continue;
+
+                Double rating = parseDoubleOrNull(getCellString(row.getCell(1), formatter));
+                List<String> tags = parseTags(getCellString(row.getCell(2), formatter));
+                String comment = getCellString(row.getCell(3), formatter);
+                String imageUrl = getCellString(row.getCell(4), formatter);
+
+                rowDataMap.put(kakaoId, new PlaceData.RowData(kakaoId, rating, tags, comment, imageUrl));
+            }
+
+            if (rowDataMap.isEmpty()) return "등록할 데이터가 없습니다.";
+
+            // 2. DB 조회 (Bulk Select)
+            List<String> kakaoIds = new ArrayList<>(rowDataMap.keySet()); //N+1 문제 해결
+            List<Place> existingPlaces = placeRepository.findAllByKakaoIdIn(kakaoIds);
+            Map<String, Place> existingMap = existingPlaces.stream()
+                    .collect(Collectors.toMap(Place::getKakaoId, p -> p));
+
+            // 3. Insert or Update 준비
+            List<Place> toSave = new ArrayList<>();
+
+            for (String kakaoId : kakaoIds) {
+                PlaceData.RowData rd = rowDataMap.get(kakaoId);
+                Place place = existingMap.get(kakaoId);
+
+                if (place == null) {
+                    // 신규 생성 (New)
+                    place = Place.builder()
+                            .kakaoId(kakaoId)
+                            .ourRating(rd.rating() != null ? rd.rating() : 0.0)
+                            .tags(rd.tags())
+                            .expertComment(rd.comment())
+                            .thumbnailUrl(rd.imageUrl())
+                            .build();
+                } else {
+                    // 업데이트 (Update)
+                    place.updateMyData(rd.rating(), rd.tags(), rd.imageUrl(), rd.comment());
+                }
+                toSave.add(place);
+            }
+
+            // 4. 일괄 저장 // (Bulk Save)
+            placeRepository.saveAll(toSave);
+
+            return String.format("총 %d건 처리 완료 (신규: %d, 업데이트: %d)",
+                    toSave.size(),
+                    toSave.size() - existingPlaces.size(),
+                    existingPlaces.size());
+
+        } catch (IOException e) {
+            return "엑셀 읽기 실패: " + e.getMessage();
+        }
+    }
+
+    // --- Helper Methods ---
+
+    private String getCellString(Cell cell, DataFormatter formatter) {
+        if (cell == null) return "";
+        return formatter.formatCellValue(cell).trim();
+    }
+
+    private Double parseDoubleOrNull(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return Double.parseDouble(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private List<String> parseTags(String raw) {
+        if (raw == null || raw.isBlank()) return List.of();
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(x -> !x.isBlank())
+                .map(tag -> tag.startsWith("#") ? tag : "#" + tag) // # 강제 부착
+                .distinct()
+                .toList();
+    }
+
 }
