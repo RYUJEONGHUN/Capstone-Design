@@ -52,7 +52,7 @@ public class PlaceService {
                 authHeader,
                 category.getCode(),
                 x, y,
-                2000, // 반경 2km
+                300, // 반경 300m
                 "distance" // 거리순
         );
 
@@ -95,6 +95,7 @@ public class PlaceService {
                     if (myData != null) {
                         //  Case A: 우리 DB에 있는 '인증된 장소' -> 우리 데이터 덮어쓰기
                         return builder
+                                .expertComment(myData.getExpertComment())
                                 .isRegistered(true)
                                 .ourRating(myData.getOurRating())     // 우리 별점
                                 .thumbnailUrl(myData.getThumbnailUrl()) // 우리 사진
@@ -103,6 +104,7 @@ public class PlaceService {
                     } else {
                         //  Case B: 우리 DB에 없는 '일반 장소' -> 기본값 채우기
                         return builder
+                                .expertComment(null)
                                 .isRegistered(false)
                                 .ourRating(0.0)
                                 .thumbnailUrl(null) // 프론트에서 기본 이미지 처리
