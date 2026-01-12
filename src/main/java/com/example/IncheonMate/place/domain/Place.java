@@ -1,9 +1,6 @@
 package com.example.IncheonMate.place.domain;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -12,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Document(collection = "place") // MongoDB 컬렉션 이름 지정
 public class Place {
@@ -41,7 +39,7 @@ public class Place {
     private List<String> tags = new ArrayList<>();
 
     @Builder
-    public Place(String kakaoId, String name, String address, String categoryGroup, Double x, Double y,String expertComment,Double ourRating, String thumbnailUrl, List<String> tags) {
+    public Place(String kakaoId, String name, String address, String categoryGroup, Double x, Double y, String expertComment, Double ourRating, String thumbnailUrl, List<String> tags) {
         this.kakaoId = kakaoId;
         this.name = name;
         this.address = address;
@@ -55,9 +53,10 @@ public class Place {
     }
 
     // 데이터 덮어쓰기 메서드
-    public void updateMyData(Double rating, List<String> tags, String imageUrl) {
+    public void updateMyData(Double rating, List<String> tags, String imageUrl, String comment) {
         this.ourRating = rating;
         this.tags = tags;
         this.thumbnailUrl = imageUrl;
+        this.expertComment = comment;
     }
 }
