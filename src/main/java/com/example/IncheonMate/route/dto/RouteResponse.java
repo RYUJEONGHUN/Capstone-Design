@@ -1,6 +1,7 @@
 package com.example.IncheonMate.route.dto;
 
 import com.example.IncheonMate.member.domain.Member;
+import com.example.IncheonMate.place.dto.KakaoApiResponseDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.data.mongodb.core.aggregation.VectorSearchOperation;
 
@@ -71,27 +72,26 @@ public class RouteResponse {
     //현재 검색한 장소(카카오)
     public record CurrentPlaceDto(
         String kakaoPlaceId,
-        String title, //장소명,업체명
+        String placeName, //장소명,업체명
         String categoryName, //카테고리 이름
         String phone,
         String addressName, //지번 주소
         String roadAddressName,//도로명 주소
+        boolean isRegistered,
         double longitude,
-        double latitude,
-        String placeUrl
+        double latitude
     ){
-        public static CurrentPlaceDto from(KakaoMapKeywordSearchResponse.Document document){
+        public static CurrentPlaceDto from(KakaoApiResponseDto.DocumentDto document,boolean isRegistered){
             return new CurrentPlaceDto(
-                    document.id(),
-                    document.placeName(),
-                    document.categoryName(),
-                    document.phone(),
-                    document.addressName(),
-                    document.roadAddressName(),
-                    Double.parseDouble(document.x()),
-                    Double.parseDouble(document.y()),
-                    document.placeUrl()
-
+                    document.getId(),
+                    document.getPlaceName(),
+                    document.getCategoryName(),
+                    document.getPhone(),
+                    document.getAddressName(),
+                    document.getRoadAddressName(),
+                    isRegistered,
+                    Double.parseDouble(document.getX()),
+                    Double.parseDouble(document.getY())
             );
 
         }
