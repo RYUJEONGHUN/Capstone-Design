@@ -80,3 +80,7 @@ logging:
   level:
     root: INFO
     com.example.IncheonMate: DEBUG
+
+kakao:
+  api:
+    key: ${KAKAO_KEY}
