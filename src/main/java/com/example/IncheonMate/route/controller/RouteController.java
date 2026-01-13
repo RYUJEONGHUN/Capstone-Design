@@ -5,6 +5,7 @@ import com.example.IncheonMate.route.dto.RouteRequest;
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.route.dto.RouteResponse;
 import com.example.IncheonMate.route.service.RouteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -75,7 +76,7 @@ public class RouteController {
     //*********************ODsay에서 '도시내 길찾기'와 '도시간 길찾기' 출력 데이터가 다르고 여기에서는 도시내 길찾기 응답만 받기 때문에 프론트에서 "도시간 길찾기"는 안된다고 명시해야함*********
     @PostMapping("/paths")
     public ResponseEntity<RouteResponse.CurrentRouteDto> findAndSaveRoutes(@AuthenticationPrincipal CustomOAuth2User user,
-                                                                                 @RequestBody RouteRequest.RouteSearchRequest routeSearchRequest){
+                                                                                 @RequestBody @Valid RouteRequest.RouteSearchRequest routeSearchRequest){
         String email = user.getEmail();
         log.info("길찾기 요청 - 사용자: {}, 출발지: {}, 목적지: {}",email,routeSearchRequest.departureName(),routeSearchRequest.arrivalName());
         return ResponseEntity.status(HttpStatus.OK)
