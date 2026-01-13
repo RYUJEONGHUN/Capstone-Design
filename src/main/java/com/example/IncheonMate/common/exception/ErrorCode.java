@@ -19,6 +19,7 @@ public enum ErrorCode {
     CHAT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT 001","채팅 세션을 찾을 수 없습니다."),
 
     //409
+    DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "COMMON 409", "이미 존재하는 리소스입니다."),
 
     //500
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,"SERVER 001", "서버 내부 오류가 발생했습니다.");
