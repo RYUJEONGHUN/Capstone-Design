@@ -39,7 +39,8 @@ public class MyInfoResponse {
             String googlePlaceId,
             String name,
             LocalDateTime createdAt,
-            GeoJsonPoint location,
+            double longitude,
+            double latitude,
             float rating,
             String googleMapUrl
     ) {
@@ -49,7 +50,8 @@ public class MyInfoResponse {
                     favoritePlace.getGooglePlaceId(),
                     favoritePlace.getName(),
                     favoritePlace.getCreatedAt(),
-                    favoritePlace.getLocation(),
+                    favoritePlace.getLocation().getX(),
+                    favoritePlace.getLocation().getY(),
                     favoritePlace.getRating(),
                     favoritePlace.getGoogleMapUrl()
             );
