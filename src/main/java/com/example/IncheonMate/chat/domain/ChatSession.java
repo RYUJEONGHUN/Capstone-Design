@@ -34,6 +34,7 @@ public class ChatSession {
 
 
     //---메시지 내역
+    @Builder.Default
     private List<Message> messages = new ArrayList<>();
 
     @Getter

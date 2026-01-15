@@ -3,12 +3,12 @@ package com.example.IncheonMate.member.repository;
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.domain.Member;
-import com.example.IncheonMate.member.domain.type.SasangType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 // <Entity 타입, ID 타입>
