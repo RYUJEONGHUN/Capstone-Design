@@ -1,6 +1,11 @@
 package com.example.IncheonMate.common.auth.refresh;
 
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +24,17 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
+@Tag(name = "JWT Token Management", description = "Auth 2.0으로 인증한 유저의 Token 관리 기능")
 public class AuthController {
 
     private final JWTUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
 
+    @Operation(summary = "Token 재발급 ", description = "Refresh Token을 확인하고 Refresh Token Rotation 방식을 사용하여 Access,Refresh Token을 재발급한다")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Refresh,Access Token 재발급 성공"),
+            @ApiResponse(responseCode = "401", description = "Refresh Token 인증 실패")
+    })
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
         // 1) 쿠키에서 refreshToken 꺼내기
