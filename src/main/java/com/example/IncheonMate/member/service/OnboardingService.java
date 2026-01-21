@@ -6,7 +6,6 @@ import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.domain.type.SasangType;
-import com.example.IncheonMate.persona.repository.PersonaRepository;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +24,6 @@ import java.util.List;
 public class OnboardingService {
 
     private final MemberRepository memberRepository;
-    private final PersonaRepository personaRepository;
     private final MemberCommonService memberCommonService;
 
     //현재 약관 버전
@@ -51,7 +49,7 @@ public class OnboardingService {
         String profileImage; -> nullable
         CompanionType companion ->not null
         SasangType sasang -> not null
-        String selectedPersonaId -> not blank,not null
+        String selectedPersonaId -> not null
         lang -> kor or eng
         */
         //온보딩DTO null 검증
@@ -62,8 +60,6 @@ public class OnboardingService {
         //저장할 멤버
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
 
-        //페르소나ID가 컬렉션에 있는것과 맞는지 검증
-        String validatedPersonaId = validatePersonaId(onboardingDto.selectedPersonaId());
         //닉네임이 정책에 맞게 들어왔는지 검증
         if (!memberCommonService.checkNicknamePolicy(onboardingDto.nickname())) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,onboardingDto.nickname() + "은(는) 정책을 위배한 닉네임입니다");
@@ -74,7 +70,6 @@ public class OnboardingService {
         //기존 멤버에 온보딩 DTO를 반영함
         //생년월일-현재보다 미래의 날짜도 통과하는 문제 => isAfter()로 해결
         //profileImageURL-null이면 exception나오는 문제 => 반드시 profileImageURL: null 형태로 전달받아야함(없으면 exception)
-        //selectedPersonaId-컬렉션에 있는 personaId와 달라도 통과하는 문제 => 해결(vaildatePersoanId)
         Member updateMember = targetMember.toBuilder()
                 .nickname(onboardingDto.nickname())
                 .birthDate(birthDate)
@@ -83,22 +78,13 @@ public class OnboardingService {
                 .profileImageAsMarker(StringUtils.hasText(onboardingDto.profileImageURL()))
                 .companion(onboardingDto.companion())
                 .sasang(onboardingDto.sasang())
-                .selectedPersonaId(validatedPersonaId)
+                .selectedPersona(onboardingDto.selectedPersona())
                 .lang(onboardingDto.lang())
                 .build();
 
         memberRepository.save(updateMember);
         log.info("'{}' 가입 완료",email);
         return OnboardingBundle.OnboardingDto.from(updateMember);
-    }
-
-    //PersonaId가 persona collection에 있는 id와 맞는지 검증
-    private String validatePersonaId(String selectedPersonaId) {
-        if (!personaRepository.existsById(selectedPersonaId)) {
-            log.warn("({})에 해당하는 페르소나ID가 없습니다.", selectedPersonaId);
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, selectedPersonaId + "에 해당하는 페르소나ID가 없습니다.");
-        }
-        return selectedPersonaId;
     }
 
 
