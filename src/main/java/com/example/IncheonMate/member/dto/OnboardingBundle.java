@@ -3,6 +3,7 @@ package com.example.IncheonMate.member.dto;
 import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.domain.type.CompanionType;
 import com.example.IncheonMate.member.domain.type.MbtiType;
+import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.domain.type.SasangType;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -56,21 +57,6 @@ public class OnboardingBundle {
             boolean isTermsOfServiceAgreed //개인정보 동의
     ) {
     }
-    /*
-    정상 흐름 json
-    {
-      "isPrivacyPolicyAgreed": true,
-      "isLocationServiceAgreed": true,
-      "isTermsOfServiceAgreed": true
-    }
-
-    비정상 흐름 json
-    {
-      "isPrivacyPolicyAgreed": true,
-      "isLocationServiceAgreed": false,
-      "isTermsOfServiceAgreed": true
-    }
-     */
 
     //온보딩에서 입력해야 하는 요청,응답 DTO
     @Schema(description = "온보딩에서 입력해야하는 값들")
@@ -82,7 +68,7 @@ public class OnboardingBundle {
             String profileImage; -> nullable
             CompanionType companion ->not null
             SasangType sasang -> not null
-            String selectedPersonaId -> not blank,not null
+            PersonaType selectedPersona -> not null
              */
 
             @NotBlank(message = "닉네임은 필수입니다.")
@@ -123,10 +109,9 @@ public class OnboardingBundle {
             @Schema(description = "사상체질 타입", example = "SOEUM", implementation = SasangType.class)
             SasangType sasang,
 
-            @NotBlank(message = "페르소나를 선택해주세요")
-            @NotNull
-            @Schema(description = "선택한 페르소나ID", example = "persoan_bear")
-            String selectedPersonaId,
+            @NotNull(message = "페르소나 선택은 필수입니다.")
+            @Schema(description = "선택한 페르소나", example = "BEAR", implementation = PersonaType.class)
+            PersonaType selectedPersona,
 
             @NotBlank(message = "언어는 필수입니다.")
             @Pattern(regexp = "^(kor|eng)$", message = "지원하지 않는 언어입니다. (kor 또는 eng만 가능)")
@@ -144,24 +129,11 @@ public class OnboardingBundle {
                     member.getProfileImageURL(),
                     member.getCompanion(),
                     member.getSasang(),
-                    member.getSelectedPersonaId(),
+                    member.getSelectedPersona(),
                     member.getLang()
             );
         }
     }
-
-    /*테스트 JSON
-    {
-      "nickname": "인천여행자",
-      "birthDate": "990101",
-      "mbti": "ENFJ",
-      "profileImageURL": "https://example.com/profiles/user1.png",
-      "companion": "COUPLE",
-      "sasang": "SOEUM",
-      "selectedPersonaId": "persona_bear",
-      "lang": "kor"
-    }
- */
 }
 
 
