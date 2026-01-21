@@ -20,12 +20,25 @@ public class CorsConfig {
         // ✅ ngrok 프론트 도메인 정확히(https 포함) 넣기
         // 예: https://abcd-1234.ngrok-free.app
         config.setAllowedOrigins(List.of(
-                "https://4cd2403d53b0.ngrok-free.app",
-                "http://localhost:3000"
+                "http://localhost:3000",
+                "https://*.ngrok-free.app",
+                "https://triggerless-battlesome-teodoro.ngrok-free.dev",
+                "https://unconducing-ungovernmental-hilaria.ngrok-free.dev"
         ));
 
+        // 🔴 [필수] 이 부분 주석을 반드시 풀어주세요! 🔴
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+
+        // ✅ 헤더는 * (모두 허용)로 설정하셨으므로 통과!
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "ngrok-skip-browser-warning" // <--- 이 친구가 핵심입니다!
+        ));
+
+        // (선택) 프론트에서 응답 헤더를 읽어야 할 때
+        config.setExposedHeaders(List.of("Set-Cookie", "Authorization"));
 
         // (선택) 프론트에서 응답 헤더를 읽어야 할 때
         config.setExposedHeaders(List.of("Set-Cookie", "Authorization"));

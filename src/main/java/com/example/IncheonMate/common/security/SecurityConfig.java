@@ -12,6 +12,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
 
 @Configuration
 @EnableWebSecurity
@@ -22,6 +24,8 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
 
+    private final CorsConfigurationSource corsConfigurationSource;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -29,7 +33,8 @@ public class SecurityConfig {
         http.csrf((auth) -> auth.disable());
 
         // 1.5. Cors 설정
-        http.cors(cors -> {});
+        //http.cors(cors -> {});
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource));
 
         // 2. Form 로그인 방식 해제 (우리는 소셜로그인/JWT 쓸 거니까)
         http.formLogin((auth) -> auth.disable());
@@ -37,6 +42,8 @@ public class SecurityConfig {
 
         // 3. 경로별 인가 작업
         http.authorizeHttpRequests((auth) -> auth
+                //Options(PreFlight)요청 모두 허용
+                .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                 // 로그인, 메인, 헬스체크는 누구나 접근 가능
                 .requestMatchers("/login/**", "/oauth2/**", "/auth/refresh").permitAll()
                 // 스웨거 문서도 열어둠
