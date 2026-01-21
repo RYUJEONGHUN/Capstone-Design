@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -113,4 +114,8 @@ public class OnboardingService {
         return OnboardingBundle.TermsAgreementResponse.from(updatedMember);
     }
 
+    //getOnboardingData 서비스
+    public OnboardingBundle.OnboardingDto getOnboardingValues(String email) {
+        return OnboardingBundle.OnboardingDto.from(memberRepository.findByEmailOrElseThrow(email));
+    }
 }
