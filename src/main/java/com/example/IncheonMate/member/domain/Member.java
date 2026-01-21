@@ -2,6 +2,7 @@ package com.example.IncheonMate.member.domain;
 
 import com.example.IncheonMate.member.domain.type.CompanionType;
 import com.example.IncheonMate.member.domain.type.MbtiType;
+import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.domain.type.SasangType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -73,7 +74,7 @@ public class Member {
     private SasangType sasang;        // 사상의학 (태양인, 태음인, 소양인, 소음인), Enum
     @Field(targetType = FieldType.STRING)
     private CompanionType companion;     // 주 여행 동반자 (친구, 연인, 가족, 혼자), Enum
-    private String selectedPersonaId; // 현재 선택한 AI 페르소나ID
+    private PersonaType selectedPersona; // 현재 선택한 AI 페르소나ID
 
     // --- 4. 시간 정보 (자동 관리) ---
     @CreatedDate
