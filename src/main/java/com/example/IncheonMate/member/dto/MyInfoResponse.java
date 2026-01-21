@@ -46,30 +46,33 @@ public class MyInfoResponse {
             @Schema(description = "찜한 장소 ID", example = "550e8400-e29b-41d4-a716-446655440000")
             String favoritePlaceId,
             @Schema(description = "kakao Map API에서 제공하는 장소 ID값", example = "27146757")
-            String googlePlaceId,
-            @Schema(description = "실명", example = "김철수")
-            String name,
+            String kakaoPlaceId,
+            @Schema(description = "장소이름", example = "더몰트하우스 송도점")
+            String placeName,
             @Schema(description = "찜한 시간", example = "2026-01-14T08:37:59.560Z")
             LocalDateTime createdAt,
             @Schema(description = "위도", example = "37.5665")
             double longitude,
             @Schema(description = "경도", example = "126.9780")
             double latitude,
+            @Schema(description = "주소", example = "인천광역시 연수구 송도동 xxxx")
+            String address,
             @Schema(description = "평점", example = "4.8")
             float rating,
             @Schema(description = "Kakao place 상세 정보 URL", example = "https://place.map.kakao.com/26379511")
-            String googleMapUrl
+            String kakaoMapUrl
     ) {
         public static FavoritePlaceDto from(Member.FavoritePlace favoritePlace) {
             return new FavoritePlaceDto(
                     favoritePlace.getId(),
-                    favoritePlace.getGooglePlaceId(),
-                    favoritePlace.getName(),
+                    favoritePlace.getKakaoPlaceId(),
+                    favoritePlace.getPlaceName(),
                     favoritePlace.getCreatedAt(),
                     favoritePlace.getLocation().getX(),
                     favoritePlace.getLocation().getY(),
+                    favoritePlace.getAddress(),
                     favoritePlace.getRating(),
-                    favoritePlace.getGoogleMapUrl()
+                    favoritePlace.getKakaoMapUrl()
             );
         }
     }
