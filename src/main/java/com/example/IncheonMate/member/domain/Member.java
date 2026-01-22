@@ -1,9 +1,6 @@
 package com.example.IncheonMate.member.domain;
 
-import com.example.IncheonMate.member.domain.type.CompanionType;
-import com.example.IncheonMate.member.domain.type.MbtiType;
-import com.example.IncheonMate.member.domain.type.PersonaType;
-import com.example.IncheonMate.member.domain.type.SasangType;
+import com.example.IncheonMate.member.domain.type.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import com.mongodb.lang.Nullable;
@@ -66,6 +63,7 @@ public class Member {
     private boolean profileImageAsMarker; //프로필 사진 마커로 사용할지 말지
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDate birthDate;     // 생년월일 (YYYY-MM-DD)
+    private Gender gender;
 
     // --- 3. 여행 취향 데이터 (AI 추천 핵심) ---
     @Field(targetType = FieldType.STRING)
