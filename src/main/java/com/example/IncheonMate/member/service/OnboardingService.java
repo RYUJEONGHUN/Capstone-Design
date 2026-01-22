@@ -46,6 +46,7 @@ public class OnboardingService {
         /*
         String nickname -> 최소 2글자/'사용자' 미포함
         String birthdate -> 6자리 숫자
+        String gender -> Enum,not NULL
         String mbti -> 대소문자 허용
         String profileImage; -> nullable
         CompanionType companion ->not null
@@ -74,6 +75,7 @@ public class OnboardingService {
         Member updateMember = targetMember.toBuilder()
                 .nickname(onboardingDto.nickname())
                 .birthDate(birthDate)
+                .gender(onboardingDto.gender())
                 .mbti(memberCommonService.parseMbti(onboardingDto.mbti()))
                 .profileImageURL(onboardingDto.profileImageURL())
                 .profileImageAsMarker(StringUtils.hasText(onboardingDto.profileImageURL()))
