@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.Update;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,4 +38,14 @@ public interface MemberRepository extends MongoRepository<Member, String> {
                     return new CustomException(ErrorCode.MEMBER_NOT_FOUND);
                 });
     }
+
+    //최근 길찾기 기록을 제거
+    @Query("{ 'email' : ?0 }")
+    @Update("{ '$pull' : { 'recentRoutes' : { '_id' : ?1 } } }")
+    int deleteRecentRouteByEmail(String email, String routeId);
+
+    //최근 검색기록을 제거
+    @Query("{ 'email' : ?0 }")
+    @Update("{ '$pull' : { 'recentSearches' : { '_id' : ?1 } } }")
+    int deleteRecentSearchByEmail(String email, String recentSearchId);
 }
