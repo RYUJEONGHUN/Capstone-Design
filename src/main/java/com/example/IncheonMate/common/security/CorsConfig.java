@@ -23,7 +23,8 @@ public class CorsConfig {
                 "http://localhost:3000",
                 "https://*.ngrok-free.app",
                 "https://triggerless-battlesome-teodoro.ngrok-free.dev",
-                "https://unconducing-ungovernmental-hilaria.ngrok-free.dev"
+                "https://unconducing-ungovernmental-hilaria.ngrok-free.dev",
+                "https://2025-capstone-design-fe.vercel.app"
         ));
 
         // 🔴 [필수] 이 부분 주석을 반드시 풀어주세요! 🔴

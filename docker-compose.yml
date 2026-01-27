@@ -25,7 +25,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_KEY: ${KAKAO_KEY}
       # 리다이렉트 주소 (Spring의 app.frontend.redirect-url 매핑)
-      APP_FRONTEND_REDIRECT_URL: "https://unconducing-ungovernmental-hilaria.ngrok-free.dev/oauth/callback" #https://4cd2403d53b0.ngrok-free.app/oauth/callback
+      APP_FRONTEND_REDIRECT_URL: "https://2025-capstone-design-fe.vercel.app/oauth/callback"
 
 
   # 2. 몽고DB
