@@ -30,22 +30,22 @@ public class TestDataInitializer {
                 if (member.getFavoritePlaces() == null || member.getFavoritePlaces().isEmpty()) {
                     Member.FavoritePlace place1 = Member.FavoritePlace.builder()
                             .id(UUID.randomUUID().toString())
-                            .googlePlaceId("ChIJN1t_tDeuEmsRUsoyG83frY4")
-                            .name("인천 센트럴파크")
+                            .kakaoPlaceId("ChIJN1t_tDeuEmsRUsoyG83frY4")
+                            .placeName("인천 센트럴파크")
                             .location(new GeoJsonPoint(126.6392, 37.3928))
                             .rating(4.8f)
                             .createdAt(LocalDateTime.now())
-                            .googleMapUrl("https://maps.google.com/?q=Incheon+Central+Park")
+                            .kakaoMapUrl("https://maps.google.com/?q=Incheon+Central+Park")
                             .build();
 
                     Member.FavoritePlace place2 = Member.FavoritePlace.builder()
                             .id(UUID.randomUUID().toString())
-                            .googlePlaceId("ChIJQw7FbEeuejgR9S_0v...dummy")
-                            .name("차이나타운")
+                            .kakaoPlaceId("ChIJQw7FbEeuejgR9S_0v...dummy")
+                            .placeName("차이나타운")
                             .location(new GeoJsonPoint(126.6181, 37.4754))
                             .rating(4.2f)
                             .createdAt(LocalDateTime.now().minusDays(2))
-                            .googleMapUrl("https://maps.google.com/?q=Chinatown")
+                            .kakaoPlaceId("https://maps.google.com/?q=Chinatown")
                             .build();
 
                     Member updatedMember = member.toBuilder()

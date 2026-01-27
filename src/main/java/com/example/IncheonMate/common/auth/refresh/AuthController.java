@@ -70,10 +70,10 @@ public class AuthController {
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefresh)
                 .httpOnly(true)
-                .secure(false)      // 로컬 http면 false, ngrok(https)면 true 권장
+                .secure(true)      // 로컬 http면 false, ngrok(https)면 true 권장
                 .path("/")
                 .maxAge(Duration.ofDays(14))
-                .sameSite("Lax")    // ngrok/크로스사이트 상황이면 "None" + secure(true) 필요할 수 있음
+                .sameSite("None")    // ngrok/크로스사이트 상황이면 "None" + secure(true) 필요할 수 있음
                 .build();
 
         response.addHeader("Set-Cookie", refreshCookie.toString());
