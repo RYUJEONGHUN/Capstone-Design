@@ -70,4 +70,6 @@ public class PlaceController {
         String result = placeService.uploadPlaceExcel(file);
         return ResponseEntity.ok(result);
     }
+
+
 }
