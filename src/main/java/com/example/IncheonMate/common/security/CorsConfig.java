@@ -14,10 +14,10 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ 쿠키(RefreshToken) 주고받을 거면 필수
+        //  쿠키(RefreshToken) 주고받을 거면 필수
         config.setAllowCredentials(true);
 
-        // ✅ ngrok 프론트 도메인 정확히(https 포함) 넣기
+        //  ngrok 프론트 도메인 정확히(https 포함) 넣기
         // 예: https://abcd-1234.ngrok-free.app
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",

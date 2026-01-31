@@ -64,7 +64,7 @@ public class AuthController {
 
         String newAccess = jwtUtil.createJwt(email, role, accessTimeMs);
 
-        // (선택) refreshToken 회전: 새 refresh 발급 + Redis/쿠키 갱신
+        //  refreshToken 회전: 새 refresh 발급 + Redis/쿠키 갱신
         String newRefresh = jwtUtil.createJwt(email, role, refreshTimeMs);
         redisTemplate.opsForValue().set("RT:" + email, newRefresh, 14, TimeUnit.DAYS);
 
