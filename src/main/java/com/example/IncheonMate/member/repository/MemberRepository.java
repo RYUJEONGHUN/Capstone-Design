@@ -49,5 +49,6 @@ public interface MemberRepository extends MongoRepository<Member, String> {
     @Update("{ '$pull' : { 'recentSearches' : { '_id' : ?1 } } }")
     int deleteRecentSearchByEmail(String email, String recentSearchId);
 
+
     Member getMemberByEmail(String email);
 }
