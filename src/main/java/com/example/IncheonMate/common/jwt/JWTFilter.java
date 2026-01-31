@@ -2,6 +2,7 @@ package com.example.IncheonMate.common.jwt;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.member.dto.MemberDto;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,16 +37,31 @@ public class JWTFilter extends OncePerRequestFilter {
         // "Bearer " 부분 자르고 순수 토큰만 획득
         String token = authorization.split(" ")[1];
 
-        // 3. 토큰 만료 여부 확인
-        if (jwtUtil.isExpired(token)) {
-            log.info("토큰 만료");
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // 4. 토큰에서 email, role 획득
+        // 3. 토큰에서 email, role 획득
         String email = jwtUtil.getEmail(token);
         String role = jwtUtil.getRole(token);
+
+        // 4. 토큰 만료 여부 확인
+        try{
+            if(jwtUtil.isExpired(token)){
+                log.info("토큰 만료: {}", email);
+                //CustomEntryPoint가 알 수 있게 꼬리표 붙이기
+                request.setAttribute("exception", "TOKEN_EXPIRED");
+                filterChain.doFilter(request,response);
+                return;
+            }
+        }catch (ExpiredJwtException e){
+            //jwtUtil 내부에서 토큰 만료시 exception을 던저도 잡을 수 있게
+            log.info("토큰 만료 Exception: {}", email);
+            request.setAttribute("exception", "TOKEN_EXPIRED");
+            filterChain.doFilter(request,response);
+            return;
+        }catch (Exception e){
+            //그 외 토큰 에러(위조,변조 등)
+            log.info("유효하지 않은 토큰: {}", email);
+            filterChain.doFilter(request,response);
+            return;
+        }
 
         // 5. MemberDTO 생성 (DB 조회 없이 토큰 정보로만 만듦 -> 빠름)
         MemberDto memberDto = new MemberDto();

@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -45,6 +46,7 @@ public class OnboardingService {
         /*
         String nickname -> 최소 2글자/'사용자' 미포함
         String birthdate -> 6자리 숫자
+        String gender -> Enum,not NULL
         String mbti -> 대소문자 허용
         String profileImage; -> nullable
         CompanionType companion ->not null
@@ -73,6 +75,7 @@ public class OnboardingService {
         Member updateMember = targetMember.toBuilder()
                 .nickname(onboardingDto.nickname())
                 .birthDate(birthDate)
+                .gender(onboardingDto.gender())
                 .mbti(memberCommonService.parseMbti(onboardingDto.mbti()))
                 .profileImageURL(onboardingDto.profileImageURL())
                 .profileImageAsMarker(StringUtils.hasText(onboardingDto.profileImageURL()))
@@ -113,4 +116,8 @@ public class OnboardingService {
         return OnboardingBundle.TermsAgreementResponse.from(updatedMember);
     }
 
+    //getOnboardingData 서비스
+    public OnboardingBundle.OnboardingDto getOnboardingValues(String email) {
+        return OnboardingBundle.OnboardingDto.from(memberRepository.findByEmailOrElseThrow(email));
+    }
 }

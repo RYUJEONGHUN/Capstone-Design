@@ -1,11 +1,9 @@
 package com.example.IncheonMate.member.dto;
 
 import com.example.IncheonMate.member.domain.Member;
-import com.example.IncheonMate.member.domain.type.CompanionType;
-import com.example.IncheonMate.member.domain.type.MbtiType;
-import com.example.IncheonMate.member.domain.type.PersonaType;
-import com.example.IncheonMate.member.domain.type.SasangType;
+import com.example.IncheonMate.member.domain.type.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.AssertTrue;
@@ -64,6 +62,7 @@ public class OnboardingBundle {
             /*
             String nickname -> 최소 2글자,공백 허용/'사용자' 미포함
             String birthdate -> 6자리 숫자
+            Gender gender -> MALE,FEMALE and not null
             String mbti -> 대소문자 허용
             String profileImage; -> nullable
             CompanionType companion ->not null
@@ -87,6 +86,10 @@ public class OnboardingBundle {
             //service에서 Stirng to LocalDateTIme 필수
             @Schema(description = "생년월일 6자리", example = "990101")
             String birthDate,
+
+            @Schema(description = "성별", example = "MALE", implementation = Gender.class)
+            @NotNull(message = "성별은 필수입니다.")
+            Gender gender,
 
             @NotBlank(message = "MBTI는 필수입니다.")
             @Pattern(
@@ -121,10 +124,11 @@ public class OnboardingBundle {
     ) {
         public static OnboardingDto from(Member member) {
             if (member == null) {
-                return new OnboardingDto(null, null, null, null, null, null, null, null);
+                return new OnboardingDto(null, null, null, null,null, null, null, null, null);
             }
             return new OnboardingDto(member.getNickname(),
                     member.getBirthDate().format(DateTimeFormatter.ofPattern("yyMMdd")),
+                    member.getGender(),
                     member.getMbti().toString(),
                     member.getProfileImageURL(),
                     member.getCompanion(),

@@ -145,7 +145,9 @@ public class RouteService {
 
     //4.길찾기 조회 완료 화면: 출발지와 목적지를 입력하고 '길찾기'를 누르면 그에 맞는 경로들을 보여주면서 저장하는 기능-POST/findAndSavePaths(/api/route/paths)
     @Transactional
-    public RouteResponse.CurrentRouteDto findAndSaveRoutes(String email, RouteRequest.RouteSearchRequest
+//    public RouteResponse.CurrentRouteDto findAndSaveRoutes(String email, RouteRequest.RouteSearchRequest
+//            routeSearchRequest) {
+    public OdsayRouteSearchResponse findAndSaveRoutes(String email, RouteRequest.RouteSearchRequest
             routeSearchRequest) {
         log.info("{} -> {} ODsay 길찾기 API 요청", routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
         OdsayRouteSearchResponse odsayResponse = odsayClient.searchRoute(
@@ -192,13 +194,28 @@ public class RouteService {
         }
         log.info("경로 기록 저장 완료: {}", email);
 
-        return RouteResponse.CurrentRouteDto.from(odsayResponse);
+        //return RouteResponse.CurrentRouteDto.from(odsayResponse);
+        return odsayResponse;
     }
 
+    //길찾기 기록 제거 서비스 로직
+    @Transactional
+    public void deleteRecentRoute(String email, String recentRouteId) {
+        int isRemoved = memberRepository.deleteRecentRouteByEmail(email,recentRouteId);
+        if(isRemoved == 0) {
+            throw new CustomException(ErrorCode.ROUTE_HISTORY_NOT_FOUND);
+        }
+        log.info("길찾기 기록(ID:{}) 제거 완료", recentRouteId);
+    }
 
-    //길찾기 조회 데이터 선택을 위한 임시 서비스
-    public OdsayRouteSearchResponse getWholeOdsay(String sx, String sy, String ex, String ey) {
-        return odsayClient.searchRoute(sx, sy, ex, ey, apiKey);
+    //키워드 검색 기록 제거 서비스 로직
+    @Transactional
+    public void deleteRecentSearch(String email, String recentSearchId) {
+        int isRemoved = memberRepository.deleteRecentSearchByEmail(email,recentSearchId);
+        if(isRemoved == 0) {
+            throw new CustomException(ErrorCode.SEARCH_HISTORY_NOT_FOUND);
+        }
+        log.info("키워드 검색 기록(ID:{}) 제거 완료", recentSearchId);
     }
 
     // ODsay 에러 코드 핸들링 내부 method
@@ -213,4 +230,6 @@ public class RouteService {
             default -> new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "Odsay 요청 중 예상하지 못한 예외 발생");
         };
     }
+
+
 }

@@ -1,9 +1,6 @@
 package com.example.IncheonMate.member.domain;
 
-import com.example.IncheonMate.member.domain.type.CompanionType;
-import com.example.IncheonMate.member.domain.type.MbtiType;
-import com.example.IncheonMate.member.domain.type.PersonaType;
-import com.example.IncheonMate.member.domain.type.SasangType;
+import com.example.IncheonMate.member.domain.type.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import com.mongodb.lang.Nullable;
@@ -66,6 +63,7 @@ public class Member {
     private boolean profileImageAsMarker; //프로필 사진 마커로 사용할지 말지
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDate birthDate;     // 생년월일 (YYYY-MM-DD)
+    private Gender gender;
 
     // --- 3. 여행 취향 데이터 (AI 추천 핵심) ---
     @Field(targetType = FieldType.STRING)
@@ -91,21 +89,18 @@ public class Member {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class FavoritePlace{
-
         // 내장 객체의 ID에는 @Indexed(unique=true)를 절대 걸면 안 됨! (UUID 생성 후 저장)
         private String id; //수동 UUID
         @CreatedDate
         private LocalDateTime createdAt;
-
         @Nullable
-        private String googlePlaceId; //구글에서 제공해주는 장소 Id값-구글에 없는 장소는 null
-        private String name; //장소 이름
+        private String kakaoPlaceId; //카카오에서 제공해주는 장소 Id값-카카오에 없는 장소는 null
+        private String placeName; //장소 이름
         private GeoJsonPoint location; //좌표
         private String address; //주소
         private float rating; //평점
-
         @Nullable
-        private String googleMapUrl; //구글 맵 주소
+        private String kakaoMapUrl; //카카오맵 주소
     }
 
     //---- 6. 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
