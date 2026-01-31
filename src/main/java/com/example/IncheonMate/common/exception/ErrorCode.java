@@ -14,6 +14,7 @@ public enum ErrorCode {
     INVALID_SASANG_TYPE(HttpStatus.BAD_REQUEST, "MEMBER 003", "체질 결과를 도출 할 수 없습니다."),
     NOT_A_SERVICE_AREA(HttpStatus.BAD_REQUEST,"ROUTE 005","서비스 지역이 아닙니다."),
     DISTANCE_TOO_SHORT(HttpStatus.BAD_REQUEST, "ROUTE 006", "출, 도착지가 700m 이내입니다."),
+    MISSING_REQUIRED_INFO(HttpStatus.BAD_REQUEST,"AUTH 001", "이메일과 이름 제공에 동의해야 서비스를 이용할 수 있습니다."),
 
 
     //404

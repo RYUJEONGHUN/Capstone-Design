@@ -10,11 +10,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
@@ -48,18 +52,25 @@ public class SecurityConfig {
                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                 // 로그인, 메인, 헬스체크는 누구나 접근 가능
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
-                .requestMatchers("/login/**", "/oauth2/**", "/auth/refresh","/error").permitAll()
+                .requestMatchers("/login/**", "/oauth2/**", "/auth/refresh","/error","/auth/kakao/callback").permitAll()
                 // 스웨거 문서도 열어둠
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
+                .requestMatchers("/auth/logout").permitAll()
                 // 나머지는 로그인한 사람만
                 .anyRequest().authenticated());
 
         http.oauth2Login(oauth -> oauth
+                // Spring Security가 가로챌 엔드포인트를 다른 곳으로 지정 (예: /login/oauth2/code/*)
+                // 이렇게 하면 /auth/kakao/callback은 더 이상 가로채지 않습니다.
+                .redirectionEndpoint(redirection -> redirection
+                        .baseUri("/login/oauth2/code/google")
+                )
                 .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
                 .successHandler(oAuth2SuccessHandler)
-                //26-01-25 failureHanderl 추가: 로그인 실패(취소 등) 시 프론트엔드로 돌려보내기
                 .failureHandler((request, response, exception) -> {
-                    response.sendRedirect("https://triggerless-battlesome-teodoro.ngrok-free.dev/login?fail=true&message=" + exception.getMessage());
+                    // URL에 특수문자 [ ] 가 포함되지 않도록 인코딩 처리를 해주면 Tomcat 에러를 방지할 수 있습니다.
+                    String errorMessage = URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8);
+                    response.sendRedirect("https://triggerless-battlesome-teodoro.ngrok-free.dev/login?fail=true&message=" + errorMessage);
                 })
         );
 
@@ -75,5 +86,11 @@ public class SecurityConfig {
                 .authenticationEntryPoint(customAuthenticationEntryPoint));
 
         return http.build();
+    }
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer(){
+        return (web) -> web.ignoring()
+                .requestMatchers("/favicon.ico");
     }
 }
