@@ -38,7 +38,7 @@ public class KakaoSdkOauthService {
     @Value("${KAKAO_CLIENT_SECRET}")
     private String clientSecret;
 
-    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+    @Value("${kakao.redirect-uri}")
     private String redirectUri;
 
     @Transactional
