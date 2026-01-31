@@ -3,6 +3,7 @@ package com.example.IncheonMate.member.controller;
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.common.exception.ErrorResponse;
 import com.example.IncheonMate.member.dto.*;
+import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.OnboardingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,26 +43,28 @@ public class OnboardingController {
     })
     @PostMapping("/agreements")
     public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
-                                                                                  @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest){
+                                                                                  @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
         String email = user.getEmail();
-        log.info("'{}' 약관 동의 내역 저장 요청",email);
+        log.info("'{}' 약관 동의 내역 저장 요청", email);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(onboardingService.saveAgreements(email, termsAgreementRequest));
     }
 
 
-
-    //사용자 정보 입력(온보딩) 시작
-    //리턴: 입력받아야 할 값들을 key:value(null) 형태
-    @Operation(summary = "입력해야할 key 값 목록 조회", description = "온보딩 화면에서 사용자가 입력해야할 정보들을 \"key:null\"형태로 제공합니다.")
-    @ApiResponse(responseCode = "200", description = "입력해야할 값 목록", content = @Content(schema = @Schema(implementation = OnboardingBundle.OnboardingDto.class)))
+    //온보딩에서 입력한 값들 보여주기
+    //리턴: 입력받아야 할 값들을 key:value 형태
+    @Operation(summary = "초기 입력화면에서 저장한 정보 전체 제공", description = "온보딩 화면에서 사용자가 입력한 정보들을 모두 제공합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "온보딩에서 입력한 정보 전체", content = @Content(schema = @Schema(implementation = OnboardingBundle.OnboardingDto.class))),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping
-    public ResponseEntity<OnboardingBundle.OnboardingDto> getOnboardingData(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user){
-        log.info("'{}' 온보딩 시작 요청",user.getEmail());
+    public ResponseEntity<OnboardingBundle.OnboardingDto> getOnboardingData(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("'{}' 온보딩에서 저장한 정보 조회 요청", user.getEmail());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(OnboardingBundle.OnboardingDto.from(null));
+                .body(onboardingService.getOnboardingValues(user.getEmail()));
     }
 
     //닉네임 중복검사
@@ -71,9 +74,9 @@ public class OnboardingController {
     @ApiResponse(responseCode = "200", description = "닉네임 검사 성공(ture or false 응답)", content = @Content(schema = @Schema(implementation = MemberCommonDto.NicknamePolicyDto.class)))
     @GetMapping("/check")
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname,
-                                                                                       @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user){
+                                                                                       @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getEmail();
-        log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}",email,nickname);
+        log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}", email, nickname);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberCommonService.isNicknameAvailability(email, nickname));
@@ -91,12 +94,12 @@ public class OnboardingController {
     })
     @PostMapping("/sasang/result")
     public ResponseEntity<MemberCommonDto.SasangResponseDto> submitSasangTest(@RequestBody @Valid MemberCommonDto.SasangRequestDto testResult,
-                                                                              @AuthenticationPrincipal CustomOAuth2User user){
+                                                                              @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getEmail();
-        log.info("'{}' 사상의학 테스트 결과 판별 요청",email);
+        log.info("'{}' 사상의학 테스트 결과 판별 요청", email);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.deriveSasangResult(testResult.answers(),email));
+                .body(onboardingService.deriveSasangResult(testResult.answers(), email));
     }
 
 
@@ -111,7 +114,7 @@ public class OnboardingController {
     })
     @PostMapping("/complete")
     public ResponseEntity<OnboardingBundle.OnboardingDto> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
-                                                            @AuthenticationPrincipal CustomOAuth2User user) {
+                                                                             @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getEmail();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
 
