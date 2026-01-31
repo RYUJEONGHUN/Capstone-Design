@@ -2,6 +2,7 @@ package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.common.exception.ErrorResponse;
+import com.example.IncheonMate.common.jwt.JWTUtil;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.service.MemberCommonService;
@@ -13,15 +14,24 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -32,6 +42,8 @@ public class OnboardingController {
 
     private final OnboardingService onboardingService;
     private final MemberCommonService memberCommonService;
+    private final JWTUtil jwtUtil;
+    private final StringRedisTemplate redisTemplate;
 
     //약관 동의 저장
     //인자: HTTP body-약관1,2,3:ture
@@ -106,19 +118,44 @@ public class OnboardingController {
     //사용자가 입력한 정보 받아와서 검사하고 저장/올바르지 않은 정보이면 받았던 그대로 되돌려줘야함
     //인자: Http Body-사용자가 입력한 모든 온보딩 정보
     //저장: 온보딩 정보 member doc에 저장
-    @Operation(summary = "온보딩 데이터 저장", description = "사용자가 입력한 정보를 검사하고 통과하면 저장합니다.")
+    @Operation(summary = "온보딩 데이터 저장 및 토큰 재발급", description = "사용자가 입력한 정보를 저장하고 토큰을 재발급합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "온보딩 데이터 저장 성공", content = @Content(schema = @Schema(implementation = OnboardingBundle.OnboardingDto.class))),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 입력값", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/complete")
-    public ResponseEntity<OnboardingBundle.OnboardingDto> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
-                                                                             @AuthenticationPrincipal CustomOAuth2User user) {
+    public ResponseEntity<List<Map<String,String>>> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
+                                                                 @AuthenticationPrincipal CustomOAuth2User user,
+                                                                 HttpServletResponse response) {
         String email = user.getEmail();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
 
+        //1. DB에 정보 저장 및 ROLE을 GUEST -> USER로 변경
+        onboardingService.saveOnboarding(email, onboardingDto);
+
+        //2. ROLE_USER 권한으로 새로운 토큰 발급
+        long accessTime = 60 * 60 * 1000L;
+        long refreshTime = 14 * 24 * 60 * 60 * 1000L;
+
+        String newAccessToken = jwtUtil.createJwt(email,"ROLE_USER",accessTime);
+        String newRefreshToken = jwtUtil.createJwt(email,"ROLE_USER",refreshTime);
+
+        redisTemplate.opsForValue()
+                .set("RT:" + email, newRefreshToken, 14, TimeUnit.DAYS);
+
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(Duration.ofDays(14))
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
+
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.saveOnboarding(email, onboardingDto));
+                .body(Arrays.asList(
+                        Map.of("accessToken",newAccessToken),
+                        Map.of("role", "ROLE_USER")));
     }
 }
