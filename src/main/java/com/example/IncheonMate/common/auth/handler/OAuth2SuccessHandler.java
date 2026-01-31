@@ -27,7 +27,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JWTUtil jwtUtil;
     private final StringRedisTemplate redisTemplate; // 무조건 사용 (Nullable 아님)
 
-    // application.yml에서 주소 가져오기 (하드코딩 제거)
+    // application.yml에서 주소 가져오기
     @Value("${app.frontend.redirect-url}")
     private String redirectUrl;
 
@@ -54,10 +54,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 4. Refresh Token -> HttpOnly 쿠키로 굽기
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)            // 자바스크립트 접근 불가 (XSS 방지)
-                .secure(true)             // 로컬(http) 환경에서는 false여야 함! (배포 시 true로 변경)
+                .secure(false)             // 로컬(http) 환경에서는 false여야 함! (배포 시 true로 변경)
                 .path("/")                 // 모든 경로에서 쿠키 전송
                 .maxAge(Duration.ofDays(14))
-                .sameSite("None")          // ✅ cross-site 쿠키 필수
+                .sameSite("None")          //  cross-site 쿠키 필수
                 .build();
 
         response.addHeader("Set-Cookie", refreshCookie.toString());

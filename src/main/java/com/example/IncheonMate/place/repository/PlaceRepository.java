@@ -15,4 +15,6 @@ public interface PlaceRepository extends MongoRepository<Place, String> {
     // 2. 카카오 ID 리스트로 한 번에 찾기 (In 쿼리)
     // db.place.find({ kakaoId: { $in: [...] } })
     List<Place> findAllByKakaoIdIn(List<String> kakaoIds);
+
+    Place getPlaceById(String id);
 }
