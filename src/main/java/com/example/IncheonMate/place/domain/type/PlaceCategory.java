@@ -38,4 +38,18 @@ public enum PlaceCategory {
         }
         throw new IllegalArgumentException("존재하지 않는 카테고리 코드입니다: " + dbData);
     }
+
+
+    //  AI가 보내주는 영어 키워드로 Enum을 찾는 메서드 추가
+    public static PlaceCategory fromAIKeyword(String keyword) {
+        if (keyword == null) return null;
+
+        return switch (keyword.toUpperCase()) {
+            case "CAFE" -> CE7;
+            case "RESTAURANT" -> FD6;
+            case "SIGHTSEEING" -> AT4;
+            case "ACTIVITY" -> CT1; // 혹은 프로젝트에 맞는 코드
+            default -> throw new IllegalArgumentException("알 수 없는 AI 카테고리 키워드: " + keyword);
+        };
+    }
 }
