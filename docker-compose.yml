@@ -26,7 +26,8 @@ services:
       KAKAO_KEY: ${KAKAO_KEY}
       # 리다이렉트 주소 (Spring의 app.frontend.redirect-url 매핑)
       APP_FRONTEND_REDIRECT_URL: "https://2025-capstone-design-fe.vercel.app/oauth/callback"
-
+    networks:
+      - incheon_mate_network
 
   # 2. 몽고DB
   mongodb:
@@ -37,6 +38,8 @@ services:
     volumes:
       - ./data/mongo:/data/db
     restart: always
+    networks:
+      - incheon_mate_network
 
   # 3. 몽고DB 관리툴
   mongo-express:
@@ -49,6 +52,8 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
     depends_on:
       - mongodb
+    networks:
+      - incheon_mate_network
 
   # 4. Redis
   redis:
@@ -57,3 +62,9 @@ services:
     ports:
       - "6379:6379"
     restart: always
+    networks:
+      - incheon_mate_network
+
+networks:
+  incheon_mate_network:
+    external: true

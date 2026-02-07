@@ -6,10 +6,7 @@ import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.place.client.KakaoFeignClient;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
-import com.example.IncheonMate.place.dto.KakaoApiResponseDto;
-import com.example.IncheonMate.place.dto.PlaceData;
-import com.example.IncheonMate.place.dto.PlaceRequestDto;
-import com.example.IncheonMate.place.dto.PlaceResponseDto;
+import com.example.IncheonMate.place.dto.*;
 import com.example.IncheonMate.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Row;
@@ -247,6 +244,31 @@ public class PlaceService {
                 .filter(x -> !x.isBlank())
                 .map(tag -> tag.startsWith("#") ? tag : "#" + tag) // # 강제 부착
                 .distinct()
+                .toList();
+    }
+
+    public List<Place> searchByIntent(PlaceSearchRequest request) {
+
+        // 1. AI 키워드("CAFE")를 DB 코드("CE7")로 변환
+        String categoryCode = PlaceCategory.fromAIKeyword(request.getCategory()).getCode();
+
+        // 1. Repository의 @Query 호출
+        List<Place> results = placeRepository.findByAiIntent(
+               request.getLocation(),categoryCode,request.getVibe(),request.getCompanion()
+        );
+
+        // 2. 만약 검색 결과가 없다면? (사용자 경험을 위한 예외 처리)
+        if (results.isEmpty()) {
+            // 위치랑 카테고리만으로 더 넓게 재검색하는 로직을 넣을 수 있어.
+            return placeRepository.findByAddressContainingAndCategoryGroup(
+                    request.getLocation(),
+                    categoryCode
+            );
+        }
+
+        // 3. 별점(ourRating) 높은 순으로 정렬해서 반환
+        return results.stream()
+                .sorted(Comparator.comparing(Place::getOurRating).reversed())
                 .toList();
     }
 
