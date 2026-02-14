@@ -70,9 +70,10 @@ public class SecurityConfig {
                 .failureHandler((request, response, exception) -> {
                     // URL에 특수문자 [ ] 가 포함되지 않도록 인코딩 처리를 해주면 Tomcat 에러를 방지할 수 있습니다.
                     String errorMessage = URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8);
-                    response.sendRedirect("https://triggerless-battlesome-teodoro.ngrok-free.dev/login?fail=true&message=" + errorMessage);
+                    response.sendRedirect("https://2025-capstone-design-fe.vercel.app/login?fail=true&message=" + errorMessage);
                 })
         );
+
 
         // 4. JWTFilter 등록 (기존 로그인 필터 앞에 끼워넣기)
         http.addFilterBefore(new JWTFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
