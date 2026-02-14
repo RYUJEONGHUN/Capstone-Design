@@ -120,7 +120,7 @@ public class OnboardingController {
     //저장: 온보딩 정보 member doc에 저장
     @Operation(summary = "온보딩 데이터 저장 및 토큰 재발급", description = "사용자가 입력한 정보를 저장하고 토큰을 재발급합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "온보딩 데이터 저장 성공", content = @Content(schema = @Schema(implementation = OnboardingBundle.OnboardingDto.class))),
+            @ApiResponse(responseCode = "200", description = "온보딩 데이터 저장 성공"),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 입력값", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
