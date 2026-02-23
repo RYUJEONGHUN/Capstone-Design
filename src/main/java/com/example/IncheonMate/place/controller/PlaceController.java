@@ -1,9 +1,11 @@
 package com.example.IncheonMate.place.controller;
 
 
+import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.dto.PlaceRequestDto;
 import com.example.IncheonMate.place.dto.PlaceResponseDto;
+import com.example.IncheonMate.place.dto.PlaceSearchRequest;
 import com.example.IncheonMate.place.service.PlaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -69,5 +71,13 @@ public class PlaceController {
     public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
         String result = placeService.uploadPlaceExcel(file);
         return ResponseEntity.ok(result);
+    }
+
+
+    // ai 장소 검색
+    @PostMapping("/search")
+    public ResponseEntity<List<Place>> searchPlaces(@RequestBody PlaceSearchRequest request) {
+        List<Place> results = placeService.searchByIntent(request);
+        return ResponseEntity.ok(results);
     }
 }
