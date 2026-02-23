@@ -53,6 +53,7 @@ public class Member {
     //약관 버전
     private String termsVersion; //약관 버전 관리
 
+    private String SelectedPersonaId;
 
     // --- 2. 사용자 입력 프로필 [기획안 5-15 참고] ---
     private String lang; //kor,eng
