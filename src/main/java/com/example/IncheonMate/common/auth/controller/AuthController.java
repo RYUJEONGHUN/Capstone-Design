@@ -79,7 +79,7 @@ public class AuthController {
                 .build();
 
         response.addHeader("Set-Cookie", refreshCookie.toString());
-        log.info("새 accesstoken 발급: {}", newAccess);
+        log.info("새로운 Token 발급 완료: {}", email);
 
         // 6) 새 accessToken 전달 (JSON으로)
         return ResponseEntity.ok(Map.of(
