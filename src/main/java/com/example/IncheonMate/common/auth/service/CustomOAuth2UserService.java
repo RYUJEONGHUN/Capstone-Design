@@ -25,23 +25,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        // 2. 정보 추출-provider에 따라서 다르게 추출/에러처리
+        // 2. 정보 추출
         String provider = userRequest.getClientRegistration().getRegistrationId();
-        String email;
-        String name;
-        if("google".equals(provider)){
-            email = (String) attributes.get("email");
-            name = (String) attributes.get("name");
-        }
-        else if("kakao".equals(provider)){
-            Map<String, Object> kakaoAccount = (Map<String,Object>) attributes.get("kakao_account");
-            Map<String, Object> profile = (Map<String,Object>) kakaoAccount.get("profile");
-            email = (String) kakaoAccount.get("email");
-            name = (String) profile.get("nickname");
-        } else {
-            email = "";
-            name = "";
-        }
+
+        String email = (String) attributes.get("email");
+        String name = (String) attributes.get("name");
+
 
         // 3. DB 저장 또는 업데이트 (MongoDB)
         Member member = memberRepository.findByEmail(email)
@@ -50,7 +39,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     Member newMember = Member.builder()
                             .email(email)
                             .name(name)
-                            .role("ROLE_USER")
+                            .role("ROLE_GUEST") //ROLE_USER -> ROLE_GUEST로 변경
                             .provider(provider) //provider도 저장하도록 확장 25/12/25
                             .build();
                     return memberRepository.save(newMember);
