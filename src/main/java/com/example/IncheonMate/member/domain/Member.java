@@ -40,7 +40,7 @@ public class Member {
     @Indexed(unique = true) // 이메일로 검색 자주 하니까 인덱스 걸기
     private String email;
     private String name; // 실명
-    private String role; // ROLE_USER, ROLE_ADMIN
+    private String role; // ROLE_USER, ROLE_ADMIN,ROLE_GUEST
     private String provider; //google,kakao
 
     // --- 추가. 사용자 약관
@@ -57,7 +57,7 @@ public class Member {
 
     // --- 2. 사용자 입력 프로필 [기획안 5-15 참고] ---
     private String lang; //kor,eng
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String nickname;  // 닉네임
     @Nullable
     private String profileImageURL;  // 프로필 사진 URL
@@ -141,5 +141,8 @@ public class Member {
         private LocalDateTime searchedAt; //검색한 시간
     }
 
-
+    //초기 정보 입력 완료하면 ROLE_GUEST에서 ROLE_USER로 격상
+    public void upgradeRole(){
+        this.role = "ROLE_USER";
+    }
 }
