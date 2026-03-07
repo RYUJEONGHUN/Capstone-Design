@@ -10,6 +10,7 @@ spring:
   application:
     name: incheon_mate-backend
 
+
   #  Spring Boot 4.x Mongo 설정 (deprecated 아님)
   mongodb:
     uri: mongodb://${DB_HOST:localhost}:27017/incheon_mate_db
@@ -38,22 +39,14 @@ spring:
               - profile
             redirect-uri: "http://localhost:8080/login/oauth2/code/google"
             client-name: Google
-          kakao:
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: "https://triggerless-battlesome-teodoro.ngrok-free.dev/login/oauth2/code/kakao"
-            client-authentication-method: client_secret_post
-            authorization-grant-type: authorization_code
-            client-name: Kakao
-            scope:
-              - account_email
-              - profile_nickname
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  client-secret: ${KAKAO_CLIENT_SECRET}
+  redirect-uri: "https://triggerless-battlesome-teodoro.ngrok-free.dev/auth/kakao/callback"
+  api:
+    key: ${KAKAO_KEY}
+
 
 jwt:
   #secret: ${JWT_SECRET:vladimir_putin_is_not_my_president_just_a_random_long_secret_key_for_dev}
@@ -82,6 +75,5 @@ logging:
     root: INFO
     com.example.IncheonMate: DEBUG
 
-kakao:
-  api:
-    key: ${KAKAO_KEY}
+
+

@@ -42,7 +42,7 @@ public class OnboardingService {
 
     //초기 입력 화면(온보딩)에서 사용자가 입력한 정보 전체의 정책을 검사하고 저장하는 서비스
     @Transactional
-    public OnboardingBundle.OnboardingDto saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto) {
+    public void saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto) {
         /*
         String nickname -> 최소 2글자/'사용자' 미포함
         String birthdate -> 6자리 숫자
@@ -84,10 +84,11 @@ public class OnboardingService {
                 .selectedPersona(onboardingDto.selectedPersona())
                 .lang(onboardingDto.lang())
                 .build();
+        //ROLE_GUEST -> ROLE_USER
+        updateMember.upgradeRole();
 
         memberRepository.save(updateMember);
         log.info("'{}' 가입 완료",email);
-        return OnboardingBundle.OnboardingDto.from(updateMember);
     }
 
 
