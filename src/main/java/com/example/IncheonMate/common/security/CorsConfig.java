@@ -24,7 +24,8 @@ public class CorsConfig {
                 "https://*.ngrok-free.app",
                 "https://triggerless-battlesome-teodoro.ngrok-free.dev",
                 "https://unconducing-ungovernmental-hilaria.ngrok-free.dev",
-                "https://2025-capstone-design-fe.vercel.app"
+                "https://2025-capstone-design-fe.vercel.app",
+                "http://127.0.0.1:5173"
         ));
 
         // 🔴 [필수] 이 부분 주석을 반드시 풀어주세요! 🔴
