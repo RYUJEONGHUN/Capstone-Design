@@ -2,7 +2,9 @@ package com.example.IncheonMate.common.auth.service;
 
 import com.example.IncheonMate.common.auth.client.KakaoOauthTokenClient;
 import com.example.IncheonMate.common.auth.client.KakaoOauthUserInfoClient;
+import com.example.IncheonMate.common.auth.dto.GuestLogin;
 import com.example.IncheonMate.common.auth.dto.KakaoOauthResponse;
+import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.common.jwt.JWTUtil;
@@ -11,20 +13,24 @@ import com.example.IncheonMate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class KakaoSdkOauthService {
+public class LoginService {
 
-    //컨트롤러로 토큰 전송하기 위한 dto
-    public record Tokens(String accessToken, String refreshToken, String role){}
+
 
     private final JWTUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
@@ -96,5 +102,33 @@ public class KakaoSdkOauthService {
         log.info("Refresh Token Redis 저장 완료: {}", email);
 
         return new Tokens(accessToken,refreshToken,member.getRole());
+    }
+
+
+    public Tokens guestLogin(GuestLogin.RequestDto requestDto) {
+        //1. 게스트 UUID를 생성한다.
+        String guestId = UUID.randomUUID().toString();
+
+        //2. Redis에 GUEST_PROFILE:{UUID}로 게스트 정보를 저장한다/TTL은 14일이다
+        Map<String, String> guestProfile = new HashMap<>();
+        guestProfile.put("nickName", requestDto.nickname());
+        guestProfile.put("persona", requestDto.personaType().toString());
+
+        String key = "GUEST_PROFILE:" + guestId;
+        redisTemplate.opsForHash().putAll(key, guestProfile);
+        redisTemplate.expire(key, Duration.ofDays(14));
+
+        //3. Access/Refresh Token을 만든다
+        long accessTime = 60 * 60 * 1000L; // 1시간
+        long refreshTime = 14 * 24 * 60 * 60 * 1000L; // 14일
+        String accessToken = jwtUtil.createJwt(guestId,"ROLE_GUEST",accessTime);
+        String refreshToken = jwtUtil.createJwt(guestId,"ROLE_GUEST",refreshTime);
+
+        //4. Redis에 Refresh Token을 저장한다.
+        redisTemplate.opsForValue()
+                .set("RT:" + guestId,refreshToken,14,TimeUnit.DAYS);
+
+        //4. Access/Refresh Token과 Role을 Controller로 보낸다
+        return new Tokens(accessToken,refreshToken,"ROLE_GUEST");
     }
 }

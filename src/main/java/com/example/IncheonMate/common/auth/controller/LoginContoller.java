@@ -1,16 +1,19 @@
 package com.example.IncheonMate.common.auth.controller;
 
-import com.example.IncheonMate.common.auth.service.KakaoSdkOauthService;
+import com.example.IncheonMate.common.auth.dto.GuestLogin;
+import com.example.IncheonMate.common.auth.dto.Tokens;
+import com.example.IncheonMate.common.auth.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,9 +25,9 @@ import java.time.Duration;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class KakaoSdkOauthController {
+public class LoginContoller {
 
-    private final KakaoSdkOauthService kakaoSdkOauthService;
+    private final LoginService loginService;
 
     @Value("${app.frontend.redirect-url}")
     private String redirectUrl;
@@ -38,7 +41,7 @@ public class KakaoSdkOauthController {
         log.info("카카오 SDK 로그인 요청 code: {}", code);
 
         //로그인 과정은 service에서 하고 Access와 Refresh Token과 role만 가져옴
-        KakaoSdkOauthService.Tokens tokens = kakaoSdkOauthService.kakaoLogin(code);
+        Tokens tokens = loginService.kakaoLogin(code);
 
         //Access Token과 role은 전송하고 Refresh Token은 Cookie에 저장
         //Refresh Token Cookie에 저장
@@ -63,4 +66,30 @@ public class KakaoSdkOauthController {
         response.sendRedirect(targetUri);
 
     }
+
+    @Operation(summary = "게스트 로그인", description = "게스트로 로그인을 진행합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Accees Token 전송 및 Refresh Token,게스트 정보 저장 완료")
+    })
+    @PostMapping("/guest/login")
+    public ResponseEntity<GuestLogin.ResponseDto> guestLogin(@RequestBody GuestLogin.RequestDto requestDto,HttpServletResponse response){
+        log.info("신규 게스트 로그인 요청: {}",requestDto.nickname());
+
+        Tokens tokens = loginService.guestLogin(requestDto);
+
+        //1. Refresh Token을 HttpOnly Cookie에 굽는다
+        ResponseCookie responseCookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(Duration.ofDays(14))
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());
+
+        //2. Access Token과 Role을 Http Body에 담아서 전송한다.
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(GuestLogin.ResponseDto.from(tokens));
+    }
+
 }

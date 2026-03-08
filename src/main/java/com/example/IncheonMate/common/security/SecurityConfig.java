@@ -51,10 +51,12 @@ public class SecurityConfig {
                 //Options(PreFlight)요청 모두 허용
                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                 //임시 테스트
-                .requestMatchers("/api/places/search").permitAll()
+                //.requestMatchers("/api/places/search").permitAll()
                 // 로그인, 메인, 헬스체크는 누구나 접근 가능
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
                 .requestMatchers("/login/**", "/oauth2/**", "/auth/refresh","/error","/auth/kakao/callback").permitAll()
+                //게스트 로그인 추가
+                .requestMatchers("auth/guest/login").permitAll()
                 // 스웨거 문서도 열어둠
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
                 .requestMatchers("/auth/logout").permitAll()
