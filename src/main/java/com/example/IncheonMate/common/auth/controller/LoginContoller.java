@@ -1,6 +1,6 @@
 package com.example.IncheonMate.common.auth.controller;
 
-import com.example.IncheonMate.common.auth.dto.GuestLogin;
+import com.example.IncheonMate.common.auth.dto.LoginDto;
 import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.auth.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,10 +72,10 @@ public class LoginContoller {
             @ApiResponse(responseCode = "200", description = "Accees Token 전송 및 Refresh Token,게스트 정보 저장 완료")
     })
     @PostMapping("/guest/login")
-    public ResponseEntity<GuestLogin.ResponseDto> guestLogin(@RequestBody GuestLogin.RequestDto requestDto,HttpServletResponse response){
-        log.info("신규 게스트 로그인 요청: {}",requestDto.nickname());
+    public ResponseEntity<LoginDto.Response> guestLogin(@RequestBody LoginDto.GuestRequest guestRequest, HttpServletResponse response){
+        log.info("신규 게스트 로그인 요청: {}", guestRequest.nickname());
 
-        Tokens tokens = loginService.guestLogin(requestDto);
+        Tokens tokens = loginService.guestLogin(guestRequest);
 
         //1. Refresh Token을 HttpOnly Cookie에 굽는다
         ResponseCookie responseCookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
@@ -89,7 +89,7 @@ public class LoginContoller {
 
         //2. Access Token과 Role을 Http Body에 담아서 전송한다.
         return ResponseEntity.status(HttpStatus.OK)
-                .body(GuestLogin.ResponseDto.from(tokens));
+                .body(LoginDto.Response.from(tokens));
     }
 
 }

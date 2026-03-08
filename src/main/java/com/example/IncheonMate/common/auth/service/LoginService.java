@@ -2,7 +2,7 @@ package com.example.IncheonMate.common.auth.service;
 
 import com.example.IncheonMate.common.auth.client.KakaoOauthTokenClient;
 import com.example.IncheonMate.common.auth.client.KakaoOauthUserInfoClient;
-import com.example.IncheonMate.common.auth.dto.GuestLogin;
+import com.example.IncheonMate.common.auth.dto.LoginDto;
 import com.example.IncheonMate.common.auth.dto.KakaoOauthResponse;
 import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.exception.CustomException;
@@ -13,7 +13,6 @@ import com.example.IncheonMate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,14 +104,14 @@ public class LoginService {
     }
 
 
-    public Tokens guestLogin(GuestLogin.RequestDto requestDto) {
+    public Tokens guestLogin(LoginDto.GuestRequest guestRequest) {
         //1. 게스트 UUID를 생성한다.
         String guestId = UUID.randomUUID().toString();
 
         //2. Redis에 GUEST_PROFILE:{UUID}로 게스트 정보를 저장한다/TTL은 14일이다
         Map<String, String> guestProfile = new HashMap<>();
-        guestProfile.put("nickName", requestDto.nickname());
-        guestProfile.put("persona", requestDto.personaType().toString());
+        guestProfile.put("nickName", guestRequest.nickname());
+        guestProfile.put("persona", guestRequest.personaType().toString());
 
         String key = "GUEST_PROFILE:" + guestId;
         redisTemplate.opsForHash().putAll(key, guestProfile);
