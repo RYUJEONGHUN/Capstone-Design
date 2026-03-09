@@ -1,6 +1,8 @@
 package com.example.IncheonMate.common.jwt;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
+import com.example.IncheonMate.common.exception.CustomException;
+import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.dto.MemberDto;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
@@ -9,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +24,7 @@ import java.io.IOException;
 public class JWTFilter extends OncePerRequestFilter {
 
     private final JWTUtil jwtUtil;
+    private final StringRedisTemplate redisTemplate; //Guest 만료 확인을 위해 주입
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -49,6 +53,14 @@ public class JWTFilter extends OncePerRequestFilter {
             String email = jwtUtil.getEmail(token);
             String role = jwtUtil.getRole(token);
 
+            if("ROLE_GUEST".equals(role)){
+                if(Boolean.FALSE.equals(redisTemplate.hasKey("GUEST_PROFILE:"+email))){
+                    log.warn("게스트 정보가 Redis에 없음:{}", email);
+                    request.setAttribute("exception","GUEST_NOT_EXIST");
+                    throw new IllegalStateException("게스트 정보 없음");
+                }
+            }
+
             //3. Member Dto 생성
             MemberDto memberDto = new MemberDto();
             memberDto.setEmail(email);
@@ -66,7 +78,9 @@ public class JWTFilter extends OncePerRequestFilter {
             request.setAttribute("exception", "TOKEN_EXPIRED");
         }catch (Exception e){
             log.info("JWT Filter - 유효하지 않은 토큰: {}" ,e.getMessage());
-            request.setAttribute("exception", "INVALID_TOKEN");
+            if(request.getAttribute("exception") == null) {
+                request.setAttribute("exception", "INVALID_TOKEN");
+            }
         }
 
         filterChain.doFilter(request, response);
