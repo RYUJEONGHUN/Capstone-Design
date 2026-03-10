@@ -112,6 +112,7 @@ public class LoginService {
         Map<String, String> guestProfile = new HashMap<>();
         guestProfile.put("nickName", guestRequest.nickname());
         guestProfile.put("persona", guestRequest.personaType().toString());
+        guestProfile.put("lang", guestRequest.lang());
 
         String key = "GUEST_PROFILE:" + guestId;
         redisTemplate.opsForHash().putAll(key, guestProfile);

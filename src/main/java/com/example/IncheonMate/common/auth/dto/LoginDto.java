@@ -8,6 +8,7 @@ public class LoginDto {
     //게스트 로그인 요청 데이터
     public record GuestRequest(
             String nickname,
+            String lang,
             PersonaType personaType
     ){}
 
