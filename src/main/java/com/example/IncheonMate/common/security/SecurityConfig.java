@@ -56,7 +56,7 @@ public class SecurityConfig {
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
                 .requestMatchers("/login/**", "/oauth2/**", "/auth/refresh","/error","/auth/kakao/callback").permitAll()
                 //게스트 로그인 추가
-                .requestMatchers("/auth/guest/login").permitAll()
+                .requestMatchers("/auth/guest/login","/auth/user/login").permitAll()
                 // 스웨거 문서도 열어둠
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
                 .requestMatchers("/auth/logout").permitAll()
