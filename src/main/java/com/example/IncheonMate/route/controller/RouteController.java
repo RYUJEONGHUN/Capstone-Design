@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -56,7 +55,7 @@ public class RouteController {
     })
     @GetMapping("/history/paths")
     public ResponseEntity<List<RouteResponse.RecentRouteDto>> getRecentRoutes(@AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("최근 길찾기 내역 조회 요청: {}", email);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -71,7 +70,7 @@ public class RouteController {
     })
     @GetMapping("/history/places")
     public ResponseEntity<List<RouteResponse.RecentSearchDto>> getRecentPlaces(@AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("최근 검색 내역 조회 요청: {}", email);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -90,7 +89,7 @@ public class RouteController {
     public ResponseEntity<List<RouteResponse.CurrentPlaceDto>> searchAndSavePlaces(@AuthenticationPrincipal CustomOAuth2User user,
                                                                                    @RequestParam(value = "save", defaultValue = "false") boolean save,
                                                                                    @RequestParam("keyword") String keyword) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         //0.3초나 0.5초간 입력을 멈출 때마다 로깅을 하면 로그가 너무 많아져 줄이기 위해서 DEBUG레벨로 로깅
         log.debug("실시간 장소 검색 - 사용자: {}, 키워드: '{}'", email, keyword);
 
@@ -123,7 +122,7 @@ public class RouteController {
     public ResponseEntity<OdsayRouteSearchResponse> findAndSaveRoutes(@AuthenticationPrincipal CustomOAuth2User user,
                                                                       @RequestBody @Valid RouteRequest.RouteSearchRequest routeSearchRequest) {
 
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("길찾기 요청 - 사용자: {}, 출발지: {}, 목적지: {}", email, routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
         //return ResponseEntity.status(HttpStatus.OK)
         //.body(routeService.findAndSaveRoutes(email, routeSearchRequest));
@@ -140,7 +139,7 @@ public class RouteController {
     @DeleteMapping("/history/paths/{recent-route-id}")
     public ResponseEntity<Void> deleteRecentRoute(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                   @PathVariable("recent-route-id") String recentRouteId) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("길찾기 기록 제거 요청-사용자:{}, ID:{}", email, recentRouteId);
         routeService.deleteRecentRoute(email, recentRouteId);
 
@@ -157,7 +156,7 @@ public class RouteController {
     @DeleteMapping("/history/places/{recent-search-id}")
     public ResponseEntity<Void> deleteRecentSearch(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                    @PathVariable("recent-search-id") String recentSearchId) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("키워드 검색 기록 제거 요청-사용자:{}, ID:{}", email, recentSearchId);
         routeService.deleteRecentSearch(email, recentSearchId);
 

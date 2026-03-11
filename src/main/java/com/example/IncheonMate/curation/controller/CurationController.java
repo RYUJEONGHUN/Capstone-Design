@@ -29,7 +29,7 @@ public class CurationController {
     public ResponseEntity<List<CurationSpotForUserDto>> getSpots(
             @AuthenticationPrincipal CustomOAuth2User user
     ) {
-        return ResponseEntity.ok(curationService.getActiveSpotsForUser(user.getEmail()));
+        return ResponseEntity.ok(curationService.getActiveSpotsForUser(user.getIdentifier()));
     }
 
     /**
@@ -46,7 +46,7 @@ public class CurationController {
             @AuthenticationPrincipal CustomOAuth2User user,
             @PathVariable String placeId
     ) {
-        curationService.markAsViewed(user.getEmail(), placeId);
+        curationService.markAsViewed(user.getIdentifier(), placeId);
         return ResponseEntity.noContent().build(); // 204
     }
 
@@ -78,6 +78,6 @@ public class CurationController {
             @AuthenticationPrincipal CustomOAuth2User user,
             @PathVariable String placeId
     ) {
-        return ResponseEntity.ok(curationService.getConfirmDto(user.getEmail(), placeId));
+        return ResponseEntity.ok(curationService.getConfirmDto(user.getIdentifier(), placeId));
     }
 }

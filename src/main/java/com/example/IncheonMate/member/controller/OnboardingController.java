@@ -4,7 +4,6 @@ import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.common.exception.ErrorResponse;
 import com.example.IncheonMate.common.jwt.JWTUtil;
 import com.example.IncheonMate.member.dto.*;
-import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.OnboardingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -56,7 +54,7 @@ public class OnboardingController {
     @PostMapping("/agreements")
     public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                                   @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 약관 동의 내역 저장 요청", email);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -73,10 +71,10 @@ public class OnboardingController {
     })
     @GetMapping
     public ResponseEntity<OnboardingBundle.OnboardingDto> getOnboardingData(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        log.info("'{}' 온보딩에서 저장한 정보 조회 요청", user.getEmail());
+        log.info("'{}' 온보딩에서 저장한 정보 조회 요청", user.getIdentifier());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.getOnboardingValues(user.getEmail()));
+                .body(onboardingService.getOnboardingValues(user.getIdentifier()));
     }
 
     //닉네임 중복검사
@@ -87,7 +85,7 @@ public class OnboardingController {
     @GetMapping("/check")
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname,
                                                                                        @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}", email, nickname);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -107,7 +105,7 @@ public class OnboardingController {
     @PostMapping("/sasang/result")
     public ResponseEntity<MemberCommonDto.SasangResponseDto> submitSasangTest(@RequestBody @Valid MemberCommonDto.SasangRequestDto testResult,
                                                                               @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 사상의학 테스트 결과 판별 요청", email);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -128,7 +126,7 @@ public class OnboardingController {
     public ResponseEntity<List<Map<String,String>>> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
                                                                  @AuthenticationPrincipal CustomOAuth2User user,
                                                                  HttpServletResponse response) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
 
         //1. DB에 정보 저장 및 ROLE을 GUEST -> USER로 변경

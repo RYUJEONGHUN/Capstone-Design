@@ -47,7 +47,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // 4. MemberDto 생성
         MemberDto memberDto = new MemberDto();
-        memberDto.setEmail(member.getEmail());
+        memberDto.setIdentifier(:member.getEmail());
         memberDto.setName(member.getName());
         memberDto.setRole(member.getRole());
 
