@@ -85,8 +85,8 @@ public class OnboardingController {
     @GetMapping("/check")
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname,
                                                                                        @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getIdentifier();
-        log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}", email, nickname);
+        String email = (user != null) ? user.getIdentifier() : null;
+        log.info("닉네임 검사 요청 (가입유무: {}): {}", (email != null), nickname);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberCommonService.isNicknameAvailability(email, nickname));
