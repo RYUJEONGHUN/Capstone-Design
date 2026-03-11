@@ -45,7 +45,7 @@ public class ChatSessionController {
     })
     @GetMapping
     public ResponseEntity<List<ChatSessionResponse.SummaryDto>> getChatSessionSummary(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 채팅 기록 조회 요청", email);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -61,7 +61,7 @@ public class ChatSessionController {
     @GetMapping("/{chat-session-id}")
     public ResponseEntity<ChatSessionResponse.DetailDto> getChatSessionDetail(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                               @Parameter(name = "chat-session-id", description = "조회할 채팅 세션의 ID", example = "65a1b2c...", required = true) @PathVariable("chat-session-id") String chatSessionId) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 채팅세션({}) 메시지 조회 요청", email, chatSessionId);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -77,7 +77,7 @@ public class ChatSessionController {
     @GetMapping("/search")
     public ResponseEntity<List<ChatSessionResponse.SearchedMessageDto>> searchChatSessionDetail(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                                                 @Parameter(description = "검색할 메시지 키워드", example = "맛집", required = true) @RequestParam("keyword") String keyword) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' \"{}\"을(를) 포함하는 메시지 조회 요청", email, keyword);
 
         return ResponseEntity.status(HttpStatus.OK)

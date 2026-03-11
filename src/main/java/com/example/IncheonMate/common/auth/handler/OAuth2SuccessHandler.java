@@ -36,7 +36,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 1. 유저 정보 추출
         CustomOAuth2User customUserDetails = (CustomOAuth2User) authentication.getPrincipal();
-        String email = customUserDetails.getEmail();
+        String email = customUserDetails.getIdentifier();
         String role = customUserDetails.getAuthorities().iterator().next().getAuthority();
 
         // 2. 토큰 생성

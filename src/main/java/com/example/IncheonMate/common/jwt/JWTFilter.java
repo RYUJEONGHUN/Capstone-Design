@@ -1,8 +1,6 @@
 package com.example.IncheonMate.common.jwt;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
-import com.example.IncheonMate.common.exception.CustomException;
-import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.dto.MemberDto;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
@@ -50,12 +48,12 @@ public class JWTFilter extends OncePerRequestFilter {
             }
 
             //2. 토큰이 유효할 때만 정보 추출
-            String email = jwtUtil.getEmail(token);
+            String identifier = jwtUtil.getIdentifier(token);
             String role = jwtUtil.getRole(token);
 
             if("ROLE_GUEST".equals(role)){
-                if(Boolean.FALSE.equals(redisTemplate.hasKey("GUEST_PROFILE:"+email))){
-                    log.warn("게스트 정보가 Redis에 없음:{}", email);
+                if(Boolean.FALSE.equals(redisTemplate.hasKey("GUEST_PROFILE:"+ identifier))){
+                    log.warn("게스트 정보가 Redis에 없음:{}", identifier);
                     request.setAttribute("exception","GUEST_NOT_EXIST");
                     throw new IllegalStateException("게스트 정보 없음");
                 }
@@ -63,7 +61,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
             //3. Member Dto 생성
             MemberDto memberDto = new MemberDto();
-            memberDto.setEmail(email);
+            memberDto.setIdentifier(identifier);
             memberDto.setRole(role);
             memberDto.setName("User");
 

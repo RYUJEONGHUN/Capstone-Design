@@ -20,8 +20,8 @@ public class JWTUtil {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String getEmail(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("email", String.class);
+    public String getIdentifier(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("identifier", String.class);
     }
 
     public String getRole(String token) {
@@ -36,6 +36,19 @@ public class JWTUtil {
         return Jwts.builder()
                 .claim("identifier", identifier)
                 .claim("role", role)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String createPendingJwt(String email,String identifier, String provider, String role, String name, Long expiredMs){
+        return  Jwts.builder()
+                .claim("email",email)
+                .claim("identifier",identifier)
+                .claim("provider",provider)
+                .claim("role",role)
+                .claim("name",name)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(key, SignatureAlgorithm.HS256)
