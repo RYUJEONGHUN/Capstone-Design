@@ -1,12 +1,12 @@
 package com.example.IncheonMate.common.auth.controller;
 
 import com.example.IncheonMate.common.auth.dto.LoginDto;
+import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.jwt.JWTUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +57,7 @@ public class AuthController {
 
         // 2. refreshToken에서 정보 꺼내기
         String role = jwtUtil.getRole(refreshToken);
-        String identifier = jwtUtil.getEmail(refreshToken);
+        String identifier = jwtUtil.getIdentifier(refreshToken);
 
         // 3. Refresh Token 검증
         // 공통: Redis에 "RT:xxx" 가 저장되어 있는지
@@ -95,8 +95,9 @@ public class AuthController {
         log.info("새로운 Token 발급 완료: {}", identifier);
 
         // 6. 새 accessToken 전달 (JSON으로)
+        Tokens tokens = Tokens.of(newAccess,"",role);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(LoginDto.Response.of(newAccess,role));
+                .body(LoginDto.Response.success(tokens));
     }
 
     private String extractCookie(HttpServletRequest request, String name) {
@@ -127,7 +128,7 @@ public class AuthController {
         //3. 유효성 검사 및 Redis에서 삭제
         try{
             //유효성 검사-이메일을 꺼낼 수 없으면 유효하지 않음
-            String email = jwtUtil.getEmail(refreshToken);
+            String email = jwtUtil.getIdentifier(refreshToken);
             //Redis에서 삭제
             redisTemplate.delete("RT:" + email);
         } catch (Exception e){
