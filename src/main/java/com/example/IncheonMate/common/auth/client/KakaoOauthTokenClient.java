@@ -15,7 +15,7 @@ public interface KakaoOauthTokenClient {
             value = "/oauth/token",
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE
     )
-    KakaoOauthResponse.TokenResponse getTokens(
+    KakaoOauthResponse.TokenResponse getKakaoTokens(
             @RequestParam("grant_type") String grantType,
             @RequestParam("client_id") String clientId,
             @RequestParam("redirect_uri") String redirectUri,
