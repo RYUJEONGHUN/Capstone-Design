@@ -14,7 +14,7 @@ public interface KakaoOauthUserInfoClient {
             value = "/v2/user/me",
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE
     )
-    KakaoOauthResponse.UserInfoResponse getInfo(
+    KakaoOauthResponse.UserInfoResponse getKakaoInfo(
             @RequestHeader("Authorization") String accessToken //헤더
     );
 }
