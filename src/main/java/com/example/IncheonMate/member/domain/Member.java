@@ -71,8 +71,6 @@ public class Member {
     private MbtiType mbti;          // ENFP, ISTJ 등,Enum
     @Field(targetType = FieldType.STRING)
     private SasangType sasang;        // 사상의학 (태양인, 태음인, 소양인, 소음인), Enum
-    @Field(targetType = FieldType.STRING)
-    private CompanionType companion;     // 주 여행 동반자 (친구, 연인, 가족, 혼자), Enum
     private PersonaType selectedPersona; // 현재 선택한 AI 페르소나ID
 
     // --- 4. 시간 정보 (자동 관리) ---
@@ -141,7 +139,7 @@ public class Member {
         private LocalDateTime searchedAt; //검색한 시간
     }
 
-    //초기 정보 입력 완료하면 ROLE_GUEST에서 ROLE_USER로 격상
+    //초기 정보 입력 완료하면 ROLE_PENDING에서 ROLE_USER로 격상
     public void upgradeRole(){
         this.role = "ROLE_USER";
     }

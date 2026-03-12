@@ -104,10 +104,6 @@ public class OnboardingBundle {
             @Schema(description = "프로필 이미지 URL", example = "https://example.com/profiles/user1.png")
             String profileImageURL,
 
-            @NotNull(message = "동반자는 필수입니다.")
-            @Schema(description = "동반자 유형", example = "SOLO", implementation = CompanionType.class)
-            CompanionType companion,
-
             @NotNull(message = "사상의학 테스트는 필수입니다.")
             @Schema(description = "사상체질 타입", example = "SOEUM", implementation = SasangType.class)
             SasangType sasang,
@@ -124,14 +120,13 @@ public class OnboardingBundle {
     ) {
         public static OnboardingDto from(Member member) {
             if (member == null) {
-                return new OnboardingDto(null, null, null, null,null, null, null, null, null);
+                return new OnboardingDto(null, null, null, null, null, null, null, null);
             }
             return new OnboardingDto(member.getNickname(),
                     member.getBirthDate().format(DateTimeFormatter.ofPattern("yyMMdd")),
                     member.getGender(),
                     member.getMbti().toString(),
                     member.getProfileImageURL(),
-                    member.getCompanion(),
                     member.getSasang(),
                     member.getSelectedPersona(),
                     member.getLang()
