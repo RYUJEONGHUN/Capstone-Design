@@ -1,8 +1,11 @@
 package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
+import com.example.IncheonMate.common.auth.dto.LoginDto;
+import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.exception.ErrorResponse;
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import com.example.IncheonMate.member.domain.type.Role;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.OnboardingService;
@@ -13,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +30,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -123,21 +126,28 @@ public class OnboardingController {
             @ApiResponse(responseCode = "400", description = "잘못된 입력값", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/complete")
-    public ResponseEntity<List<Map<String,String>>> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
+    public ResponseEntity<LoginDto.Response> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
                                                                  @AuthenticationPrincipal CustomOAuth2User user,
+                                                                 HttpServletRequest request, //JWT을 직접 꺼내어 파싱(/complete때 딱 한번)
                                                                  HttpServletResponse response) {
         String email = user.getIdentifier();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
 
-        //1. DB에 정보 저장 및 ROLE을 GUEST -> USER로 변경
-        onboardingService.saveOnboarding(email, onboardingDto);
+        //토큰에서 {guestId,provider,name} 직접 꺼내옴
+        String token = request.getHeader("Authorization").substring(7);
+        String guestId = jwtUtil.getGuestId(token);
+        String provider = jwtUtil.getProvider(token);
+        String name = jwtUtil.getName(token);
+
+        //1. DB에 정보 저장 및 ROLE을 PENDING -> USER로 변경
+        onboardingService.saveOnboarding(email, onboardingDto,guestId,provider,name);
 
         //2. ROLE_USER 권한으로 새로운 토큰 발급
         long accessTime = 60 * 60 * 1000L;
         long refreshTime = 14 * 24 * 60 * 60 * 1000L;
 
-        String newAccessToken = jwtUtil.createJwt(email,"ROLE_USER",accessTime);
-        String newRefreshToken = jwtUtil.createJwt(email,"ROLE_USER",refreshTime);
+        String newAccessToken = jwtUtil.createJwt(email,Role.USER.getValue(), accessTime);
+        String newRefreshToken = jwtUtil.createJwt(email,Role.USER.getValue(), refreshTime);
 
         redisTemplate.opsForValue()
                 .set("RT:" + email, newRefreshToken, 14, TimeUnit.DAYS);
@@ -152,8 +162,7 @@ public class OnboardingController {
         response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(Arrays.asList(
-                        Map.of("accessToken",newAccessToken),
-                        Map.of("role", "ROLE_USER")));
+                .body(LoginDto.Response.success(
+                        Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue())));
     }
 }
