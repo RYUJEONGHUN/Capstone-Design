@@ -32,6 +32,19 @@ public class JWTUtil {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getExpiration().before(new Date());
     }
 
+    //pendig jwt에 필요한 guestId,provider,name getter 생성
+    public String getGuestId(String token){
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("guestId",String.class);
+    }
+
+    public String getProvider(String token){
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("provider",String.class);
+    }
+
+    public String getName(String token){
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("name",String.class);
+    }
+
     public String createJwt(String identifier, String role, Long expiredMs) {
         return Jwts.builder()
                 .claim("identifier", identifier)
@@ -42,10 +55,10 @@ public class JWTUtil {
                 .compact();
     }
 
-    public String createPendingJwt(String email,String identifier, String provider, String role, String name, Long expiredMs){
+    public String createPendingJwt(String identifier, String guestId, String provider, String role, String name, Long expiredMs){
         return  Jwts.builder()
-                .claim("email",email)
                 .claim("identifier",identifier)
+                .claim("guestId", guestId)
                 .claim("provider",provider)
                 .claim("role",role)
                 .claim("name",name)

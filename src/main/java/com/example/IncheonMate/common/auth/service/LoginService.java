@@ -193,8 +193,8 @@ public class LoginService {
     }
 
     //redis에 저장되어 있는 게스트 정보 가져오기
-    public Map<String, String> getProfileInRedis(String identifier) {
-        String key = "GUEST_PROFILE:" + identifier;
+    public Map<String, String> getProfileInRedis(String guestId) {
+        String key = "GUEST_PROFILE:" + guestId;
 
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
