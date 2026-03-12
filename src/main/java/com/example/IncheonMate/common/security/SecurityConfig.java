@@ -40,7 +40,6 @@ public class SecurityConfig {
         http.csrf((auth) -> auth.disable());
 
         // 1.5. Cors 설정
-        //http.cors(cors -> {});
         http.cors(cors -> cors.configurationSource(corsConfigurationSource));
 
         // 2. Form 로그인 방식 해제 (우리는 소셜로그인/JWT 쓸 거니까)
@@ -52,15 +51,12 @@ public class SecurityConfig {
         http.authorizeHttpRequests((auth) -> auth
                 //Options(PreFlight)요청 모두 허용
                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
-                // 로그인, 메인, 헬스체크는 누구나 접근 가능
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
-                .requestMatchers("/login/**", "/oauth2/**", "/auth/refresh","/error","/auth/kakao/callback").permitAll()
-                //게스트 로그인 추가
-                .requestMatchers("/auth/guest/login","/auth/user/login").permitAll()
-                // 스웨거 문서도 열어둠
+                .requestMatchers( "/oauth2/**", "/error").permitAll()
+                .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
-                .requestMatchers("/auth/logout").permitAll()
-                // 나머지는 로그인한 사람만
+                .requestMatchers("/api/onboarding/check").permitAll()
+                .requestMatchers("/api/onboarding/**").hasRole("PENDING")
                 .anyRequest().authenticated());
 
         http.oauth2Login(oauth -> oauth
