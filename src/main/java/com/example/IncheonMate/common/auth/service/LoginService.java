@@ -181,18 +181,17 @@ public class LoginService {
     }
 
 
-    public Tokens guestLogin(LoginDto.GuestRequest guestRequest) {
+    public LoginDto.GuestLoginResult guestLogin(LoginDto.GuestRequest guestRequest) {
         //1. 게스트 UUID를 생성한다.
         String guestId = UUID.randomUUID().toString();
 
         //2. Redis에 GUEST_PROFILE:{UUID}로 게스트 정보를 저장한다/TTL은 14일이다
-        Map<String, String> guestProfile = new HashMap<>();
-        guestProfile.put("nickname", guestRequest.nickname());
-        guestProfile.put("persona", guestRequest.personaType().toString());
-        guestProfile.put("lang", guestRequest.lang());
+        Map<String, String> guestProfileForSave = new HashMap<>();
+        guestProfileForSave.put("persona", guestRequest.personaType().toString());
+        guestProfileForSave.put("lang", guestRequest.lang());
 
         String key = "GUEST_PROFILE:" + guestId;
-        redisTemplate.opsForHash().putAll(key, guestProfile);
+        redisTemplate.opsForHash().putAll(key, guestProfileForSave);
         redisTemplate.expire(key, Duration.ofDays(14));
 
         //3. Access/Refresh Token을 만든다
@@ -205,22 +204,29 @@ public class LoginService {
         redisTemplate.opsForValue()
                 .set("RT:" + guestId, refreshToken, 14, TimeUnit.DAYS);
 
-        //4. Access/Refresh Token과 Role을 Controller로 보낸다
-        return Tokens.of(accessToken, refreshToken, Role.GUEST.getValue());
+        // 반환을 위한 객체 조립
+        Tokens tokens = new Tokens(accessToken, refreshToken, "ROLE_GUEST");
+        LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
+                "게스트" + guestId.substring(0, 4),
+                guestRequest.personaType().toString(),
+                guestRequest.lang()
+        );
+
+        return new LoginDto.GuestLoginResult(tokens,guestProfile);
     }
 
     //redis에 저장되어 있는 게스트 정보 가져오기
-    public Map<String, String> getProfileInRedis(String guestId) {
+    public LoginDto.GuestProfile getProfileInRedis(String guestId) {
         String key = "GUEST_PROFILE:" + guestId;
 
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
         }
 
-        Map<String, String> guestProfile = new HashMap<>();
-        guestProfile.put("nickname", (String) redisTemplate.opsForHash().get(key, "nickname"));
-        guestProfile.put("persona", (String) redisTemplate.opsForHash().get(key, "persona"));
-        guestProfile.put("lang", (String) redisTemplate.opsForHash().get(key, "lang"));
+        LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
+                "게스트" + guestId.substring(0,4),
+                (String) redisTemplate.opsForHash().get(key, "persona"),
+                (String) redisTemplate.opsForHash().get(key, "lang"));
 
         return guestProfile;
     }

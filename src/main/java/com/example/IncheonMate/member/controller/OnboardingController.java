@@ -30,8 +30,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -162,7 +160,7 @@ public class OnboardingController {
         response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(LoginDto.Response.success(
+                .body(LoginDto.Response.onlyToken(
                         Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue())));
     }
 }
