@@ -97,7 +97,7 @@ public class AuthController {
         // 6. 새 accessToken 전달 (JSON으로)
         Tokens tokens = Tokens.of(newAccess,"",role);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(LoginDto.Response.success(tokens));
+                .body(LoginDto.Response.onlyToken(tokens));
     }
 
     private String extractCookie(HttpServletRequest request, String name) {
