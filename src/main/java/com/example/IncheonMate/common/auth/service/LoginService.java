@@ -55,7 +55,7 @@ public class LoginService {
     @Value("${kakao.redirect-uri}")
     private String kakaoRedirectUri;
 
-    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    @Value("${google.redirect-uri}")
     private String googleRedirectUri;
 
     public Tokens processSocialLogin(LoginDto.UserRequest userRequest, CustomOAuth2User user) {

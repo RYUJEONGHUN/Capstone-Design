@@ -27,18 +27,15 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - email
-              - profile
-            redirect-uri: "https://2025-capstone-design-fe.vercel.app/auth/google/callback"
-            client-name: Google
+
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}
+  redirect-uri: "https://2025-capstone-design-fe.vercel.app/auth/google/callback"
+#scope:
+  # - email
+  #- profile
 
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
@@ -54,9 +51,9 @@ jwt:
   #JWT_SECRET=VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKd3RFeGFtcGxlV2hpY2hJc0xvbmdFbm91Z2hUb0F2b2lkV2Vha0tleUV4Y2VwdGlvbg==
 
 
-app:
-  frontend:
-    redirect-url: "https://2025-capstone-design-fe.vercel.app/oauth/callback"
+#app:
+#  frontend:
+#    redirect-url: "https://2025-capstone-design-fe.vercel.app/oauth/callback"
 
 
 
