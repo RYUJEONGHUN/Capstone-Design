@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
                 .requestMatchers("/api/onboarding/check").permitAll()
+                .requestMatchers("/api/onboarding").hasRole("USER")
                 .requestMatchers("/api/onboarding/**").hasRole("PENDING")
                 .anyRequest().authenticated());
 
