@@ -1,6 +1,5 @@
 package com.example.IncheonMate.common.auth.service;
 
-import com.example.IncheonMate.common.auth.client.GoogleOauthTokenClient;
 import com.example.IncheonMate.common.auth.client.GoogleOauthUserInfoClient;
 import com.example.IncheonMate.common.auth.client.KakaoOauthTokenClient;
 import com.example.IncheonMate.common.auth.client.KakaoOauthUserInfoClient;
@@ -14,7 +13,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -33,7 +38,6 @@ public class LoginService {
     private final MemberRepository memberRepository;
     private final KakaoOauthTokenClient kakaoOauthTokenClient;
     private final KakaoOauthUserInfoClient kakaoOauthUserInfoClient;
-    private final GoogleOauthTokenClient googleOauthTokenClient;
     private final GoogleOauthUserInfoClient googleOauthUserInfoClient;
 
     @Value("${KAKAO_CLIENT_ID}")
@@ -55,8 +59,8 @@ public class LoginService {
     private String googleRedirectUri;
 
     public Tokens processSocialLogin(LoginDto.UserRequest userRequest, CustomOAuth2User user) {
-    // 게스트 사용자가 소셜 인증을 완료한 경우에도 즉시 정회원으로 승격하지 않는다.
-    // 추가 회원가입 절차를 진행하도록 ROLE_PENDING 토큰을 발급한다.
+        // 게스트 사용자가 소셜 인증을 완료한 경우에도 즉시 정회원으로 승격하지 않는다.
+        // 추가 회원가입 절차를 진행하도록 ROLE_PENDING 토큰을 발급한다.
 
         String provider = userRequest.provider();
         String code = userRequest.code();
@@ -84,13 +88,26 @@ public class LoginService {
 
             } else if ("google".equals(provider)) {
                 //1. code로 Access/Refresh Token 받아오기
-                GoogleOauthResponse.TokenResponse googleOauthTokenResponse = googleOauthTokenClient.getGoogleToken(
-                        code,
-                        googleClientId,
-                        googleClientSecret,
-                        googleRedirectUri,
-                        "authorization_code"
-                );
+                //FeignClient는 기본적으로 JSON 형태로 변환하려고 하기 때문에 Form형식으로 변환하려면 의존성,config bean을 추가해야한다.
+                //이 과정보다 Form 형식을 지원하는 RestTemplate를 쓰는게 더 좋다고 판단해 이 요청에만 RestTemplate 사용
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+
+                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+                body.add("code", code);
+                body.add("client_id", googleClientId);
+                body.add("client_secret", googleClientSecret);
+                body.add("redirect_uri", googleRedirectUri);
+                body.add("grant_type", "authorization_code");
+
+                HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+                // Google API 토큰 요청
+                GoogleOauthResponse.TokenResponse googleOauthTokenResponse = restTemplate.postForObject(
+                        "https://oauth2.googleapis.com/token",
+                        request,
+                        GoogleOauthResponse.TokenResponse.class);
 
                 //2. Access token으로 유저 정보 받아오기
                 GoogleOauthResponse.UserInfoResponse googleOauthUserInfoResponse = googleOauthUserInfoClient.getGoogleInfo(
@@ -104,7 +121,7 @@ public class LoginService {
                 log.warn("지원하지 않는 소셜 로그인 제공자: {}", provider);
                 throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "지원하지 않는 소셜 로그인 provider입니다.");
             }
-        }catch (CustomException e){
+        } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
             log.error("소셜 로그인 실패. provider={}", provider, e);
