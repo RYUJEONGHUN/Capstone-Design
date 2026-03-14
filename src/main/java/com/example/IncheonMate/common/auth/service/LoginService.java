@@ -7,6 +7,7 @@ import com.example.IncheonMate.common.auth.dto.*;
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.domain.type.Role;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -208,7 +209,7 @@ public class LoginService {
         Tokens tokens = new Tokens(accessToken, refreshToken, "ROLE_GUEST");
         LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
                 "게스트" + guestId.substring(0, 4),
-                guestRequest.personaType().toString(),
+                guestRequest.personaType(),
                 guestRequest.lang()
         );
 
@@ -225,7 +226,7 @@ public class LoginService {
 
         LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
                 "게스트" + guestId.substring(0,4),
-                (String) redisTemplate.opsForHash().get(key, "persona"),
+                (PersonaType) redisTemplate.opsForHash().get(key, "persona"),
                 (String) redisTemplate.opsForHash().get(key, "lang"));
 
         return guestProfile;
