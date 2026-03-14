@@ -5,6 +5,8 @@ import com.example.IncheonMate.common.auth.dto.LoginDto;
 import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.auth.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,8 +34,8 @@ public class LoginContoller {
 
     @Operation(summary = "카카오/구글 로그인", description = "카카오/구글 SDK 로그인 로직을 수동으로 진행하여 상황에 맞는 토큰을 생성하여 전송 및 저장합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "가입을 하지 않은 사용자 상세 정보 입력을 위한 토큰 발급"),
-            @ApiResponse(responseCode = "200", description = "가입을 이미 완료한 사용자를 위한 토큰 발급")
+            @ApiResponse(responseCode = "200", description = "가입을 하지 않은 사용자 상세 정보 입력을 위한 토큰 발급", content = @Content(schema = @Schema(implementation = LoginDto.Response.class))),
+            @ApiResponse(responseCode = "200", description = "가입을 이미 완료한 사용자를 위한 토큰 발급", content = @Content(schema = @Schema(implementation = LoginDto.Response.class)))
     })
     @PostMapping("/user/login")
     public ResponseEntity<?> socialLogin(@RequestBody LoginDto.UserRequest userRequest, HttpServletResponse response,@AuthenticationPrincipal CustomOAuth2User user) {
@@ -75,7 +77,7 @@ public class LoginContoller {
 
     @Operation(summary = "게스트 로그인", description = "게스트로 로그인을 진행합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Accees Token 전송 및 Refresh Token,게스트 정보 저장 완료")
+            @ApiResponse(responseCode = "200", description = "Accees Token 전송 및 Refresh Token,게스트 정보 저장 완료", content = @Content(schema = @Schema(implementation = LoginDto.Response.class)))
     })
     @PostMapping("/guest/login")
     public ResponseEntity<LoginDto.Response> guestLogin(@RequestBody LoginDto.GuestRequest guestRequest, HttpServletResponse response) {
