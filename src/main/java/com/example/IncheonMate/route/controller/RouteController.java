@@ -54,7 +54,11 @@ public class RouteController {
             @ApiResponse(responseCode = "404", description = "멤버나 길찾기 기록을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/history/paths")
-    public ResponseEntity<List<RouteResponse.RecentRouteDto>> getRecentRoutes(@AuthenticationPrincipal CustomOAuth2User user) {
+    public ResponseEntity<?> getRecentRoutes(@AuthenticationPrincipal CustomOAuth2User user) {
+        if(user.isGuest()){
+            return ResponseEntity.status(HttpStatus.OK).
+                    body(RouteResponse.GuestResponse.from("로그인이 필요한 서비스입니다. 최근 내역을 보려면 소셜 로그인을 진행해 주세요."));
+        }
         String email = user.getIdentifier();
         log.info("최근 길찾기 내역 조회 요청: {}", email);
 
@@ -69,7 +73,11 @@ public class RouteController {
             @ApiResponse(responseCode = "404", description = "멤버나 키워드 기록을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/history/places")
-    public ResponseEntity<List<RouteResponse.RecentSearchDto>> getRecentPlaces(@AuthenticationPrincipal CustomOAuth2User user) {
+    public ResponseEntity<?> getRecentPlaces(@AuthenticationPrincipal CustomOAuth2User user) {
+        if(user.isGuest()){
+            return ResponseEntity.status(HttpStatus.OK).
+                    body(RouteResponse.GuestResponse.from("로그인이 필요한 서비스입니다. 최근 내역을 보려면 소셜 로그인을 진행해 주세요."));
+        }
         String email = user.getIdentifier();
         log.info("최근 검색 내역 조회 요청: {}", email);
 
@@ -89,12 +97,13 @@ public class RouteController {
     public ResponseEntity<List<RouteResponse.CurrentPlaceDto>> searchAndSavePlaces(@AuthenticationPrincipal CustomOAuth2User user,
                                                                                    @RequestParam(value = "save", defaultValue = "false") boolean save,
                                                                                    @RequestParam("keyword") String keyword) {
+        boolean isGuest = user.isGuest();
         String email = user.getIdentifier();
         //0.3초나 0.5초간 입력을 멈출 때마다 로깅을 하면 로그가 너무 많아져 줄이기 위해서 DEBUG레벨로 로깅
         log.debug("실시간 장소 검색 - 사용자: {}, 키워드: '{}'", email, keyword);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(routeService.searchAndSavePlaces(email, keyword, save));
+                .body(routeService.searchAndSavePlaces(email,isGuest, keyword, save));
     }
 
     //4.길찾기 조회 완료 화면: 출발지와 목적지를 입력하고 '길찾기'를 누르면 그에 맞는 경로들을 보여주면서 저장하는 기능-POST/findAndSavePaths(/api/route/paths)
@@ -117,17 +126,14 @@ public class RouteController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/paths")
-    //public ResponseEntity<RouteResponse.CurrentRouteDto> findAndSaveRoutes(@AuthenticationPrincipal CustomOAuth2User user,
-    //@RequestBody @Valid RouteRequest.RouteSearchRequest routeSearchRequest){
     public ResponseEntity<OdsayRouteSearchResponse> findAndSaveRoutes(@AuthenticationPrincipal CustomOAuth2User user,
                                                                       @RequestBody @Valid RouteRequest.RouteSearchRequest routeSearchRequest) {
-
+        boolean isGuest = user.isGuest();
         String email = user.getIdentifier();
         log.info("길찾기 요청 - 사용자: {}, 출발지: {}, 목적지: {}", email, routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
-        //return ResponseEntity.status(HttpStatus.OK)
-        //.body(routeService.findAndSaveRoutes(email, routeSearchRequest));
+
         return ResponseEntity.status(HttpStatus.OK)
-                .body(routeService.findAndSaveRoutes(email, routeSearchRequest));
+                .body(routeService.findAndSaveRoutes(email,isGuest, routeSearchRequest));
     }
 
     //길찾기 기록 제거
@@ -137,8 +143,12 @@ public class RouteController {
             @ApiResponse(responseCode = "404", description = "길찾기 기록 제거 실패", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/history/paths/{recent-route-id}")
-    public ResponseEntity<Void> deleteRecentRoute(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
+    public ResponseEntity<?> deleteRecentRoute(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                   @PathVariable("recent-route-id") String recentRouteId) {
+        if(user.isGuest()){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(RouteResponse.GuestResponse.from("게스트는 이용할 수 없는 기능입니다."));
+        }
         String email = user.getIdentifier();
         log.info("길찾기 기록 제거 요청-사용자:{}, ID:{}", email, recentRouteId);
         routeService.deleteRecentRoute(email, recentRouteId);
@@ -154,8 +164,12 @@ public class RouteController {
             @ApiResponse(responseCode = "404", description = "키워드 검색 기록 제거 실패", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/history/places/{recent-search-id}")
-    public ResponseEntity<Void> deleteRecentSearch(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
+    public ResponseEntity<?> deleteRecentSearch(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                    @PathVariable("recent-search-id") String recentSearchId) {
+        if(user.isGuest()){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(RouteResponse.GuestResponse.from("게스트는 이용할 수 없는 기능입니다."));
+        }
         String email = user.getIdentifier();
         log.info("키워드 검색 기록 제거 요청-사용자:{}, ID:{}", email, recentSearchId);
         routeService.deleteRecentSearch(email, recentSearchId);
