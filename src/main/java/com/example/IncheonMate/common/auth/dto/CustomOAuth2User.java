@@ -42,4 +42,8 @@ public class CustomOAuth2User implements OAuth2User {
     public String getIdentifier() {
         return memberDto.getIdentifier();
     }
+
+    //게스트인지 아닌지 판별하는 메서드
+    //Member DTO에 메서드 등록해놓음
+    public boolean isGuest() {return memberDto.isGuest();}
 }
