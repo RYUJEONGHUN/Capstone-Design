@@ -20,7 +20,7 @@ public class LoginDto {
     //게스트 정보
     public record GuestProfile(
             String nickname,
-            String persona,
+            PersonaType persona,
             String lang
     ){}
 
@@ -34,7 +34,7 @@ public class LoginDto {
             String accessToken,
             String role,
             String nickname,
-            String persona,
+            PersonaType persona,
             String lang
     ) {
         public static Response from(Tokens tokens, GuestProfile guestProfile) {
