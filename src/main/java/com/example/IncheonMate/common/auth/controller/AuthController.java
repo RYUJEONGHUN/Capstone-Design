@@ -85,6 +85,13 @@ public class AuthController {
         String newRefresh = jwtUtil.createJwt(identifier, role, refreshTimeMs);
         redisTemplate.opsForValue().set("RT:" + identifier, newRefresh, 14, TimeUnit.DAYS);
 
+        // ✅ 게스트인 경우 만료 기간도 14일로 갱신
+        if ("ROLE_GUEST".equals(role)) {
+            redisTemplate.expire("GUEST_PROFILE:" + identifier, 14, TimeUnit.DAYS);
+            //+++++++++++++++ 나중에 게스트 채팅 기능을 구현하면 GUEST_CHAT,GUEST_COUNT도 만료 기간 갱신 필요 ++++++++++++++++++
+            log.info("게스트 프로필 만료 기간 14일 연장 완료: {}", identifier);
+        }
+
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefresh)
                 .httpOnly(true)
                 .secure(true)      // 로컬 http면 false, ngrok(https)면 true 권장
