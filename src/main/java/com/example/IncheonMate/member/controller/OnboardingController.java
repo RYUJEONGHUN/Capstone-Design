@@ -44,23 +44,23 @@ public class OnboardingController {
     private final JWTUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
 
-    //약관 동의 저장
-    //인자: HTTP body-약관1,2,3:ture
-    //응답: HTTP body-이메일,동의한 시간,약관 버전
-    @Operation(summary = "약관 동의 내역 확인 및 저장", description = "모든 약관에 동의했는지 확인하고 모두 동의 했으면 저장합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "약관 동의 내역 저장 성공", content = @Content(schema = @Schema(implementation = OnboardingBundle.TermsAgreementResponse.class))),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    @PostMapping("/agreements")
-    public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
-                                                                                  @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
-        String email = user.getIdentifier();
-        log.info("'{}' 약관 동의 내역 저장 요청", email);
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.saveAgreements(email, termsAgreementRequest));
-    }
+//    //약관 동의 저장
+//    //인자: HTTP body-약관1,2,3:ture
+//    //응답: HTTP body-이메일,동의한 시간,약관 버전
+//    @Operation(summary = "약관 동의 내역 확인 및 저장", description = "모든 약관에 동의했는지 확인하고 모두 동의 했으면 저장합니다.")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "약관 동의 내역 저장 성공", content = @Content(schema = @Schema(implementation = OnboardingBundle.TermsAgreementResponse.class))),
+//            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+//    })
+//    @PostMapping("/agreements")
+//    public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
+//                                                                                  @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
+//        String email = user.getIdentifier();
+//        log.info("'{}' 약관 동의 내역 저장 요청", email);
+//
+//        return ResponseEntity.status(HttpStatus.OK)
+//                .body(onboardingService.saveAgreements(email, termsAgreementRequest));
+//    }
 
 
     //온보딩에서 입력한 값들 보여주기
@@ -86,8 +86,8 @@ public class OnboardingController {
     @GetMapping("/check")
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname,
                                                                                        @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = (user != null) ? user.getIdentifier() : null;
-        log.info("닉네임 검사 요청 (가입유무: {}): {}", (email != null), nickname);
+        String email = user.getIdentifier();
+        log.info("닉네임 검사 요청 : {}", email);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberCommonService.isNicknameAvailability(email, nickname));
@@ -120,7 +120,6 @@ public class OnboardingController {
     @Operation(summary = "온보딩 데이터 저장 및 토큰 재발급", description = "사용자가 입력한 정보를 저장하고 토큰을 재발급합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "온보딩 데이터 저장 성공"),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 입력값", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/complete")
