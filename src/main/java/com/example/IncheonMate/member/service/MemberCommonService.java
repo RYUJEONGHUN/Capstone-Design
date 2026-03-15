@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 public class MemberCommonService { //memberService와 onboardingService에서 공통 기능만 빼와서 2개의 서비스에 사용하는 용도 
 
     private final MemberRepository memberRepository;
-    private final StringRedisTemplate redisTemplate;
 
     // 한글, 영문, 숫자, 공백 포함 2~10자-Gemini
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9\\s]{2,10}$");
@@ -42,19 +41,6 @@ public class MemberCommonService { //memberService와 onboardingService에서 �
             return MemberCommonDto.NicknamePolicyDto.of(false,"닉네임 정책 위반: " + nickname);
         }
         //중복 검사
-        //게스트 닉네임 중복 검사
-        //게스트 많아지면 Redis Sets에 닉네임만 따로 저장해놓아야 성능 저하 없음(Redis는 Single-thread임)
-        Set<String> redisKeys = redisTemplate.keys("GUEST_PROFILE:*");
-        boolean hasSameNickname = redisKeys.stream()
-                .map(key -> (String) redisTemplate.opsForHash().get(key, "nickname"))
-                .filter(Objects::nonNull)
-                .anyMatch(redisNickname -> redisNickname.equals(nickname));
-        if(hasSameNickname){
-            log.info("'{}' 닉네임 중복", email);
-            return MemberCommonDto.NicknamePolicyDto.of(false,"닉네임 중복: " + nickname);
-        }
-
-        //유저 닉네임 중복 검사
         if (memberRepository.existsByNickname(nickname)) {
             log.info("'{}' 닉네임 중복", email);
             return MemberCommonDto.NicknamePolicyDto.of(false,"닉네임 중복: " + nickname);
