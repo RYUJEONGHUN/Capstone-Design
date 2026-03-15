@@ -190,6 +190,9 @@ public class LoginService {
         Map<String, String> guestProfileForSave = new HashMap<>();
         guestProfileForSave.put("persona", guestRequest.personaType().toString());
         guestProfileForSave.put("lang", guestRequest.lang());
+        guestProfileForSave.put("isPrivacyPolicyAgreed",String.valueOf(guestRequest.isPrivacyPolicyAgreed()));
+        guestProfileForSave.put("isLocationServiceAgreed",String.valueOf(guestRequest.isLocationServiceAgreed()));
+        guestProfileForSave.put("isTermsOfServiceAgreed",String.valueOf(guestRequest.isTermsOfServiceAgreed()));
 
         String key = "GUEST_PROFILE:" + guestId;
         redisTemplate.opsForHash().putAll(key, guestProfileForSave);
@@ -206,7 +209,7 @@ public class LoginService {
                 .set("RT:" + guestId, refreshToken, 14, TimeUnit.DAYS);
 
         // 반환을 위한 객체 조립
-        Tokens tokens = new Tokens(accessToken, refreshToken, "ROLE_GUEST");
+        Tokens tokens = new Tokens(accessToken, refreshToken, Role.GUEST.getValue());
         LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
                 "게스트" + guestId.substring(0, 4),
                 guestRequest.personaType(),
