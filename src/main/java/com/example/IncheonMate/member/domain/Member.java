@@ -32,6 +32,9 @@ public class Member {
     lang, nickname, profileImage, profileImageAsMarker(false), birthDate
     mbti, sasang, companion, selectedPersona
      */
+    @Field(targetType = FieldType.STRING)
+    private CompanionType companion;
+
 
     @Id // MongoDB의 _id (자동 생성되는 긴 문자열)
     private String id;
@@ -52,8 +55,6 @@ public class Member {
     private LocalDateTime allTermsAgreedAt; //필수 약관 3개에 동의한 시간
     //약관 버전
     private String termsVersion; //약관 버전 관리
-
-    private String SelectedPersonaId;
 
     // --- 2. 사용자 입력 프로필 [기획안 5-15 참고] ---
     private String lang; //kor,eng
@@ -139,8 +140,4 @@ public class Member {
         private LocalDateTime searchedAt; //검색한 시간
     }
 
-    //초기 정보 입력 완료하면 ROLE_PENDING에서 ROLE_USER로 격상
-    public void upgradeRole(){
-        this.role = "ROLE_USER";
-    }
 }

@@ -17,44 +17,44 @@ import java.time.format.DateTimeFormatter;
 //초기 정보 입력(온보딩)에 필요한 DTO들을 모아놓은 클래스
 public class OnboardingBundle {
 
-    //약관 동의 결과 응답 DTO
-    @Schema(description = "약관 동의 결과")
-    public record TermsAgreementResponse(
-            @Schema(description = "사용자 이메일", example = "test123@gamil.com")
-            String email,
-            @Schema(description = "동의 시간", example = "2026-01-14T08:37:59.560Z")
-            LocalDateTime agreedAt,
-            @Schema(description = "약관 버전", example = "v1.0.0")
-            String version
-    ) {
-        public static TermsAgreementResponse from(Member member) {
-            return new TermsAgreementResponse(
-                    member.getEmail(),
-                    member.getAllTermsAgreedAt(),
-                    member.getTermsVersion());
-        }
-    }
+//    //약관 동의 결과 응답 DTO
+//    @Schema(description = "약관 동의 결과")
+//    public record TermsAgreementResponse(
+//            @Schema(description = "사용자 이메일", example = "test123@gamil.com")
+//            String email,
+//            @Schema(description = "동의 시간", example = "2026-01-14T08:37:59.560Z")
+//            LocalDateTime agreedAt,
+//            @Schema(description = "약관 버전", example = "v1.0.0")
+//            String version
+//    ) {
+//        public static TermsAgreementResponse from(Member member) {
+//            return new TermsAgreementResponse(
+//                    member.getEmail(),
+//                    member.getAllTermsAgreedAt(),
+//                    member.getTermsVersion());
+//        }
+//    }
 
 
-    //약관 동의 내역 요청 DTO
-    @Schema(description = "약관 동의 여부")
-    public record TermsAgreementRequest(
-            @JsonProperty("isPrivacyPolicyAgreed")
-            @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
-            @Schema(description = "개인정보 처리방침", example = "true")
-            boolean isPrivacyPolicyAgreed,//개인정보 처리방침 동의
-
-            @JsonProperty("isLocationServiceAgreed")
-            @AssertTrue(message = "위치기반 서비스 이용약관에 동의해야 합니다.")
-            @Schema(description = "위치기반 서비스", example = "true")
-            boolean isLocationServiceAgreed, //위치기반 서비스 동의
-
-            @JsonProperty("isTermsOfServiceAgreed")
-            @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
-            @Schema(description = "개인정보 동의", example = "true")
-            boolean isTermsOfServiceAgreed //개인정보 동의
-    ) {
-    }
+//    //약관 동의 내역 요청 DTO
+//    @Schema(description = "약관 동의 여부")
+//    public record TermsAgreementRequest(
+//            @JsonProperty("isPrivacyPolicyAgreed")
+//            @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
+//            @Schema(description = "개인정보 처리방침", example = "true")
+//            boolean isPrivacyPolicyAgreed,//개인정보 처리방침 동의
+//
+//            @JsonProperty("isLocationServiceAgreed")
+//            @AssertTrue(message = "위치기반 서비스 이용약관에 동의해야 합니다.")
+//            @Schema(description = "위치기반 서비스", example = "true")
+//            boolean isLocationServiceAgreed, //위치기반 서비스 동의
+//
+//            @JsonProperty("isTermsOfServiceAgreed")
+//            @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
+//            @Schema(description = "개인정보 동의", example = "true")
+//            boolean isTermsOfServiceAgreed //개인정보 동의
+//    ) {
+//    }
 
     //온보딩에서 입력해야 하는 요청,응답 DTO
     @Schema(description = "온보딩에서 입력해야하는 값들")
@@ -104,6 +104,10 @@ public class OnboardingBundle {
             @Schema(description = "프로필 이미지 URL", example = "https://example.com/profiles/user1.png")
             String profileImageURL,
 
+            @NotNull(message = "동반자는 필수입니다.")
+            @Schema(description = "동반자 유형", example = "SOLO", implementation = CompanionType.class)
+            CompanionType companion,
+
             @NotNull(message = "사상의학 테스트는 필수입니다.")
             @Schema(description = "사상체질 타입", example = "SOEUM", implementation = SasangType.class)
             SasangType sasang,
@@ -116,20 +120,36 @@ public class OnboardingBundle {
             @Pattern(regexp = "^(kor|eng)$", message = "지원하지 않는 언어입니다. (kor 또는 eng만 가능)")
             @NotNull(message = "언어는 필수입니다.: 현재 언어는 null입니다.")
             @Schema(description = "언어(kor|eng", example = "kor")
-            String lang
+            String lang,
+
+            @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
+            @Schema(description = "개인정보 처리방침", example = "true")
+            boolean isPrivacyPolicyAgreed,//개인정보 처리방침 동의
+
+            @AssertTrue(message = "위치기반 서비스 이용약관에 동의해야 합니다.")
+            @Schema(description = "위치기반 서비스", example = "true")
+            boolean isLocationServiceAgreed, //위치기반 서비스 동의
+
+            @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
+            @Schema(description = "개인정보 동의", example = "true")
+            boolean isTermsOfServiceAgreed //개인정보 동의
     ) {
         public static OnboardingDto from(Member member) {
             if (member == null) {
-                return new OnboardingDto(null, null, null, null, null, null, null, null);
+                return new OnboardingDto(null, null, null, null, null,null, null, null, null,false,false,false);
             }
             return new OnboardingDto(member.getNickname(),
                     member.getBirthDate().format(DateTimeFormatter.ofPattern("yyMMdd")),
                     member.getGender(),
                     member.getMbti().toString(),
                     member.getProfileImageURL(),
+                    member.getCompanion(),
                     member.getSasang(),
                     member.getSelectedPersona(),
-                    member.getLang()
+                    member.getLang(),
+                    member.isPrivacyPolicyAgreed(),
+                    member.isLocationServiceAgreed(),
+                    member.isTermsOfServiceAgreed()
             );
         }
     }

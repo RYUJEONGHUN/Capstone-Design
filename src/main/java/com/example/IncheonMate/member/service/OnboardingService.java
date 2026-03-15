@@ -84,6 +84,12 @@ public class OnboardingService {
                 .selectedPersona(onboardingDto.selectedPersona())
                 .lang(onboardingDto.lang())
                 .role(Role.USER.getValue())
+                .isTermsOfServiceAgreed(onboardingDto.isTermsOfServiceAgreed())
+                .isLocationServiceAgreed(onboardingDto.isLocationServiceAgreed())
+                .isPrivacyPolicyAgreed(onboardingDto.isPrivacyPolicyAgreed())
+                .allTermsAgreedAt(LocalDateTime.now())
+                .termsVersion(CURRENT_TERMS_VERSION)
+                .companion(onboardingDto.companion())
                 .build();
 
         //게스트 계정으로 가입한 내역이 있는 멤버이면 채팅 내역도 DB에 저장해야함
@@ -97,29 +103,29 @@ public class OnboardingService {
 
 
 
-    //saveAgreements컨트롤러
-    //약관 동의 내역을 검사하고 모두 동의 했을때에만 저장하는 서비스
-    @Transactional
-    public OnboardingBundle.TermsAgreementResponse saveAgreements(String email, OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
-        //저장할 멤버
-        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
-        //현재 시간
-        LocalDateTime now = LocalDateTime.now();
-        //약관 버전->버전관리 필요하면 메소드 형태로 변형
-        String currentTermsVersion = CURRENT_TERMS_VERSION;
-
-        //멤버 약관 동의 저장
-        Member updatedMember =  targetMember.toBuilder()
-                .isPrivacyPolicyAgreed(termsAgreementRequest.isPrivacyPolicyAgreed())
-                .isLocationServiceAgreed(termsAgreementRequest.isLocationServiceAgreed())
-                .isTermsOfServiceAgreed(termsAgreementRequest.isTermsOfServiceAgreed())
-                .allTermsAgreedAt(now)
-                .termsVersion(currentTermsVersion)
-                .build();
-        memberRepository.save(updatedMember);
-        log.info("'{}' 약관 동의 내역 저장 완료",email);
-        return OnboardingBundle.TermsAgreementResponse.from(updatedMember);
-    }
+//    //saveAgreements컨트롤러
+//    //약관 동의 내역을 검사하고 모두 동의 했을때에만 저장하는 서비스
+//    @Transactional
+//    public OnboardingBundle.TermsAgreementResponse saveAgreements(String email, OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
+//        //저장할 멤버
+//        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
+//        //현재 시간
+//        LocalDateTime now = LocalDateTime.now();
+//        //약관 버전->버전관리 필요하면 메소드 형태로 변형
+//        String currentTermsVersion = CURRENT_TERMS_VERSION;
+//
+//        //멤버 약관 동의 저장
+//        Member updatedMember =  targetMember.toBuilder()
+//                .isPrivacyPolicyAgreed(termsAgreementRequest.isPrivacyPolicyAgreed())
+//                .isLocationServiceAgreed(termsAgreementRequest.isLocationServiceAgreed())
+//                .isTermsOfServiceAgreed(termsAgreementRequest.isTermsOfServiceAgreed())
+//                .allTermsAgreedAt(now)
+//                .termsVersion(currentTermsVersion)
+//                .build();
+//        memberRepository.save(updatedMember);
+//        log.info("'{}' 약관 동의 내역 저장 완료",email);
+//        return OnboardingBundle.TermsAgreementResponse.from(updatedMember);
+//    }
 
     //getOnboardingData 서비스
     public OnboardingBundle.OnboardingDto getOnboardingValues(String email) {
