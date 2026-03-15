@@ -7,6 +7,7 @@ import com.example.IncheonMate.common.auth.dto.*;
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.domain.type.Role;
 import com.example.IncheonMate.member.repository.MemberRepository;
@@ -25,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -141,9 +143,22 @@ public class LoginService {
 
 
         //3-분기1. 게스트로 가입한 적이 없거나 이미 가입한 사용자일 경우(ROLE_GUEST 토큰이 없을 때)
+        //+++++++++++ [계정 통합] 이메일이 동일하면 소셜 제공자(Provider)에 상관없이 기존 계정으로 로그인 처리 ++++++++++++++++
         if (user == null) {
-            //4. DB에 email로 가입한 내역이 있는지 조회
-            if (memberRepository.existsByEmail(oAuthEmail)) {
+            // 4. DB에 email로 가입한 내역이 있는지 조회 (에러 던지지 않는 메서드 사용!)
+            Optional<Member> existingMemberOpt = memberRepository.findByEmail(oAuthEmail);
+
+            if (existingMemberOpt.isPresent()) {
+                Member existingMember = existingMemberOpt.get();
+
+                // 소셜 정보(provider)가 다를 경우 로그만 남기기
+                if (!existingMember.getProvider().equals(provider)) {
+                    log.info("'{}'이메일은 이미 {}로 가입되어 있습니다.(현재 시도: {}) 기존 계정으로 연동하여 로그인합니다.",
+                            oAuthEmail, existingMember.getProvider(), provider);
+                } else {
+                    log.info("'{}' 기존 계정 로그인 성공", oAuthEmail);
+                }
+
                 //5-분기1. 이미 가입한 유저이기 때문에 User 토큰 발급(로그인 처리)
                 String accessToken = jwtUtil.createJwt(oAuthEmail, Role.USER.getValue(), 60 * 60 * 1000L);
                 String refreshToken = jwtUtil.createJwt(oAuthEmail, Role.USER.getValue(), 14 * 24 * 60 * 60 * 1000L);
