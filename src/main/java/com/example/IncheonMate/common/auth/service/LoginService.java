@@ -144,7 +144,7 @@ public class LoginService {
 
         //3-분기1. 게스트로 가입한 적이 없거나 이미 가입한 사용자일 경우(ROLE_GUEST 토큰이 없을 때)
         //+++++++++++ [계정 통합] 이메일이 동일하면 소셜 제공자(Provider)에 상관없이 기존 계정으로 로그인 처리 ++++++++++++++++
-        if (user == null) {
+        if (user == null || !user.isGuest()) {
             // 4. DB에 email로 가입한 내역이 있는지 조회 (에러 던지지 않는 메서드 사용!)
             Optional<Member> existingMemberOpt = memberRepository.findByEmail(oAuthEmail);
 
@@ -184,7 +184,7 @@ public class LoginService {
             String guestId = user.getIdentifier(); // 게스트 UUID
             String key = "GUEST_PROFILE:" + guestId;
 
-            if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+            if (Boolean.FALSE.equals(redisTemplate.hasKey(key)) && user.isGuest()) {
                 log.warn("만료된 게스트 계정으로 소셜 로그인 시도: {}", guestId);
                 // 에러를 던져서 로그인 화면으로 보냄
                 throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 계정 사용 기간이 만료되었습니다. 다시 로그인해 주세요.");
