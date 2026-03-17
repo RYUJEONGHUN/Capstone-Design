@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +31,7 @@ public class OnboardingService {
 
     private final MemberRepository memberRepository;
     private final MemberCommonService memberCommonService;
+    private final StringRedisTemplate redisTemplate;
     //현재 약관 버전
     private static final String CURRENT_TERMS_VERSION = "v1.0.0";
 
@@ -92,12 +94,21 @@ public class OnboardingService {
                 .companion(onboardingDto.companion())
                 .build();
 
+        memberRepository.save(newMember);
+
+
         //게스트 계정으로 가입한 내역이 있는 멤버이면 채팅 내역도 DB에 저장해야함
         if(!"newUser".equals(guestId)){
             //---------------------나중에 채팅 기능 추가하면 코드 작성---------------------
+            //1. GUEST_CHAT DB로 옮기기 -> 2. save하기 -> 3.Redis에서 GUEST_CHAT과 GUEST_COUNT 삭제하기
+
+            //GUEST_RROFILE 삭제하기
+            redisTemplate.delete("GUEST_PROFILE:"+guestId);
+            //ROLE_GUEST로 만든 Refresh Token도 Redis에서 삭제하기
+            redisTemplate.delete("RT:"+guestId);
+            log.info("게스트 가입자 {}의 임시 Redis 데이터 정리 완료",guestId);
         }
 
-        memberRepository.save(newMember);
         log.info("'{}' 가입 완료",email);
     }
 
