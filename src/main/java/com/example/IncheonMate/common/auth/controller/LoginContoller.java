@@ -44,14 +44,14 @@ public class LoginContoller {
         //1. 신규 가입자
         if("ROLE_PENDING".equals(tokens.role())) {
             //1.1 게스트 출신 신규 가입자(user가 null이 아님)
-            if(user != null){
+            if(user != null && user.isGuest()){
                 LoginDto.GuestProfile guestProfile = loginService.getProfileInRedis(user.getIdentifier());
                 log.info("게스트 계정 있는 사용자 소셜 로그인 요청 성공");
                 return ResponseEntity.status(HttpStatus.OK)
                         .body(LoginDto.Response.from(tokens,guestProfile));
             }
 
-            // 1.2 게스트 계정이 없는 신규 가입자(nser가 null임)
+            // 1.2 게스트 계정이 없는 신규 가입자(user가 null임)
             log.info("게스트 계정이 없는 사용자 소셜 로그인 요청 성공");
             return ResponseEntity.status(HttpStatus.OK)
                     .body(LoginDto.Response.onlyToken(tokens));
