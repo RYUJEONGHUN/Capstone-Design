@@ -24,6 +24,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -205,9 +206,10 @@ public class LoginService {
         Map<String, String> guestProfileForSave = new HashMap<>();
         guestProfileForSave.put("persona", guestRequest.personaType().toString());
         guestProfileForSave.put("lang", guestRequest.lang());
-        guestProfileForSave.put("isPrivacyPolicyAgreed",String.valueOf(guestRequest.isPrivacyPolicyAgreed()));
-        guestProfileForSave.put("isLocationServiceAgreed",String.valueOf(guestRequest.isLocationServiceAgreed()));
-        guestProfileForSave.put("isTermsOfServiceAgreed",String.valueOf(guestRequest.isTermsOfServiceAgreed()));
+        guestProfileForSave.put("isPrivacyPolicyAgreed", String.valueOf(guestRequest.isPrivacyPolicyAgreed()));
+        guestProfileForSave.put("isLocationServiceAgreed", String.valueOf(guestRequest.isLocationServiceAgreed()));
+        guestProfileForSave.put("isTermsOfServiceAgreed", String.valueOf(guestRequest.isTermsOfServiceAgreed()));
+        guestProfileForSave.put("allTermsAgreedAt", LocalDateTime.now().toString());
 
         String key = "GUEST_PROFILE:" + guestId;
         redisTemplate.opsForHash().putAll(key, guestProfileForSave);
@@ -242,11 +244,31 @@ public class LoginService {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
         }
 
-        LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
-                "게스트" + guestId.substring(0,4),
-                (PersonaType) redisTemplate.opsForHash().get(key, "persona"),
-                (String) redisTemplate.opsForHash().get(key, "lang"));
+        String personaStr = (String) redisTemplate.opsForHash().get(key, "persona");
+        String langStr = (String) redisTemplate.opsForHash().get(key, "lang");
 
+        PersonaType personaType;
+        switch (personaStr) {
+            case "FOX":
+                personaType = PersonaType.FOX;
+                break;
+            case "BEAR":
+                personaType = PersonaType.BEAR;
+                break;
+            case "PANDA":
+                personaType = PersonaType.PANDA;
+                break;
+            case "CAT":
+                personaType = PersonaType.CAT;
+                break;
+            default:
+                personaType = null;
+        }
+
+        LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
+                "게스트" + guestId.substring(0, 4),
+                personaType,
+                langStr);
         return guestProfile;
     }
 
