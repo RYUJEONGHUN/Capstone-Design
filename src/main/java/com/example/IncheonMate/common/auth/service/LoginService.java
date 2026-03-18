@@ -141,59 +141,57 @@ public class LoginService {
             log.warn("{} 인증 서버에서 이름 정보를 가져오지 못했습니다", provider);
             throw new CustomException(ErrorCode.INVALID_OAUTH_RESPONSE);
         }
+        //3. DB에 이메일이 있는지 부터 확인
+        Optional<Member> existingMemberOpt = memberRepository.findByEmail(oAuthEmail);
 
+        //4-분기1. 이미 가입된 정회원인 경우
+        if (existingMemberOpt.isPresent()) {
+            // ==========================================
+            // [분기 A] 이미 가입된 정회원인 경우
+            // ==========================================
+            Member existingMember = existingMemberOpt.get();
 
-        //3-분기1. 게스트로 가입한 적이 없거나 이미 가입한 사용자일 경우(ROLE_GUEST 토큰이 없을 때)
-        //+++++++++++ [계정 통합] 이메일이 동일하면 소셜 제공자(Provider)에 상관없이 기존 계정으로 로그인 처리 ++++++++++++++++
-        if (user == null || !user.isGuest()) {
-            // 4. DB에 email로 가입한 내역이 있는지 조회 (에러 던지지 않는 메서드 사용!)
-            Optional<Member> existingMemberOpt = memberRepository.findByEmail(oAuthEmail);
+            //게스트 토큰을 가진 기존 회원 방어(기존 회원이 게스트 계정을 또 만들어서 가입하려고 하는것 방어)
+            if (user != null && user.isGuest()) {
+                log.info("기존 회원 {}이 게스트 상태에서 로그인을 시도했습니다. 게스트 데이터를 무시하고 로그인합니다.",oAuthEmail);
+            }
 
-            if (existingMemberOpt.isPresent()) {
-                Member existingMember = existingMemberOpt.get();
-
-                // 소셜 정보(provider)가 다를 경우 로그만 남기기
-                if (!existingMember.getProvider().equals(provider)) {
-                    log.info("'{}'이메일은 이미 {}로 가입되어 있습니다.(현재 시도: {}) 기존 계정으로 연동하여 로그인합니다.",
-                            oAuthEmail, existingMember.getProvider(), provider);
-                } else {
-                    log.info("'{}' 기존 계정 로그인 성공", oAuthEmail);
-                }
-
-                //5-분기1. 이미 가입한 유저이기 때문에 User 토큰 발급(로그인 처리)
-                String accessToken = jwtUtil.createJwt(oAuthEmail, Role.USER.getValue(), 60 * 60 * 1000L);
-                String refreshToken = jwtUtil.createJwt(oAuthEmail, Role.USER.getValue(), 14 * 24 * 60 * 60 * 1000L);
-
-                //6. refreshToken을 redis에 저장
-                redisTemplate.opsForValue()
-                        .set("RT:" + oAuthEmail, refreshToken, 14, TimeUnit.DAYS);
-                log.info("Refresh Token Redis 저장 완료: {}", oAuthEmail);
-
-                return Tokens.of(accessToken, refreshToken, Role.USER.getValue());
+            // 소셜 정보(provider)가 다를 경우 로그만 남기기
+            //+++++++++++ [계정 통합] 이메일이 동일하면 소셜 제공자(Provider)에 상관없이 기존 계정으로 로그인 처리 ++++++++++++++++
+            if (!existingMember.getProvider().equals(provider)) {
+                log.info("'{}'이메일은 이미 {}로 가입되어 있습니다.(현재 시도: {}) 기존 계정으로 연동하여 로그인합니다.",
+                        oAuthEmail, existingMember.getProvider(), provider);
             } else {
-                //5-분기2. 새롭게 가입해야하는 유저이기 때문에 Pending 토큰 발급
-                //accessToken만, 만료기한 20분
-                String accessToken = jwtUtil.createPendingJwt(oAuthEmail, "newUser", provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
+                log.info("'{}' 기존 계정 로그인 성공", oAuthEmail);
+            }
 
+            //이미 가입한 유저이기 때문에 User 토큰 발급(로그인 처리)
+            String accessToken = jwtUtil.createJwt(oAuthEmail, Role.USER.getValue(), 60 * 60 * 1000L);
+            String refreshToken = jwtUtil.createJwt(oAuthEmail, Role.USER.getValue(), 14 * 24 * 60 * 60 * 1000L);
+
+            //refreshToken을 redis에 저장
+            redisTemplate.opsForValue()
+                    .set("RT:" + oAuthEmail, refreshToken, 14, TimeUnit.DAYS);
+            log.info("Refresh Token Redis 저장 완료: {}", oAuthEmail);
+
+            return Tokens.of(accessToken, refreshToken, Role.USER.getValue());
+        }
+        //4-분기2. 가입하지 않은 진짜 신규 유저인 경우
+        else {
+            // ==========================================
+            // [분기 B] DB에 없는 진짜 신규 유저인 경우
+            // ==========================================
+            if (user == null || !user.isGuest()) {
+                // [분기 B-1] 쌩신규 유저 (게스트 이력 없음)
+                String accessToken = jwtUtil.createPendingJwt(oAuthEmail, "newUser", provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
+                return Tokens.of(accessToken, "", Role.PENDING.getValue());
+            } else {
+                // [분기 B-2] 게스트 출신 신규 유저
+                String guestId = user.getIdentifier(); // 토큰에서 추출한 게스트 ID
+                String accessToken = jwtUtil.createPendingJwt(oAuthEmail, guestId, provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
                 return Tokens.of(accessToken, "", Role.PENDING.getValue());
             }
-        }
-        //3-분기2. 게스트로 가입한 적이 있는 사용자일 경우(ROLE_GUEST 토큰이 있을 때)
-        else {
-            //5-분기3. 게스트 계정이 있지만 새롭게 가입해야하는 유저이기 때문에 Pending 토큰 발급
-            //accessToken만, 만료기한 20분/여기서 user.getEmail은 Redis의 UUID이다.
-            String guestId = user.getIdentifier(); // 게스트 UUID
-            String key = "GUEST_PROFILE:" + guestId;
 
-            if (Boolean.FALSE.equals(redisTemplate.hasKey(key)) && user.isGuest()) {
-                log.warn("만료된 게스트 계정으로 소셜 로그인 시도: {}", guestId);
-                // 에러를 던져서 로그인 화면으로 보냄
-                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 계정 사용 기간이 만료되었습니다. 다시 로그인해 주세요.");
-
-            }
-            String accessToken = jwtUtil.createPendingJwt(oAuthEmail, user.getIdentifier(), provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
-
-            return Tokens.of(accessToken, "", Role.PENDING.getValue());
         }
     }
 
@@ -233,7 +231,7 @@ public class LoginService {
                 guestRequest.lang()
         );
 
-        return new LoginDto.GuestLoginResult(tokens,guestProfile);
+        return new LoginDto.GuestLoginResult(tokens, guestProfile);
     }
 
     //redis에 저장되어 있는 게스트 정보 가져오기
