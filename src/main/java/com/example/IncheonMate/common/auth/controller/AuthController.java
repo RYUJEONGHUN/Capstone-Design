@@ -1,11 +1,14 @@
 package com.example.IncheonMate.common.auth.controller;
 
+import com.example.IncheonMate.common.auth.dto.LoginDto;
+import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.jwt.JWTUtil;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -34,41 +37,60 @@ public class AuthController {
 
     @Operation(summary = "Token 재발급 ", description = "Refresh Token을 확인하고 Refresh Token Rotation 방식을 사용하여 Access,Refresh Token을 재발급한다")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Refresh,Access Token 재발급 성공"),
-            @ApiResponse(responseCode = "401", description = "Refresh Token 인증 실패")
+            @ApiResponse(responseCode = "200", description = "Refresh/Access Token 재발급 성공", content = @Content(schema = @Schema(implementation = LoginDto.Response.class))),
+            @ApiResponse(responseCode = "401", description = "Refresh Token 인증 실패", content = @Content(schema = @Schema(implementation = Map.class)))
     })
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
-        // 1) 쿠키에서 refreshToken 꺼내기
+        // 1. 쿠키에서 refreshToken 꺼내기
         String refreshToken = extractCookie(request, "refreshToken");
         if (!StringUtils.hasText(refreshToken)) {
             return ResponseEntity.status(401).body(Map.of("message", "No refresh token"));
         }
 
-        // 2) refreshToken 유효성 검사 (서명/만료)
-        if (jwtUtil.isExpired(refreshToken)) {
-            return ResponseEntity.status(401).body(Map.of("message", "Refresh token expired"));
-        }
-
-        // 3) refreshToken에서 사용자 정보 추출
-        String email = jwtUtil.getEmail(refreshToken);
-        String role  = jwtUtil.getRole(refreshToken);
-
-        // 4) Redis에 저장된 refreshToken과 비교
-        String saved = redisTemplate.opsForValue().get("RT:" + email);
-        if (!StringUtils.hasText(saved) || !saved.equals(refreshToken)) {
+        // 추가. refresh token 자체의 유효성 검사
+        try{
+            if(jwtUtil.isExpired(refreshToken)){
+                return ResponseEntity.status(401).body(Map.of("message","Refresh token expired"));
+            }
+        } catch (Exception e){
             return ResponseEntity.status(401).body(Map.of("message", "Invalid refresh token"));
         }
 
-        // 5) 새 토큰 발급
+        // 2. refreshToken에서 정보 꺼내기
+        String role = jwtUtil.getRole(refreshToken);
+        String identifier = jwtUtil.getIdentifier(refreshToken);
+
+        // 3. Refresh Token 검증
+        // 공통: Redis에 "RT:xxx" 가 저장되어 있는지
+        String savedToken = redisTemplate.opsForValue().get("RT:"+ identifier);
+        if(!refreshToken.equals(savedToken)){
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid refresh token"));
+        }
+        // 게스트 추가: 프로필이 살아있는지
+        if("ROLE_GUEST".equals(role)){
+            boolean isLived = redisTemplate.hasKey("GUEST_PROFILE:"+identifier);
+            if(!isLived){
+                return ResponseEntity.status(401).body(Map.of("message","No guest profile"));
+            }
+        }
+
+        // 4. 새 토큰 발급
         long accessTimeMs = 60 * 60 * 1000L; // 1시간
         long refreshTimeMs = 14L * 24 * 60 * 60 * 1000L; // 14일
 
-        String newAccess = jwtUtil.createJwt(email, role, accessTimeMs);
+        String newAccess = jwtUtil.createJwt(identifier, role, accessTimeMs);
 
-        //  refreshToken 회전: 새 refresh 발급 + Redis/쿠키 갱신
-        String newRefresh = jwtUtil.createJwt(email, role, refreshTimeMs);
-        redisTemplate.opsForValue().set("RT:" + email, newRefresh, 14, TimeUnit.DAYS);
+        // 5. refreshToken 회전: 새 refresh 발급 + Redis/쿠키 갱신
+        String newRefresh = jwtUtil.createJwt(identifier, role, refreshTimeMs);
+        redisTemplate.opsForValue().set("RT:" + identifier, newRefresh, 14, TimeUnit.DAYS);
+
+        // ✅ 게스트인 경우 만료 기간도 14일로 갱신
+        if ("ROLE_GUEST".equals(role)) {
+            redisTemplate.expire("GUEST_PROFILE:" + identifier, 14, TimeUnit.DAYS);
+            //+++++++++++++++ 나중에 게스트 채팅 기능을 구현하면 GUEST_CHAT,GUEST_COUNT도 만료 기간 갱신 필요 ++++++++++++++++++
+            log.info("게스트 프로필 만료 기간 14일 연장 완료: {}", identifier);
+        }
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefresh)
                 .httpOnly(true)
@@ -79,12 +101,12 @@ public class AuthController {
                 .build();
 
         response.addHeader("Set-Cookie", refreshCookie.toString());
-        log.info("새로운 Token 발급 완료: {}", email);
+        log.info("새로운 Token 발급 완료: {}", identifier);
 
-        // 6) 새 accessToken 전달 (JSON으로)
-        return ResponseEntity.ok(Map.of(
-                "accessToken", newAccess
-        ));
+        // 6. 새 accessToken 전달 (JSON으로)
+        Tokens tokens = Tokens.of(newAccess,"",role);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(LoginDto.Response.onlyToken(tokens));
     }
 
     private String extractCookie(HttpServletRequest request, String name) {
@@ -115,9 +137,9 @@ public class AuthController {
         //3. 유효성 검사 및 Redis에서 삭제
         try{
             //유효성 검사-이메일을 꺼낼 수 없으면 유효하지 않음
-            String email = jwtUtil.getEmail(refreshToken);
+            String email = jwtUtil.getIdentifier(refreshToken);
             //Redis에서 삭제
-            redisTemplate.delete("RT: " + email);
+            redisTemplate.delete("RT:" + email);
         } catch (Exception e){
             //예외. 어떤 에러가 나더라도 로그아웃은 성공해야함
             log.warn("로그아웃 프로세스 중 토큰 처리 경고 (무시 가능): {}",e.getMessage());

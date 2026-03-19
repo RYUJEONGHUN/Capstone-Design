@@ -118,13 +118,13 @@ public class RouteResponse {
         }
     }
 
-    //현재 길찾기 정보
-    @Schema(description = "현재 길찾기 상세 경로 DTO (ODsay 응답 매핑)")
-    public record CurrentRouteDto(
-            // 필드가 추가되면 여기에 @Schema 추가
+    //검색,길찾기 기록을 저장하지 못하는 게스트를 위한 응답
+    public record GuestResponse(
+            String message
     ){
-        public static CurrentRouteDto from(OdsayRouteSearchResponse response){
-            return new CurrentRouteDto();
+        public static GuestResponse from(String message){
+            return new GuestResponse(message);
         }
     }
+
 }

@@ -88,7 +88,7 @@ public class RouteService {
 
     //3.검색 화면: 검색어를 입력하면 검색어에 맞는 장소를 보여주면서 키워드나 장소를 저장하는 기능-get+URI Param/searchAndSavePlaces(/api/route/searchs)
     @Transactional
-    public List<RouteResponse.CurrentPlaceDto> searchAndSavePlaces(String email, String keyword, boolean save) {
+    public List<RouteResponse.CurrentPlaceDto> searchAndSavePlaces(String email, boolean isGuest, String keyword, boolean save) {
         log.debug("email:{}, keyword: {}, save:{}", email, keyword, save);
 
         //요청한다음에 KakaoApiResponseDto 전체 카카오 응답 받기(여기서 keyword 사용)
@@ -117,7 +117,7 @@ public class RouteService {
                 .toList();
 
 
-        if (save) {//save=true이면 저장하고 전송
+        if (save && !isGuest) {//save=true이고 게스트가 아닐때에만 저장
             //저장할 recentSearch 생성
             Member.RecentSearch recentSearch = Member.RecentSearch.builder()
                     .id(UUID.randomUUID().toString())
@@ -145,10 +145,7 @@ public class RouteService {
 
     //4.길찾기 조회 완료 화면: 출발지와 목적지를 입력하고 '길찾기'를 누르면 그에 맞는 경로들을 보여주면서 저장하는 기능-POST/findAndSavePaths(/api/route/paths)
     @Transactional
-//    public RouteResponse.CurrentRouteDto findAndSaveRoutes(String email, RouteRequest.RouteSearchRequest
-//            routeSearchRequest) {
-    public OdsayRouteSearchResponse findAndSaveRoutes(String email, RouteRequest.RouteSearchRequest
-            routeSearchRequest) {
+    public OdsayRouteSearchResponse findAndSaveRoutes(String email, boolean isGuest ,RouteRequest.RouteSearchRequest routeSearchRequest) {
         log.info("{} -> {} ODsay 길찾기 API 요청", routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
         OdsayRouteSearchResponse odsayResponse = odsayClient.searchRoute(
                 routeSearchRequest.sx(), routeSearchRequest.sy(),
@@ -164,37 +161,37 @@ public class RouteService {
         }
 
         log.info("ODsay 길찾기 정상 응답");
+        if(!isGuest) {
+            //경로 저장 로직
+            GeoJsonPoint departureLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.sx()), Double.parseDouble(routeSearchRequest.sy()));
+            GeoJsonPoint arrivalLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.ex()), Double.parseDouble(routeSearchRequest.ey()));
 
-        //경로 저장 로직
-        GeoJsonPoint departureLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.sx()), Double.parseDouble(routeSearchRequest.sy()));
-        GeoJsonPoint arrivalLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.ex()), Double.parseDouble(routeSearchRequest.ey()));
+            Member.RecentRoute recentRoute = Member.RecentRoute.builder()
+                    .id(UUID.randomUUID().toString())
+                    .departureName(routeSearchRequest.departureName())
+                    .arrivalName(routeSearchRequest.arrivalName())
+                    .departureLocation(departureLocation)
+                    .arrivalLocation(arrivalLocation)
+                    .searchedAt(LocalDateTime.now())
+                    .build();
 
-        Member.RecentRoute recentRoute = Member.RecentRoute.builder()
-                .id(UUID.randomUUID().toString())
-                .departureName(routeSearchRequest.departureName())
-                .arrivalName(routeSearchRequest.arrivalName())
-                .departureLocation(departureLocation)
-                .arrivalLocation(arrivalLocation)
-                .searchedAt(LocalDateTime.now())
-                .build();
+            //저장 로직MongoTemplate(최대 20개)
+            //MongoTempalte: 실행 엔진 계층으로 직접적으로 MongoDB에 BSON을 전송
+            Query query = new Query(Criteria.where("email").is(email));
 
-        //저장 로직MongoTemplate(최대 20개)
-        //MongoTempalte: 실행 엔진 계층으로 직접적으로 MongoDB에 BSON을 전송
-        Query query = new Query(Criteria.where("email").is(email));
+            Update update = new Update().push("recentRoutes") //Member 엔티티의 필드명
+                    .atPosition(0) //0번 인덱스에 삽입(최신순)
+                    .slice(20) //배열의 크기를 20개로 유지
+                    .each(recentRoute); //삽입할 데이터
 
-        Update update = new Update().push("recentRoutes") //Member 엔티티의 필드명
-                .atPosition(0) //0번 인덱스에 삽입(최신순)
-                .slice(20) //배열의 크기를 20개로 유지
-                .each(recentRoute); //삽입할 데이터
-
-        UpdateResult result = mongoTemplate.updateFirst(query, update, Member.class);
-        if (result.getMatchedCount() == 0) {
-            log.error("사용자를 찾을 수 없습니다.: {}", email);
-            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+            UpdateResult result = mongoTemplate.updateFirst(query, update, Member.class);
+            if (result.getMatchedCount() == 0) {
+                log.error("사용자를 찾을 수 없습니다.: {}", email);
+                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+            }
+            log.info("경로 기록 저장 완료: {}", email);
         }
-        log.info("경로 기록 저장 완료: {}", email);
 
-        //return RouteResponse.CurrentRouteDto.from(odsayResponse);
         return odsayResponse;
     }
 

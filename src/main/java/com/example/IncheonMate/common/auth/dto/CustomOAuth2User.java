@@ -39,7 +39,11 @@ public class CustomOAuth2User implements OAuth2User {
     }
 
     // 우리가 추가로 쓰는 메서드 (이메일 꺼낼 때 필요)
-    public String getEmail() {
-        return memberDto.getEmail();
+    public String getIdentifier() {
+        return memberDto.getIdentifier();
     }
+
+    //게스트인지 아닌지 판별하는 메서드
+    //Member DTO에 메서드 등록해놓음
+    public boolean isGuest() {return memberDto.isGuest();}
 }

@@ -15,6 +15,7 @@ public enum ErrorCode {
     NOT_A_SERVICE_AREA(HttpStatus.BAD_REQUEST,"ROUTE 005","서비스 지역이 아닙니다."),
     DISTANCE_TOO_SHORT(HttpStatus.BAD_REQUEST, "ROUTE 006", "출, 도착지가 700m 이내입니다."),
     MISSING_REQUIRED_INFO(HttpStatus.BAD_REQUEST,"AUTH 001", "이메일과 이름 제공에 동의해야 서비스를 이용할 수 있습니다."),
+    INVALID_OAUTH_RESPONSE(HttpStatus.BAD_REQUEST, "AUTH 002", "소셜 로그인 중 문제가 발생했습니다."),
 
 
     //404

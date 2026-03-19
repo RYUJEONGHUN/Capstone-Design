@@ -4,6 +4,7 @@ import com.example.IncheonMate.curation.dto.CurationConfirmResponseDto;
 import com.example.IncheonMate.curation.dto.CurationSpotForUserDto;
 import com.example.IncheonMate.curation.repository.CurationRepository;
 import com.example.IncheonMate.member.domain.Member;
+import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.repository.PlaceRepository;
@@ -37,9 +38,9 @@ public class CurationService {
      */
     public List<CurationSpotForUserDto> getActiveSpotsForUser(String email) {
         Member member = memberRepository.getMemberByEmail(email);
-        String persona = (member != null && member.getSelectedPersonaId() != null)
-                ? member.getSelectedPersonaId()
-                : "1";
+        PersonaType persona = (member != null && member.getSelectedPersona() != null)
+                ? member.getSelectedPersona()
+                : PersonaType.BEAR;
 
         List<CurationSpot> spots = cacheService.getCachedAllSpots(); // 캐시로 몽고 조회 최소화
 
@@ -115,7 +116,7 @@ public class CurationService {
 
     public CurationConfirmResponseDto getConfirmDto(String email, String placeId) {
         Member member = memberRepository.getMemberByEmail(email);
-        String persona = member.getSelectedPersonaId();
+        PersonaType persona = member.getSelectedPersona();
 
         CurationSpot spot = Optional.ofNullable(curationRepository.getCurationSpotByPlaceId(placeId))
                 .orElseThrow(() -> new RuntimeException("큐레이션 스팟이 없습니다. placeId=" + placeId));
