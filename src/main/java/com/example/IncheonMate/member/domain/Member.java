@@ -32,6 +32,9 @@ public class Member {
     lang, nickname, profileImage, profileImageAsMarker(false), birthDate
     mbti, sasang, companion, selectedPersona
      */
+    @Field(targetType = FieldType.STRING)
+    private CompanionType companion;
+
 
     @Id // MongoDB의 _id (자동 생성되는 긴 문자열)
     private String id;
@@ -53,8 +56,6 @@ public class Member {
     //약관 버전
     private String termsVersion; //약관 버전 관리
 
-    private String SelectedPersonaId;
-
     // --- 2. 사용자 입력 프로필 [기획안 5-15 참고] ---
     private String lang; //kor,eng
     @Indexed(unique = true, sparse = true)
@@ -71,8 +72,6 @@ public class Member {
     private MbtiType mbti;          // ENFP, ISTJ 등,Enum
     @Field(targetType = FieldType.STRING)
     private SasangType sasang;        // 사상의학 (태양인, 태음인, 소양인, 소음인), Enum
-    @Field(targetType = FieldType.STRING)
-    private CompanionType companion;     // 주 여행 동반자 (친구, 연인, 가족, 혼자), Enum
     private PersonaType selectedPersona; // 현재 선택한 AI 페르소나ID
 
     // --- 4. 시간 정보 (자동 관리) ---
@@ -141,8 +140,4 @@ public class Member {
         private LocalDateTime searchedAt; //검색한 시간
     }
 
-    //초기 정보 입력 완료하면 ROLE_GUEST에서 ROLE_USER로 격상
-    public void upgradeRole(){
-        this.role = "ROLE_USER";
-    }
 }

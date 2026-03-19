@@ -1,17 +1,22 @@
 package com.example.IncheonMate.member.service;
 
+import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
+import com.example.IncheonMate.common.jwt.JWTUtil;
 import com.example.IncheonMate.member.domain.Member;
+import com.example.IncheonMate.member.domain.type.Role;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.domain.type.SasangType;
 
 import java.time.LocalDateTime;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -26,7 +31,7 @@ public class OnboardingService {
 
     private final MemberRepository memberRepository;
     private final MemberCommonService memberCommonService;
-
+    private final StringRedisTemplate redisTemplate;
     //현재 약관 버전
     private static final String CURRENT_TERMS_VERSION = "v1.0.0";
 
@@ -42,7 +47,7 @@ public class OnboardingService {
 
     //초기 입력 화면(온보딩)에서 사용자가 입력한 정보 전체의 정책을 검사하고 저장하는 서비스
     @Transactional
-    public void saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto) {
+    public void saveOnboarding(String email, OnboardingBundle.OnboardingDto onboardingDto,String guestId,String provider,String name) {
         /*
         String nickname -> 최소 2글자/'사용자' 미포함
         String birthdate -> 6자리 숫자
@@ -59,9 +64,6 @@ public class OnboardingService {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"저장할 온보딩 데이터가 업습니다.");
         }
 
-        //저장할 멤버
-        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
-
         //닉네임이 정책에 맞게 들어왔는지 검증
         if (!memberCommonService.checkNicknamePolicy(onboardingDto.nickname())) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,onboardingDto.nickname() + "은(는) 정책을 위배한 닉네임입니다");
@@ -69,53 +71,72 @@ public class OnboardingService {
         //yyMMdd형식을 yyyy-MM-dd형식으로 변환하고 미래의 날짜인지 검증
         LocalDate birthDate = memberCommonService.parseLocalDate(onboardingDto.birthDate());
 
-        //기존 멤버에 온보딩 DTO를 반영함
-        //생년월일-현재보다 미래의 날짜도 통과하는 문제 => isAfter()로 해결
-        //profileImageURL-null이면 exception나오는 문제 => 반드시 profileImageURL: null 형태로 전달받아야함(없으면 exception)
-        Member updateMember = targetMember.toBuilder()
+        //새로운 멤버 생성
+        Member newMember = Member.builder()
+                .email(email)
                 .nickname(onboardingDto.nickname())
+                .provider(provider)
+                .name(name)
                 .birthDate(birthDate)
                 .gender(onboardingDto.gender())
                 .mbti(memberCommonService.parseMbti(onboardingDto.mbti()))
                 .profileImageURL(onboardingDto.profileImageURL())
                 .profileImageAsMarker(StringUtils.hasText(onboardingDto.profileImageURL()))
-                .companion(onboardingDto.companion())
                 .sasang(onboardingDto.sasang())
                 .selectedPersona(onboardingDto.selectedPersona())
                 .lang(onboardingDto.lang())
+                .role(Role.USER.getValue())
+                .isTermsOfServiceAgreed(onboardingDto.isTermsOfServiceAgreed())
+                .isLocationServiceAgreed(onboardingDto.isLocationServiceAgreed())
+                .isPrivacyPolicyAgreed(onboardingDto.isPrivacyPolicyAgreed())
+                .allTermsAgreedAt(LocalDateTime.now())
+                .termsVersion(CURRENT_TERMS_VERSION)
+                .companion(onboardingDto.companion())
                 .build();
-        //ROLE_GUEST -> ROLE_USER
-        updateMember.upgradeRole();
 
-        memberRepository.save(updateMember);
+        memberRepository.save(newMember);
+
+
+        //게스트 계정으로 가입한 내역이 있는 멤버이면 채팅 내역도 DB에 저장해야함
+        if(!"newUser".equals(guestId)){
+            //---------------------나중에 채팅 기능 추가하면 코드 작성---------------------
+            //1. GUEST_CHAT DB로 옮기기 -> 2. save하기 -> 3.Redis에서 GUEST_CHAT과 GUEST_COUNT 삭제하기
+
+            //GUEST_RROFILE 삭제하기
+            redisTemplate.delete("GUEST_PROFILE:"+guestId);
+            //ROLE_GUEST로 만든 Refresh Token도 Redis에서 삭제하기
+            redisTemplate.delete("RT:"+guestId);
+            log.info("게스트 가입자 {}의 임시 Redis 데이터 정리 완료",guestId);
+        }
+
         log.info("'{}' 가입 완료",email);
     }
 
 
 
-    //saveAgreements컨트롤러
-    //약관 동의 내역을 검사하고 모두 동의 했을때에만 저장하는 서비스
-    @Transactional
-    public OnboardingBundle.TermsAgreementResponse saveAgreements(String email, OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
-        //저장할 멤버
-        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
-        //현재 시간
-        LocalDateTime now = LocalDateTime.now();
-        //약관 버전->버전관리 필요하면 메소드 형태로 변형
-        String currentTermsVersion = CURRENT_TERMS_VERSION;
-
-        //멤버 약관 동의 저장
-        Member updatedMember =  targetMember.toBuilder()
-                .isPrivacyPolicyAgreed(termsAgreementRequest.isPrivacyPolicyAgreed())
-                .isLocationServiceAgreed(termsAgreementRequest.isLocationServiceAgreed())
-                .isTermsOfServiceAgreed(termsAgreementRequest.isTermsOfServiceAgreed())
-                .allTermsAgreedAt(now)
-                .termsVersion(currentTermsVersion)
-                .build();
-        memberRepository.save(updatedMember);
-        log.info("'{}' 약관 동의 내역 저장 완료",email);
-        return OnboardingBundle.TermsAgreementResponse.from(updatedMember);
-    }
+//    //saveAgreements컨트롤러
+//    //약관 동의 내역을 검사하고 모두 동의 했을때에만 저장하는 서비스
+//    @Transactional
+//    public OnboardingBundle.TermsAgreementResponse saveAgreements(String email, OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
+//        //저장할 멤버
+//        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
+//        //현재 시간
+//        LocalDateTime now = LocalDateTime.now();
+//        //약관 버전->버전관리 필요하면 메소드 형태로 변형
+//        String currentTermsVersion = CURRENT_TERMS_VERSION;
+//
+//        //멤버 약관 동의 저장
+//        Member updatedMember =  targetMember.toBuilder()
+//                .isPrivacyPolicyAgreed(termsAgreementRequest.isPrivacyPolicyAgreed())
+//                .isLocationServiceAgreed(termsAgreementRequest.isLocationServiceAgreed())
+//                .isTermsOfServiceAgreed(termsAgreementRequest.isTermsOfServiceAgreed())
+//                .allTermsAgreedAt(now)
+//                .termsVersion(currentTermsVersion)
+//                .build();
+//        memberRepository.save(updatedMember);
+//        log.info("'{}' 약관 동의 내역 저장 완료",email);
+//        return OnboardingBundle.TermsAgreementResponse.from(updatedMember);
+//    }
 
     //getOnboardingData 서비스
     public OnboardingBundle.OnboardingDto getOnboardingValues(String email) {

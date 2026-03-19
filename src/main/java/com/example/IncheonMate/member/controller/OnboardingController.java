@@ -1,10 +1,12 @@
 package com.example.IncheonMate.member.controller;
 
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
+import com.example.IncheonMate.common.auth.dto.LoginDto;
+import com.example.IncheonMate.common.auth.dto.Tokens;
 import com.example.IncheonMate.common.exception.ErrorResponse;
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import com.example.IncheonMate.member.domain.type.Role;
 import com.example.IncheonMate.member.dto.*;
-import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.OnboardingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -45,23 +44,23 @@ public class OnboardingController {
     private final JWTUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
 
-    //약관 동의 저장
-    //인자: HTTP body-약관1,2,3:ture
-    //응답: HTTP body-이메일,동의한 시간,약관 버전
-    @Operation(summary = "약관 동의 내역 확인 및 저장", description = "모든 약관에 동의했는지 확인하고 모두 동의 했으면 저장합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "약관 동의 내역 저장 성공", content = @Content(schema = @Schema(implementation = OnboardingBundle.TermsAgreementResponse.class))),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    @PostMapping("/agreements")
-    public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
-                                                                                  @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
-        String email = user.getEmail();
-        log.info("'{}' 약관 동의 내역 저장 요청", email);
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.saveAgreements(email, termsAgreementRequest));
-    }
+//    //약관 동의 저장
+//    //인자: HTTP body-약관1,2,3:ture
+//    //응답: HTTP body-이메일,동의한 시간,약관 버전
+//    @Operation(summary = "약관 동의 내역 확인 및 저장", description = "모든 약관에 동의했는지 확인하고 모두 동의 했으면 저장합니다.")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "약관 동의 내역 저장 성공", content = @Content(schema = @Schema(implementation = OnboardingBundle.TermsAgreementResponse.class))),
+//            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+//    })
+//    @PostMapping("/agreements")
+//    public ResponseEntity<OnboardingBundle.TermsAgreementResponse> saveAgreements(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
+//                                                                                  @Parameter(description = "약관 동의 여부(ture/false)") @RequestBody @Valid OnboardingBundle.TermsAgreementRequest termsAgreementRequest) {
+//        String email = user.getIdentifier();
+//        log.info("'{}' 약관 동의 내역 저장 요청", email);
+//
+//        return ResponseEntity.status(HttpStatus.OK)
+//                .body(onboardingService.saveAgreements(email, termsAgreementRequest));
+//    }
 
 
     //온보딩에서 입력한 값들 보여주기
@@ -73,10 +72,10 @@ public class OnboardingController {
     })
     @GetMapping
     public ResponseEntity<OnboardingBundle.OnboardingDto> getOnboardingData(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        log.info("'{}' 온보딩에서 저장한 정보 조회 요청", user.getEmail());
+        log.info("'{}' 온보딩에서 저장한 정보 조회 요청", user.getIdentifier());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(onboardingService.getOnboardingValues(user.getEmail()));
+                .body(onboardingService.getOnboardingValues(user.getIdentifier()));
     }
 
     //닉네임 중복검사
@@ -87,8 +86,8 @@ public class OnboardingController {
     @GetMapping("/check")
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname,
                                                                                        @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
-        log.info("'{}' 닉네임 중복 및 정책 검사 요청: {}", email, nickname);
+        String email = user.getIdentifier();
+        log.info("닉네임 검사 요청 : {}", email);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberCommonService.isNicknameAvailability(email, nickname));
@@ -107,7 +106,7 @@ public class OnboardingController {
     @PostMapping("/sasang/result")
     public ResponseEntity<MemberCommonDto.SasangResponseDto> submitSasangTest(@RequestBody @Valid MemberCommonDto.SasangRequestDto testResult,
                                                                               @AuthenticationPrincipal CustomOAuth2User user) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 사상의학 테스트 결과 판별 요청", email);
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -121,25 +120,31 @@ public class OnboardingController {
     @Operation(summary = "온보딩 데이터 저장 및 토큰 재발급", description = "사용자가 입력한 정보를 저장하고 토큰을 재발급합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "온보딩 데이터 저장 성공"),
-            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 입력값", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/complete")
-    public ResponseEntity<List<Map<String,String>>> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
+    public ResponseEntity<LoginDto.Response> completeOnboarding(@RequestBody @Valid OnboardingBundle.OnboardingDto onboardingDto,
                                                                  @AuthenticationPrincipal CustomOAuth2User user,
+                                                                 HttpServletRequest request, //JWT을 직접 꺼내어 파싱(/complete때 딱 한번)
                                                                  HttpServletResponse response) {
-        String email = user.getEmail();
+        String email = user.getIdentifier();
         log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
 
-        //1. DB에 정보 저장 및 ROLE을 GUEST -> USER로 변경
-        onboardingService.saveOnboarding(email, onboardingDto);
+        //토큰에서 {guestId,provider,name} 직접 꺼내옴
+        String token = request.getHeader("Authorization").substring(7);
+        String guestId = jwtUtil.getGuestId(token);
+        String provider = jwtUtil.getProvider(token);
+        String name = jwtUtil.getName(token);
+
+        //1. DB에 정보 저장 및 ROLE을 PENDING -> USER로 변경
+        onboardingService.saveOnboarding(email, onboardingDto,guestId,provider,name);
 
         //2. ROLE_USER 권한으로 새로운 토큰 발급
         long accessTime = 60 * 60 * 1000L;
         long refreshTime = 14 * 24 * 60 * 60 * 1000L;
 
-        String newAccessToken = jwtUtil.createJwt(email,"ROLE_USER",accessTime);
-        String newRefreshToken = jwtUtil.createJwt(email,"ROLE_USER",refreshTime);
+        String newAccessToken = jwtUtil.createJwt(email,Role.USER.getValue(), accessTime);
+        String newRefreshToken = jwtUtil.createJwt(email,Role.USER.getValue(), refreshTime);
 
         redisTemplate.opsForValue()
                 .set("RT:" + email, newRefreshToken, 14, TimeUnit.DAYS);
@@ -154,8 +159,7 @@ public class OnboardingController {
         response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(Arrays.asList(
-                        Map.of("accessToken",newAccessToken),
-                        Map.of("role", "ROLE_USER")));
+                .body(LoginDto.Response.onlyToken(
+                        Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue())));
     }
 }

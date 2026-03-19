@@ -8,6 +8,7 @@ import com.example.IncheonMate.member.dto.MemberCommonDto;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.repository.config.CustomRepositoryImplementationDetector;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,8 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @RequiredArgsConstructor

@@ -9,5 +9,9 @@ import lombok.Data;
 public class MemberDto {
     private String role;
     private String name;
-    private String email;
+    private String identifier;
+
+    public boolean isGuest(){
+        return "ROLE_GUEST".equals(this.role);
+    }
 }
