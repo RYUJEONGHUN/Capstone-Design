@@ -15,15 +15,17 @@ public class ChatSessionResponse {
     public record SummaryDto( //class
                               @Schema(description = "채팅 세션 ID", example = "65a1b2c....")
                               String chatSessionId,
+                              @Schema(description = "채팅 세션 이름", example = "2026-10-14")
+                              String title,
                               @Schema(description = "채팅 세션 생성 시간", example = "2026-01-14T08:37:59.560Z")
                               LocalDateTime createdAt,
                               @Schema(description = "마지막 채팅 시간", example = "2026-01-14T08:37:59.560Z")
                               LocalDateTime lastMessagedAt
-                              //String title; //나중에 AI로 제목 요약을 할 수 있으면 추가
     ) {
         public static SummaryDto from(ChatSession chatSession) { //static method
             return new SummaryDto(
                     chatSession.getId(),
+                    chatSession.getTitle().toString(),
                     chatSession.getCreatedAt(),
                     chatSession.getLastMessageAt()
             );
@@ -35,6 +37,8 @@ public class ChatSessionResponse {
     public record DetailDto(
             @Schema(description = "채팅 세션 ID", example = "65a1b2c....")
             String chatSessionId,
+            @Schema(description = "채팅 세션 이름", example = "2026-10-14")
+            String title,
             @ArraySchema(schema = @Schema(description = "채팅 메시지", implementation = ChatSessionResponse.MessageDto.class))
             List<MessageDto> messages
     ) {
@@ -45,6 +49,7 @@ public class ChatSessionResponse {
 
             return new DetailDto(
                     chatSession.getId(),
+                    chatSession.getTitle().toString(),
                     messageDtos
             );
         }
@@ -56,7 +61,7 @@ public class ChatSessionResponse {
             @Schema(description = "메시지 ID(UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
             String messageId,
             @Schema(description = "메시지 생성 일시", example = "2026-01-14T08:37:59.560Z")
-            LocalDateTime createdAt,
+            LocalDateTime messagedAt,
             @Schema(description = "메시지 작성자 구분 (USER: 사용자, AI: 챗봇)", example = "USER", implementation = AuthorType.class)
             AuthorType authorType,
             @Schema(description = "메시지 내용", example = "근처에 맛집 추천해줘")
@@ -65,7 +70,7 @@ public class ChatSessionResponse {
         public static SearchedMessageDto from(ChatSession.Message message) {
             return new SearchedMessageDto(
                     message.getId(),
-                    message.getCreatedAt(),
+                    message.getMessagedAt(),
                     message.getAuthorType(),
                     message.getContent()
             );
@@ -78,7 +83,7 @@ public class ChatSessionResponse {
             @Schema(description = "메시지 ID(UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
             String messageId,
             @Schema(description = "메시지 생성 일시", example = "2026-01-14T08:37:59.560Z")
-            LocalDateTime createdAt,
+            LocalDateTime messagedAt,
             @Schema(description = "메시지 작성자 구분 (USER: 사용자, AI: 챗봇)", example = "USER", implementation = AuthorType.class)
             AuthorType authorType,
             @Schema(description = "메시지 내용", example = "근처에 맛집 추천해줘")
@@ -87,7 +92,7 @@ public class ChatSessionResponse {
         public static MessageDto from(ChatSession.Message message) {
             return new MessageDto(
                     message.getId(),
-                    message.getCreatedAt(),
+                    message.getMessagedAt(),
                     message.getAuthorType(),
                     message.getContent()
             );
