@@ -99,7 +99,7 @@ public class Member {
         private String address; //주소
 
         private boolean isRegistered;
-        @Nullable private Double rating; //우리가 크롤링한 평점
+        @Nullable private Double ourRating; //우리가 크롤링한 평점
         // -> 추후 서비스내에서 자체 평점 시스템 만들어야함
     }
 

@@ -58,7 +58,7 @@ public class MyInfoResponse {
             @Schema(description = "주소", example = "인천광역시 연수구 송도동 xxxx")
             String address,
             @Schema(description = "평점", example = "4.8")
-            Double rating,
+            Double ourRating,
             @Schema(description = "우리 DB 등록 여부", example = "true")
             boolean isRegistered
     ) {
@@ -71,7 +71,7 @@ public class MyInfoResponse {
                     favoritePlace.getLocation().getX(),
                     favoritePlace.getLocation().getY(),
                     favoritePlace.getAddress(),
-                    favoritePlace.getRating(),
+                    favoritePlace.getOurRating(),
                     favoritePlace.isRegistered()
             );
         }
