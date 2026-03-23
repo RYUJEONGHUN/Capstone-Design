@@ -58,9 +58,9 @@ public class MyInfoResponse {
             @Schema(description = "주소", example = "인천광역시 연수구 송도동 xxxx")
             String address,
             @Schema(description = "평점", example = "4.8")
-            float rating,
-            @Schema(description = "Kakao place 상세 정보 URL", example = "https://place.map.kakao.com/26379511")
-            String kakaoMapUrl
+            Double rating,
+            @Schema(description = "우리 DB 등록 여부", example = "true")
+            boolean isRegistered
     ) {
         public static FavoritePlaceDto from(Member.FavoritePlace favoritePlace) {
             return new FavoritePlaceDto(
@@ -72,7 +72,7 @@ public class MyInfoResponse {
                     favoritePlace.getLocation().getY(),
                     favoritePlace.getAddress(),
                     favoritePlace.getRating(),
-                    favoritePlace.getKakaoMapUrl()
+                    favoritePlace.isRegistered()
             );
         }
     }
