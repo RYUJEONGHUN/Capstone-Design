@@ -5,6 +5,7 @@ import com.example.IncheonMate.common.exception.ErrorResponse;
 import com.example.IncheonMate.member.dto.*;
 import com.example.IncheonMate.member.service.MemberCommonService;
 import com.example.IncheonMate.member.service.MemberService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -170,4 +171,20 @@ public class MemberController {
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    // 추가. 특정 장소를 찜한 목록에 추가
+    @Operation(summary = "찜한 장소를 추가", description = "찜 목록에 장소를 추가합니다.")
+    @ApiResponse(responseCode = "200", description = "찜한 장소 생성 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = MyInfoResponse.FavoritePlaceDto.class))))
+    @PostMapping("/favorite-places")
+    public ResponseEntity<MyInfoResponse.FavoritePlaceDto> addFavoritePlace(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
+                                                                         @RequestBody MyInfoRequest.AddFavoriteDto addFavoriteDto){
+        String email = user.getIdentifier();
+        log.info("'{}' MyInfo 찜목록 추가 요청", email);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(memberService.addFavoritePlace(email,addFavoriteDto));
+
+    }
+
+
 }
