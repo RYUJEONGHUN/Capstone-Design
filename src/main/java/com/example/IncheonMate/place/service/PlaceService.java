@@ -3,6 +3,8 @@ package com.example.IncheonMate.place.service;
 
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
+import com.example.IncheonMate.member.domain.Member;
+import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.place.client.KakaoFeignClient;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
@@ -29,7 +31,7 @@ public class PlaceService {
 
     // FeignClient를 주입
     private final KakaoFeignClient kakaoFeignClient;
-
+    private final MemberRepository memberRepository;
     private final PlaceRepository placeRepository;
 
     // API 키는 서비스에서 관리해서 헤더로 넘겨줍니다.
@@ -37,18 +39,18 @@ public class PlaceService {
     private String kakaoApiKey;
 
     @Transactional(readOnly = true)
-    public List<PlaceResponseDto> searchAndOverlay(String keyword) {
+    public List<PlaceResponseDto> searchAndOverlay(String keyword,String identifier,boolean isGuest) {
 
         // 1. 카카오 API 호출, 헤더만들기 (FeignClient 사용)
         String authHeader = "KakaoAK " + kakaoApiKey;
 
         KakaoApiResponseDto kakaoResult = kakaoFeignClient.searchByKeyword(authHeader, keyword);
 
-        return mergeWithMyData(kakaoResult.getDocuments());
+        return mergeWithMyData(kakaoResult.getDocuments(),identifier,isGuest);
     }
 
     @Transactional(readOnly = true)
-    public List<PlaceResponseDto> searchCategoryAndOverlay(PlaceCategory category, double x, double y) {
+    public List<PlaceResponseDto> searchCategoryAndOverlay(PlaceCategory category, double x, double y,String identifier,boolean isGuest) {
 
         String authHeader = "KakaoAK " + kakaoApiKey;
 
@@ -61,10 +63,10 @@ public class PlaceService {
                 "distance" // 거리순
         );
 
-        return mergeWithMyData(kakaoResult.getDocuments());
+        return mergeWithMyData(kakaoResult.getDocuments(),identifier,isGuest);
     }
 
-    private List<PlaceResponseDto> mergeWithMyData(List<KakaoApiResponseDto.DocumentDto> kakaoList) {
+    private List<PlaceResponseDto> mergeWithMyData(List<KakaoApiResponseDto.DocumentDto> kakaoList,String identifier,boolean isGuest) {
         if (kakaoList == null || kakaoList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -81,10 +83,25 @@ public class PlaceService {
         Map<String, Place> myPlaceMap = myPlaces.stream()
                 .collect(Collectors.toMap(Place::getKakaoId, Function.identity()));
 
+        // 스트림 시작전 로그인한 유저 정보를 가져와서 찜한 카카오 ID만 Set으로 추출
+        // 아래 stream안에서 조회하면 N+1(성능) 문제
+        Set<String> bookmarkedKakaoIds;
+
+        if(!isGuest) {
+            List<Member.FavoritePlace> favoritePlaces = memberRepository.findByEmailOrElseThrow(identifier).getFavoritePlaces();
+            bookmarkedKakaoIds = favoritePlaces.stream()
+                    .map(Member.FavoritePlace::getKakaoPlaceId)
+                    .collect(Collectors.toSet());
+        } else {
+            bookmarkedKakaoIds = Collections.emptySet();
+        }
+
         // 4. 카카오 데이터 + 내 데이터 합치기
         return kakaoList.stream()
                 .map(k -> {
                     Place myData = myPlaceMap.get(k.getId());
+                    //추가. 찜 했는지 안했는지
+                    boolean isBookmarked = bookmarkedKakaoIds.contains(k.getId());
 
                     // 4-1. 공통 정보 (무조건 카카오 데이터 기준)
                     PlaceResponseDto.PlaceResponseDtoBuilder builder = PlaceResponseDto.builder()
@@ -94,7 +111,8 @@ public class PlaceService {
                             .address(k.getRoadAddressName()) // 도로명 주소
                             .placeUrl(k.getPlaceUrl())
                             .x(parseCoordinate(k.getX())) // 아래 헬퍼 메서드 사용
-                            .y(parseCoordinate(k.getY()));
+                            .y(parseCoordinate(k.getY()))
+                            .isBookmarked(isBookmarked);
 
                     // 4-2. 분기 처리 (우리 DB에 있냐 없냐)
                     if (myData != null) {

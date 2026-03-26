@@ -1,6 +1,7 @@
 package com.example.IncheonMate.place.controller;
 
 
+import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.dto.PlaceRequestDto;
@@ -11,7 +12,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Tag(name = "장소(Place) API", description = "장소 키워드 검색, 카테고리 검색, 엑셀 업로드 기능") //
 @RestController
+@Slf4j
 @RequestMapping("/api/places")
 @RequiredArgsConstructor
 public class PlaceController {
@@ -31,16 +35,18 @@ public class PlaceController {
     // 검색 API: GET /api/places/search/keyword?query=송도맛집
     @Operation(summary = "키워드 장소 검색", description = "카카오 API를 이용해 키워드로 장소를 검색하고, 우리 DB 데이터와 병합하여 반환.")
     @GetMapping("/search/keyword")
-    public ResponseEntity<List<PlaceResponseDto>> searchPlaces(@RequestParam String query) {
-        List<PlaceResponseDto> result = placeService.searchAndOverlay(query);
+    public ResponseEntity<List<PlaceResponseDto>> searchPlaces(@RequestParam String query, @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("카카오맵 API 키워드 검색:{}",query);
+        List<PlaceResponseDto> result = placeService.searchAndOverlay(query,user.getIdentifier(),user.isGuest());
         return ResponseEntity.ok(result);
     }
 
     // 카테고리 API: GET /api/places/search/category?code?CT1&x=179.23&y=124.23
     @Operation(summary = "카테고리 기반 주변 검색", description = "현재 위치(x, y)를 기준으로 특정 카테고리의 장소를 검색.")
     @GetMapping("/search/category")
-    public ResponseEntity<List<PlaceResponseDto>> searchCategoryPlaces(@RequestParam PlaceCategory category,@RequestParam double x, @RequestParam double y) {
-        List<PlaceResponseDto> result = placeService.searchCategoryAndOverlay(category,x,y);
+    public ResponseEntity<List<PlaceResponseDto>> searchCategoryPlaces(@RequestParam PlaceCategory category,@RequestParam double x, @RequestParam double y,@AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("카카오맵 API 주변 카테고리 검색:{}",category.getDescription());
+        List<PlaceResponseDto> result = placeService.searchCategoryAndOverlay(category,x,y,user.getIdentifier(),user.isGuest());
         return ResponseEntity.ok(result);
     }
 
