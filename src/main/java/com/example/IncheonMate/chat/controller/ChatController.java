@@ -1,8 +1,10 @@
 package com.example.IncheonMate.chat.controller;
 
+import com.example.IncheonMate.chat.dto.ChatRequest;
 import com.example.IncheonMate.chat.dto.ChatResponse;
 import com.example.IncheonMate.chat.service.ChatService;
 import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
+import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -16,9 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.temporal.ChronoUnit;
 
@@ -45,6 +45,22 @@ public class ChatController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(chatService.getTodayChat(identifier, user.isGuest()));
+    }
+
+    //채팅창에서 채팅 입력
+    @Operation(summary = "채팅 전송", description = "채팅 입력 후 AI에게 메시지를 전송합니다.")
+    @ApiResponses(value ={
+            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(schema = @Schema(implementation = ChatResponse.Generation.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 채팅 요청", content = @Content(schema = @Schema(implementation = CustomException.class))),
+            @ApiResponse(responseCode = "500", description = "AI 서버 응답 지연 또는 시스템 오류", content = @Content(schema = @Schema(implementation = CustomException.class)))
+    })
+    @PostMapping
+    public ResponseEntity<ChatResponse.Generation> sendChat(@AuthenticationPrincipal CustomOAuth2User user, @RequestBody ChatRequest.MessageDto messageDto){
+        String identifier = user.getIdentifier();
+        log.info("AI 채팅 요청:{}",identifier);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(chatService.sendChatMessage(identifier,user.isGuest(),messageDto));
     }
 
 }
