@@ -41,4 +41,23 @@ public class ChatResponse {
             return new ChatResponse.MessageDto(message.getId(), message.getMessagedAt(),message.getAuthorType(),message.getContent());
         }
     }
+
+    public record Generation(
+            MessageDto user,
+            MessageDto ai
+    ){
+        public static ChatResponse.Generation fromGuest(GuestChatSession.Message userMessage, GuestChatSession.Message aiChatMessage){
+            return new Generation(
+                    MessageDto.fromGuest(userMessage),
+                    MessageDto.fromGuest(aiChatMessage)
+            );
+        }
+
+        public static ChatResponse.Generation fromUser(ChatSession.Message userMessage, ChatSession.Message aiMessage){
+            return new Generation(
+                    MessageDto.fromMember(userMessage),
+                    MessageDto.fromMember(aiMessage)
+            );
+        }
+    }
 }
