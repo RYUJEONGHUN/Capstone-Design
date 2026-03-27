@@ -25,7 +25,7 @@ public class ChatSession {
     //---세션 기본 정보
     @Id
     private String id;
-    private LocalDate title; //년,월,일 표시(예: 2025-10-17)
+    private String title; //년,월,일 표시(예: 2025-10-17)
     @CreatedDate
     private LocalDateTime createdAt;
     private LocalDateTime lastMessageAt;//수동으로 업데이트 해야함-메시지 업데이트할 때만 바뀌어야 하기 때문에
@@ -51,5 +51,11 @@ public class ChatSession {
         private AuthorType authorType; //USER,AI enum
         
         private String content; //메시지 내용
+    }
+
+    public void addMessages(Message userMessage, Message aiMessage){
+        this.messages.add(userMessage);
+        this.messages.add(aiMessage);
+        this.lastMessageAt = LocalDateTime.now();
     }
 }
