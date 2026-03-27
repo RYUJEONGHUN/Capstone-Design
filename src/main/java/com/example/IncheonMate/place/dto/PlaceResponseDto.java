@@ -31,5 +31,5 @@ public class PlaceResponseDto {
     private List<String> tags;    // 태그 목록
 
     // --- 3. 찜 했는지 안했는지(Member.FavoritePlace에서 가져와야함)
-    private boolean isBookmarked; //찜했는지 안했는지 Flag
+    @JsonProperty("isBookmarked")private boolean isBookmarked; //찜했는지 안했는지 Flag
 }
