@@ -1,46 +1,57 @@
 package com.example.IncheonMate.chat.service;
 
+import com.example.IncheonMate.chat.client.AiChatClient;
 import com.example.IncheonMate.chat.domain.ChatSession;
 import com.example.IncheonMate.chat.domain.GuestChatSession;
+import com.example.IncheonMate.chat.domain.type.AuthorType;
+import com.example.IncheonMate.chat.dto.ChatRequest;
 import com.example.IncheonMate.chat.dto.ChatResponse;
+import com.example.IncheonMate.chat.dto.FastApi;
 import com.example.IncheonMate.chat.repository.ChatSessionRepository;
 import com.example.IncheonMate.chat.repository.GuestChatSessionRepository;
+import com.example.IncheonMate.common.exception.CustomException;
+import com.example.IncheonMate.common.exception.ErrorCode;
+import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.Collections;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
+@Transactional(readOnly = true)
 public class ChatService {
 
     private final ChatSessionRepository chatSessionRepository;
     private final MemberRepository memberRepository;
     private final GuestChatSessionRepository guestChatSessionRepository;
     private final StringRedisTemplate redisTemplate;
+    private final AiChatClient aiChatClient;
 
     public ChatResponse.TodayDto getTodayChat(String identifier, boolean isGuest){
         //게스트 -> 채팅 횟수에 제한이 있어서 남은 횟수를 돌려줘야한다.
         if(isGuest){
             //게스트의 채팅 내역을 Redis에서 꺼내온다.
             Optional<GuestChatSession> guestChatSessionOpt = guestChatSessionRepository.findById(identifier);
-            String guestChatTitle = "Guest"+identifier.substring(0,4)+"-Chat";
 
             //1. 기존 채팅 내역이 있을 경우
             if(guestChatSessionOpt.isPresent()) {
                 GuestChatSession guestChatSession = guestChatSessionOpt.get();
                 return ChatResponse.TodayDto.of(
                         guestChatSession.getId(),
-                        guestChatTitle,
+                        guestChatSession.getTitle(),
                         guestChatSession.getMessages().stream()
                                 .map(ChatResponse.MessageDto::fromGuest)
                                 .toList(),//guestChatSession에 있는 List<Message>를 stream해야한다.들어가는 변수가 List<ChatResponse.MessageDto> 형태여야하기 때문에
@@ -50,7 +61,7 @@ public class ChatService {
             //2. 기존 채팅 내역이 없을 경우
             return ChatResponse.TodayDto.of(
                     null,
-                    guestChatTitle,
+                    null,
                     Collections.emptyList(),
                     getRemainingCount(identifier)
             );
@@ -62,9 +73,9 @@ public class ChatService {
         //1. 회원의 ID를 가져온다.
         String memberId = memberRepository.findMemberIdByEmailOrElseThrow(identifier);
         //2. ID기반으로 채팅 세션중 생성일이 오늘인 세션을 찾는다.
-        LocalDateTime dayOfStart = LocalDate.now().atStartOfDay();
-        LocalDateTime dayOfEnd = LocalDate.now().atTime(LocalTime.MAX);
-        Optional<ChatSession> todayChatSessionOpt = chatSessionRepository.findTodaySessionByMemberId(memberId,dayOfStart,dayOfEnd);
+        LocalDateTime startOfToday = getStartOfToday();
+        LocalDateTime endOfToday = getEndOfToday();
+        Optional<ChatSession> todayChatSessionOpt = chatSessionRepository.findTodaySessionByMemberId(memberId,startOfToday,endOfToday);
 
         //3. 정회원의 오늘 채팅 기록이 있으면 대화 내용 리턴
         if(todayChatSessionOpt.isPresent()) {
@@ -93,5 +104,156 @@ public class ChatService {
         //2. 키가 Redis에 있으면 채팅을 하고 있던 게스트이므로 저장값 반환
         String count = (String) redisTemplate.opsForValue().get(key);
         return Integer.parseInt(count);
+    }
+
+    //AI에게 채팅 응답 요청하고 받아서 저장,프론트 응답
+    //나중에 AiService,GuestPolicyService로 나누는 리팩토링 필요
+    @Transactional
+    public ChatResponse.Generation sendChatMessage(String identifier, boolean isGuest, ChatRequest.MessageDto messageDto) {
+
+        if(isGuest){
+            //1.게스트이면 최대 채팅횟수 초과했는지 검사
+            String remainingChatCountStr = redisTemplate.opsForValue().get("GUEST_COUNT:"+identifier);
+            int remainingChatCount = (remainingChatCountStr != null) ? Integer.parseInt(remainingChatCountStr) : 0;
+            // 게스트: 최대 채팅 횟수 초과했으면 게스트 채팅 초과 에러 return
+            if(remainingChatCount <= 0){
+                throw new CustomException(ErrorCode.GUEST_CHAT_LIMIT_EXCEEDED);
+            }
+
+            //2. 유저 Message 엔티티 생성
+            GuestChatSession.Message userMessage = GuestChatSession.Message.builder()
+                    .id(UUID.randomUUID().toString())
+                    .messagedAt(LocalDateTime.now())
+                    .authorType(AuthorType.USER)
+                    .content(messageDto.message())
+                    .build();
+
+            //3. 채팅 세션이 있는지 확인하고 없으면 생성
+            GuestChatSession guestChatSession = getOrCreateGuestChatSession(identifier);
+            //4. FastAPI로 전송할 데이터 준비
+            String personaType = getPersonaType(identifier,isGuest);
+
+            //5. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
+            FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(messageDto.message(),identifier,personaType));
+            //6. error 응답이 오면 exception throw
+            if(!StringUtils.hasText(chatResponseDto.answer())){
+                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+            }
+
+            //7. AI Message 엔티티 생성
+            GuestChatSession.Message aiMessage = GuestChatSession.Message.builder()
+                    .id(UUID.randomUUID().toString())
+                    .messagedAt(LocalDateTime.now())
+                    .authorType(AuthorType.AI)
+                    .content(chatResponseDto.answer())
+                    .build();
+
+            //8. GuestChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
+            guestChatSession.addMessages(userMessage,aiMessage);
+            //9. 저장
+            guestChatSessionRepository.save(guestChatSession);
+
+            //10. Redis에 있는 guest count 1감소
+            redisTemplate.opsForValue().decrement("GUEST_COUNT:"+identifier);
+
+            return ChatResponse.Generation.fromGuest(userMessage,aiMessage);
+
+        }else{
+            //1. 유저 Message 엔티티 생성
+            ChatSession.Message userMessage = ChatSession.Message.builder()
+                    .id(UUID.randomUUID().toString())
+                    .messagedAt(LocalDateTime.now())
+                    .authorType(AuthorType.USER)
+                    .content(messageDto.message())
+                    .build();
+
+            //2. 오늘자로 생성된 채팅 세션이 있는지 확인하고 없으면 생성
+            ChatSession chatSession = getOrCreateChatSession(identifier);
+            //3. FastAPI로 전송할 데이터 준비
+            String personaType = getPersonaType(identifier,isGuest);
+            //4. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
+            FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(messageDto.message(),identifier,personaType));
+            //5. error 응답이 오면 exception throw
+            if(!StringUtils.hasText(chatResponseDto.answer())){
+                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+            }
+
+            //6. AI Message 엔티티 생성
+            ChatSession.Message aiMessage = ChatSession.Message.builder()
+                    .id(UUID.randomUUID().toString())
+                    .messagedAt(LocalDateTime.now())
+                    .authorType(AuthorType.AI)
+                    .content(chatResponseDto.answer())
+                    .build();
+
+            //7. ChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
+            chatSession.addMessages(userMessage,aiMessage);
+            //8. 저장
+            chatSessionRepository.save(chatSession);
+
+            return ChatResponse.Generation.fromUser(userMessage,aiMessage);
+        }
+
+
+    }
+
+    private String getPersonaType(String identifier, boolean isGuest) {
+        if(isGuest){
+            Object personaObj = redisTemplate.opsForHash().get("GUEST_PROFILE:" + identifier, "persona");
+            if (personaObj == null) {
+                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
+            }
+            return personaObj.toString();
+        }else{
+            return memberRepository.findByEmailOrElseThrow(identifier).getSelectedPersona().toString();
+        }
+    }
+
+    //생성된 게스트 채팅 세션을 불러오고 없으면 새로 생성
+    @Transactional
+    private GuestChatSession getOrCreateGuestChatSession(String identifier) {
+        return guestChatSessionRepository.findById(identifier)
+                .orElseGet(() -> {
+                    LocalDateTime now = LocalDateTime.now();
+
+                    GuestChatSession newSession = GuestChatSession.builder()
+                            .id(identifier)
+                            .title("Guest" + identifier.substring(0, 4) + "-Chat")
+                            .createdAt(now)
+                            .lastMessageAt(now)
+                            .build();
+
+                    return guestChatSessionRepository.save(newSession);
+                });
+    }
+
+
+    //오늘자로 생성된 정회원 채팅 세션이 있으면 불러오고 없으면 새로 생성
+    @Transactional
+    private ChatSession getOrCreateChatSession(String identifier){
+        String memberId = memberRepository.findMemberIdByEmailOrElseThrow(identifier);
+
+        return chatSessionRepository.findTodaySessionByMemberId(memberId,getStartOfToday(),getEndOfToday())
+
+                .orElseGet(() -> {
+                    LocalDateTime now = LocalDateTime.now();
+
+                    ChatSession newSession = ChatSession.builder()
+                            .title(LocalDate.now().toString())
+                            .createdAt(now)
+                            .lastMessageAt(now)
+                            .memberId(memberId)
+                            .build();
+
+                    return chatSessionRepository.save(newSession);
+                });
+    }
+
+    private LocalDateTime getStartOfToday() {
+        return LocalDate.now().atStartOfDay();
+    }
+
+    private LocalDateTime getEndOfToday() {
+        return LocalDate.now().atTime(LocalTime.MAX);
     }
 }
