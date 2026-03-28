@@ -21,13 +21,16 @@ public class MemberChatProfileService {
     private final StringRedisTemplate redisTemplate;
 
     public MemberChatProfileDto.ProfileResponse getProfile(String identifier){
-        // 1. DB에서 정회원인지 먼저 조회
-        Optional<Member> member = memberRepository.findByEmail(identifier);
+        //0. 이메일 형식('@')인 경우에만 DB 조회
+        if(identifier.contains("@")) {
+            // 1. DB에서 정회원인지 먼저 조회
+            Optional<Member> member = memberRepository.findByEmail(identifier);
 
-        // 2. 정회원이면 회원 데이터를 반환하고 메서드 종료
-        if(member.isPresent()){
-            log.info("정회원 프로필 조회 성공: {}", identifier);
-            return MemberChatProfileDto.ProfileResponse.fromMember(member.get());
+            // 2. 정회원이면 회원 데이터를 반환하고 메서드 종료
+            if (member.isPresent()) {
+                log.info("정회원 프로필 조회 성공: {}", identifier);
+                return MemberChatProfileDto.ProfileResponse.fromMember(member.get());
+            }
         }
 
         // 3. DB에 없다면 에러를 던지지 않고, 게스트인지 확인하기 위해 Redis 조회 진행
