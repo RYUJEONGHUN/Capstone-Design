@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,9 +46,9 @@ public class MemberChatProfileController {
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     }
     )
-    @GetMapping("/profile")
-    public ResponseEntity<MemberChatProfileDto.ProfileResponse> getProfileForAi(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user){
-        String identifier =  user.getIdentifier();
+    @GetMapping("/profile/{session_id}")
+    public ResponseEntity<MemberChatProfileDto.ProfileResponse> getProfileForAi(@PathVariable(name = "session_id") String identifier){
+        //CustomOAuth2User를 사용하면 안된다. FastAPI와의 통신은 JWT를 사용하지 않을 것이기 때문에
         log.info("채팅에 필요한 사용자 정보 요청:{}", identifier);
 
         return ResponseEntity.status(HttpStatus.OK)

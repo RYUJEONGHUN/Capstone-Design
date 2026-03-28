@@ -5,6 +5,7 @@ import com.example.IncheonMate.member.domain.type.Gender;
 import com.example.IncheonMate.member.domain.type.MbtiType;
 import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.domain.type.SasangType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -13,7 +14,7 @@ public class MemberChatProfileDto {
 
 
     public record ProfileResponse(
-            String identifier,
+            @JsonProperty("session_id") String identifier,
             String role,
             String lang,
             String nickname,
@@ -22,7 +23,7 @@ public class MemberChatProfileDto {
             MbtiType mbtiType,
             SasangType sasangType,
             PersonaType personaType,
-            boolean isGuest
+            @JsonProperty("isGuest") boolean isGuest
     ) {
         public static ProfileResponse fromMember(Member member) {
             return new ProfileResponse(
