@@ -5,6 +5,7 @@ server:
     remoteip:
       protocol-header: x-forwarded-proto
       remote-ip-header: x-forwarded-for
+  #+++++++++++++Nginx 사용시 ssl과 하위 항목 제거++++++++++++++++++++
   ssl:
     enabled: true
     key-store: file:/app/keystore.p12

@@ -25,3 +25,11 @@ openssl pkcs12 -export \
 
 #5. 백엔드 컨테이너 재시작
 docker restart incheon_mate-backend
+
+
+#+++++++++++++++++++ Nginx로 배포시 아래 명령어를 사용 ++++++++++++++++++
+##인증서 갱신 시도
+#certbot renew --quiet
+#
+##Nginx 설정 및 인증서 무중단 재로드
+#docker exec incheon_mate-nginx nginx -s reload
