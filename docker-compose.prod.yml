@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # 1. 스프링 부트 (백엔드)
+  backend:
+    container_name: incheon_mate-backend
+    build: .
+    ports:
+      - "443:8080" #Https 기본 포트 443, 다른 포트로 설정시 url뒤에 포트 번호를 붙혀야함
+    depends_on:
+      - mongodb
+      - redis
+    restart: always #SSL 인증서 재발급시 재시작
+    volumes: #도메인 구매후 수정 필요
+      - /etc/letsencrypt/live/우리 도메인/keystore.p12:/app/keystore.p12:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: prod #어떤 application.yml을 읽을지 결정
+      DB_HOST: mongodb
+      REDIS_HOST: redis
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      SSL_PASSWORD: ${SSL_PASSWORD}
+      TZ: Asia/Seoul
+    networks:
+      - incheon_mate_network
+
+  # 2. 몽고DB
+  mongodb:
+    image: mongo:latest
+    container_name: incheon_mate-mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - ./data/mongo:/data/db
+    restart: always
+    networks:
+      - incheon_mate_network
+
+  # 3. 몽고DB 관리툴
+  mongo-express:
+    image: mongo-express
+    container_name: incheon_mate-mongo-express
+    restart: always
+    ports:
+      - "127.0.0.1:8081:8081" #인스턴스에서만 접근하도록 변경
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
+    depends_on:
+      - mongodb
+    networks:
+      - incheon_mate_network
+
+  # 4. Redis
+  redis:
+    image: redis:alpine
+    container_name: incheon_mate-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: always
+    networks:
+      - incheon_mate_network
+
+#5. 네트워크: FastAPI 외부 네트워크 연결용
+networks:
+  incheon_mate_network:
+    external: true
