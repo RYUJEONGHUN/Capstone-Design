@@ -184,15 +184,27 @@ public class PlaceService {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                String kakaoId = getCellString(row.getCell(0), formatter);
+                //0
+                String name = getCellString(row.getCell(0),formatter);
+                //1
+                Double x = parseDoubleOrNull(getCellString(row.getCell(1),formatter));
+                //2
+                Double y = parseDoubleOrNull(getCellString(row.getCell(2),formatter));
+                //3
+                String kakaoId = getCellString(row.getCell(3), formatter);
                 if (kakaoId.isBlank()) continue;
+                //4
+                String naegiftId = getCellString(row.getCell(4),formatter);
+                //5
+                Double rating = parseDoubleOrNull(getCellString(row.getCell(5), formatter));
+                //6
+                List<String> tags = parseTags(getCellString(row.getCell(6), formatter));
+                //7
+                String comment = getCellString(row.getCell(7), formatter);
+                //8
+                String imageUrl = getCellString(row.getCell(8), formatter);
 
-                Double rating = parseDoubleOrNull(getCellString(row.getCell(1), formatter));
-                List<String> tags = parseTags(getCellString(row.getCell(2), formatter));
-                String comment = getCellString(row.getCell(3), formatter);
-                String imageUrl = getCellString(row.getCell(4), formatter);
-
-                rowDataMap.put(kakaoId, new PlaceData.RowData(kakaoId, rating, tags, comment, imageUrl));
+                rowDataMap.put(kakaoId, new PlaceData.RowData(name,x,y,naegiftId,rating,tags,comment,imageUrl));
             }
 
             if (rowDataMap.isEmpty()) return "등록할 데이터가 없습니다.";
@@ -214,8 +226,14 @@ public class PlaceService {
                     // 신규 생성 (New)
                     place = Place.builder()
                             .kakaoId(kakaoId)
+                            .name(rd.name())
+                            .address(null)
+                            .categoryGroup(null)
+                            .x(rd.x())
+                            .y(rd.y())
                             .ourRating(rd.rating() != null ? rd.rating() : 0.0)
                             .tags(rd.tags())
+                            .naegiftId(rd.naegiftId())
                             .expertComment(rd.comment())
                             .thumbnailUrl(rd.imageUrl())
                             .build();
