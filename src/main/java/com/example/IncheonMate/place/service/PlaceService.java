@@ -59,7 +59,7 @@ public class PlaceService {
                 authHeader,
                 category.getCode(),
                 x, y,
-                300, // 반경 300m
+                1000, // 반경 300m
                 "distance" // 거리순
         );
 
@@ -112,26 +112,28 @@ public class PlaceService {
                             .placeUrl(k.getPlaceUrl())
                             .x(parseCoordinate(k.getX())) // 아래 헬퍼 메서드 사용
                             .y(parseCoordinate(k.getY()))
-                            .isBookmarked(isBookmarked);
+                            .bookmarked(isBookmarked);
 
                     // 4-2. 분기 처리 (우리 DB에 있냐 없냐)
                     if (myData != null) {
                         //  Case A: 우리 DB에 있는 '인증된 장소' -> 우리 데이터 덮어쓰기
                         return builder
                                 .expertComment(myData.getExpertComment())
-                                .isRegistered(true)
+                                .registered(true)
                                 .ourRating(myData.getOurRating())     // 우리 별점
                                 .thumbnailUrl(myData.getThumbnailUrl()) // 우리 사진
                                 .tags(myData.getTags())               // 우리 태그
+                                .naegiftUrl("https://shopuser-qa.naegift.com/" + myData.getNaegiftId() + "?channel_no=1")
                                 .build();
                     } else {
                         //  Case B: 우리 DB에 없는 '일반 장소' -> 기본값 채우기
                         return builder
                                 .expertComment(null)
-                                .isRegistered(false)
+                                .registered(false)
                                 .ourRating(0.0)
                                 .thumbnailUrl(null) // 프론트에서 기본 이미지 처리
                                 .tags(Collections.emptyList())
+                                .naegiftUrl(null)
                                 .build();
                     }
                 })
