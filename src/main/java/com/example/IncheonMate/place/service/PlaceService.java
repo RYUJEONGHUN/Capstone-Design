@@ -57,7 +57,7 @@ public class PlaceService {
                 authHeader,
                 category.getCode(),
                 x, y,
-                300, // 반경 300m
+                1000, // 반경 300m
                 "distance" // 거리순
         );
 
