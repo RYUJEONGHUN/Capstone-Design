@@ -4,5 +4,14 @@ import java.util.List;
 
 public class PlaceData {
     // Java 16+ Record
-    public record RowData(String kakaoId, Double rating, List<String> tags, String comment, String imageUrl) {}
+    public record RowData(
+            String name,
+            Double x,
+            Double y,
+            String naegiftId,
+            Double rating,
+            List<String> tags,
+            String comment,
+            String imageUrl
+            ) {}
 }

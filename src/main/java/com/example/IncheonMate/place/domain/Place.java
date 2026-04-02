@@ -35,11 +35,14 @@ public class Place {
     private Double ourRating;      // 자체 별점
     private String thumbnailUrl;   // 사진 URL
 
+    // --- 내기프트 연동---
+    private String naegiftId;
+
     // 리스트 그대로 저장
     private List<String> tags = new ArrayList<>();
 
     @Builder
-    public Place(String kakaoId, String name, String address, String categoryGroup, Double x, Double y, String expertComment, Double ourRating, String thumbnailUrl, List<String> tags) {
+    public Place(String kakaoId, String name, String address, String categoryGroup, Double x, Double y, String expertComment, Double ourRating, String thumbnailUrl, List<String> tags,String naegiftId) {
         this.kakaoId = kakaoId;
         this.name = name;
         this.address = address;
@@ -47,6 +50,7 @@ public class Place {
         this.x = x;
         this.y = y;
         this.expertComment = expertComment;
+        this.naegiftId = naegiftId;
         this.ourRating = ourRating != null ? ourRating : 0.0;
         this.thumbnailUrl = thumbnailUrl;
         this.tags = tags != null ? tags : new ArrayList<>();
