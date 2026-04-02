@@ -203,6 +203,7 @@ public class PlaceService {
                 List<String> tags = parseTags(getCellString(row.getCell(6), formatter));
                 //7
                 String comment = getCellString(row.getCell(7), formatter);
+                if(comment != null) comment = comment.replaceAll("[\r\n]{2,}", "\n");
                 //8
                 String imageUrl = getCellString(row.getCell(8), formatter);
 
