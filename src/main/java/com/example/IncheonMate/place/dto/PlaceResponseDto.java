@@ -1,5 +1,6 @@
 package com.example.IncheonMate.place.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,8 +25,14 @@ public class PlaceResponseDto {
 
     // --- 2. 인천메이트 고유 정보 (DB에서 덮어쓸 내용) ---
     private String expertComment;  // 큐레이션 코멘트 (없으면 null)
-    private boolean isRegistered; // 우리 서비스 인증 장소인지?
+    @JsonProperty("isRegistered") private boolean registered; // 우리 서비스 인증 장소인지?
     private Double ourRating;     // 우리만의 별점 (없으면 0.0)
     private String thumbnailUrl;  // 대표 사진 URL
     private List<String> tags;    // 태그 목록
+
+    // --- 3. 내기프트 ID ---
+    private String naegiftUrl;//내기프트 id와 결합한 url
+
+    // --- 4. 찜 했는지 안했는지(Member.FavoritePlace에서 가져와야함)
+    @JsonProperty("isBookmarked")private boolean bookmarked; //찜했는지 안했는지 Flag
 }
