@@ -86,7 +86,7 @@ public class MyInfoResponse {
     ) {
         public static ExternalServiceDto from(Member member) {
             return new ExternalServiceDto(
-                    member.getExternalServiceUri()
+                   "https://shopuser-qa.naegift.com/received"
             );
         }
     }
