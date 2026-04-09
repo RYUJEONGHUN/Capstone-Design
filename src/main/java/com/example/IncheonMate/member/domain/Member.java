@@ -103,8 +103,6 @@ public class Member {
         // -> 추후 서비스내에서 자체 평점 시스템 만들어야함
     }
 
-    //---- 6. 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
-    private String externalServiceUri; //default URL넣어줘야함
 
     //--- 7. 길찾기 탭의 검색어 기록(최대 개수 일단 20개로 만들고 나중에 수정)
     @Builder.Default // 빌더 사용 시 null 방지
