@@ -88,7 +88,8 @@ public class AuthController {
         // ✅ 게스트인 경우 만료 기간도 14일로 갱신
         if ("ROLE_GUEST".equals(role)) {
             redisTemplate.expire("GUEST_PROFILE:" + identifier, 14, TimeUnit.DAYS);
-            //+++++++++++++++ 나중에 게스트 채팅 기능을 구현하면 GUEST_CHAT,GUEST_COUNT도 만료 기간 갱신 필요 ++++++++++++++++++
+            if(redisTemplate.hasKey("GUEST_COUNT:"+identifier)) redisTemplate.expire("GUEST_COUNT"+identifier,14,TimeUnit.DAYS);
+            if(redisTemplate.hasKey("GUEST_CHAT:"+identifier)) redisTemplate.expire("GUEST_CHAT"+identifier,14,TimeUnit.DAYS);
             log.info("게스트 프로필 만료 기간 14일 연장 완료: {}", identifier);
         }
 
