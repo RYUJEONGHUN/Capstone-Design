@@ -11,6 +11,7 @@ import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.dto.*;
 import com.example.IncheonMate.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -103,12 +104,16 @@ public class PlaceService {
                     //추가. 찜 했는지 안했는지
                     boolean isBookmarked = bookmarkedKakaoIds.contains(k.getId());
 
+                    //도로명 주소가 없으면 구 주소를 응답
+                    String address = k.getRoadAddressName();
+                    if(!StringUtils.hasText(address)) address = k.getAddressName();
+
                     // 4-1. 공통 정보 (무조건 카카오 데이터 기준)
                     PlaceResponseDto.PlaceResponseDtoBuilder builder = PlaceResponseDto.builder()
                             .kakaoId(k.getId())
                             .name(k.getPlaceName())
                             .category(k.getCategoryName())
-                            .address(k.getRoadAddressName()) // 도로명 주소
+                            .address(address) // 도로명 주소 or 지번 주소
                             .placeUrl(k.getPlaceUrl())
                             .x(parseCoordinate(k.getX())) // 아래 헬퍼 메서드 사용
                             .y(parseCoordinate(k.getY()))
