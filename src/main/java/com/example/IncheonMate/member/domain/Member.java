@@ -93,14 +93,14 @@ public class Member {
         private String id; //수동 UUID
         @CreatedDate
         private LocalDateTime createdAt;
-        @Nullable
-        private String kakaoPlaceId; //카카오에서 제공해주는 장소 Id값-카카오에 없는 장소는 null
+        private String kakaoPlaceId; //카카오에서 제공해주는 장소 Id값
         private String placeName; //장소 이름
         private GeoJsonPoint location; //좌표
         private String address; //주소
-        private float rating; //평점
-        @Nullable
-        private String kakaoMapUrl; //카카오맵 주소
+
+        private boolean isRegistered;
+        @Nullable private Double ourRating; //우리가 크롤링한 평점
+        // -> 추후 서비스내에서 자체 평점 시스템 만들어야함
     }
 
     //---- 6. 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
