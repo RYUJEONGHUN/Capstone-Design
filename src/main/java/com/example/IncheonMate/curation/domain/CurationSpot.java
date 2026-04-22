@@ -27,8 +27,8 @@ public class CurationSpot implements Serializable {
     private String kakaoId; // 카카오 ID
 
     //  지오펜싱 데이터 (앱이 계산할 기준)
-    private Double lat;          // 위도
-    private Double lng;          // 경도
+    private Double x; // 경도 (Longitude)
+    private Double y; // 위도 (Latitude)
     private int triggerRadius;   // 감지 반경 (m) - 예: 50m
 
     //  AI 페르소나 멘트 (미리 생성됨)
