@@ -236,7 +236,7 @@ public class PlaceService {
                             .kakaoId(kakaoId)
                             .name(rd.name())
                             .address(null)
-                            .categoryGroup(null)
+                            .placeCategory(null)
                             .x(rd.x())
                             .y(rd.y())
                             .ourRating(rd.rating() != null ? rd.rating() : 0.0)
