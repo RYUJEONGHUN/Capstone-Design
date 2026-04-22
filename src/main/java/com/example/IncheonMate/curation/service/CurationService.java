@@ -7,6 +7,7 @@ import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.domain.type.PersonaType;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.place.domain.Place;
+import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.repository.PlaceRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,7 @@ public class CurationService {
         return spots.stream()
                 .filter(spot -> !isCoolingDown(email, spot.getPlaceId()))
                 .map(spot -> {
-                    String comment = spot.getAiComments().getOrDefault(persona, spot.getAiComments().get("1"));
+                    String comment = spot.getAiComments().getOrDefault(persona, "추천 코멘트 불러오기 실패");
 
                     return CurationSpotForUserDto.builder()
                             .placeId(spot.getPlaceId())
@@ -92,18 +93,15 @@ public class CurationService {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new RuntimeException("장소를 찾을 수 없습니다."));
 
-        Map<String, String> generatedComments = new HashMap<>();
-        generatedComments.put("1", place.getName() + "는 정말 조용해서 사색하기 좋아!");
-        generatedComments.put("2", place.getName() + "의 따뜻한 메뉴가 체질에 딱이야.");
-        generatedComments.put("3", place.getName() + "는 케이크가 딱이야.");
-        generatedComments.put("4", place.getName() + "는 케이크가 딱이야.");
+        //카테고리에 따라서 서로 다른 멘트 4개 생성
+        Map<PersonaType, String> generatedComments = generateCommentsByPlaceCategory(place.getPlaceCategory(), place.getName());
 
         CurationSpot spot = CurationSpot.builder()
                 .placeId(place.getId())
                 .placeName(place.getName())
                 .y(place.getX())
                 .x(place.getY())
-                .triggerRadius(100)
+                .triggerRadius(300)
                 .aiComments(generatedComments)
                 .isActive(true)
                 .build();
@@ -112,6 +110,40 @@ public class CurationService {
 
         // 저장 성공 후 캐시 제거
         cacheService.evictActiveSpotsCache();
+    }
+
+    private Map<PersonaType,String> generateCommentsByPlaceCategory(PlaceCategory placeCategory, String placeName){
+        //AT4-관광명소, AD5-숙박, FD6-음식점, CE7-카페
+        Map<PersonaType,String> generatedComments = null;
+
+        switch(placeCategory){
+            case AT4:
+                generatedComments.put(PersonaType.BEAR,  "허허, 우리 조카가 편히 쉴 수 있는 " + placeName + "카페에 내가 가봤는데 참 좋더라고.");
+                generatedComments.put(PersonaType.FOX, "어머, 이건 진짜 나만 아는 비밀인데 특별히 알려주는 거야, " + placeName +"커피가 아주 맛있다니까?");
+                generatedComments.put(PersonaType.PANDA,"아... 졸려... 목마를 텐데 " + placeName + "가서 음료나 마시셈.");
+                generatedComments.put(PersonaType.CAT,"흥, 목마를 텐데 " + placeName + "카페 가서 차나 마시라구.");
+                break;
+            case AD5:
+                generatedComments.put(PersonaType.BEAR, "허허허, 우리 친구가 구경하기 알맞은 " + placeName + " 명소에 내가 예전에 가봤는데 참 좋았구먼.");
+                generatedComments.put(PersonaType.FOX, "어머나, 반가워라! " + placeName + " 관광지는 진짜 나만 아는 비밀인데 특별히 알려주는 거라구!");
+                generatedComments.put(PersonaType.PANDA, "음... 귀찮긴 한데... 심심하면 " + placeName + " 명소 가서 구경이나 하든가.");
+                generatedComments.put(PersonaType.CAT, "야옹, 지루해 보이길래 " + placeName + " 명소를 찾아놨으니 가보든가 하냐옹?");
+                break;
+            case FD6:
+                generatedComments.put(PersonaType.BEAR, "허허허허, 든든하게 밥 먹기 좋은 " + placeName + " 식당에 내가 가봤는데 참 좋았나 보네.");
+                generatedComments.put(PersonaType.FOX, "어머머, " + placeName + " 식당은 진짜 나만 아는 비밀 맛집인데 너한테만 특별히 알려주지 뭐야!");
+                generatedComments.put(PersonaType.PANDA, "하아... 피곤해... 밥은 굶지 말고 " + placeName + " 식당 가서 챙겨 먹음.");
+                generatedComments.put(PersonaType.CAT, "흥, 참나, 밥도 안 먹고 다니는 것 같아서 " + placeName + " 식당을 찾아놨거든?");
+                break;
+            case CE7:
+                generatedComments.put(PersonaType.BEAR, "허허 참, 우리 친구가 푹 쉴 " + placeName + " 숙소에 내가 머물러봤는데 참 좋더라고.");
+                generatedComments.put(PersonaType.FOX, "어머나 세상에, 편히 쉴 수 있는 " + placeName + " 숙소는 진짜 나만 아는 비밀인데 특별히 알려줄걸?");
+                generatedComments.put(PersonaType.PANDA, "어휴... 귀찮아... 밖에서 잘 수는 없으니 " + placeName + " 숙소에서 자셈.");
+                generatedComments.put(PersonaType.CAT, "냐옹, 오늘 묵을 곳이 필요하면 " + placeName + " 숙소가 꽤 깔끔하다구.");
+                break;
+        }
+
+        return generatedComments;
     }
 
     public CurationConfirmResponseDto getConfirmDto(String email, String placeId) {

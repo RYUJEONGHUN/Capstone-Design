@@ -1,5 +1,6 @@
 package com.example.IncheonMate.curation.domain;
 
+import com.example.IncheonMate.member.domain.type.PersonaType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,7 +34,7 @@ public class CurationSpot implements Serializable {
 
     //  AI 페르소나 멘트 (미리 생성됨)
     // Key: 성향 (INFP, 소음인), Value: 멘트
-    private Map<String, String> aiComments;
+    private Map<PersonaType, String> aiComments;
 
     private boolean isActive;    // 팝업 활성화 여부
 }
