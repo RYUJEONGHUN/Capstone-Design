@@ -33,7 +33,8 @@ public class CurationSpot implements Serializable {
     private int triggerRadius;   // 감지 반경 (m) - 예: 50m
 
     //  AI 페르소나 멘트 (미리 생성됨)
-    // Key: 성향 (INFP, 소음인), Value: 멘트
+    // Key: 페르소나, Value: 멘트
+    // 향후 AI로부터 멘트를 받아서 저장하도록 기능 수정하면 필요함
     private Map<PersonaType, String> aiComments;
 
     private boolean isActive;    // 팝업 활성화 여부
