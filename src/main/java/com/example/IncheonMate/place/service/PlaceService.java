@@ -182,39 +182,49 @@ public class PlaceService {
 
         DataFormatter formatter = new DataFormatter();
 
+        //모든 탭(음식점,카페,관광지,호텔)의 데이터를 누적할 Map
+        Map<String, PlaceData.RowData> rowDataMap = new LinkedHashMap<>();
+
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
-            Sheet sheet = workbook.getSheetAt(0);
 
-            // 1. 엑셀 데이터 파싱 & 중복 제거
-            Map<String, PlaceData.RowData> rowDataMap = new LinkedHashMap<>();
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) continue;
+            //엑셀 파일의 모든 시트를 순회
+            for(Sheet sheet: workbook) {
+                Row headerRow = sheet.getRow(0);
+                if (headerRow == null) continue;
 
-                //0
-                String name = getCellString(row.getCell(0),formatter);
-                //1
-                Double x = parseDoubleOrNull(getCellString(row.getCell(1),formatter));
-                //2
-                Double y = parseDoubleOrNull(getCellString(row.getCell(2),formatter));
-                //3
-                String kakaoId = getCellString(row.getCell(3), formatter);
-                if (kakaoId.isBlank()) continue;
-                //4
-                String naegiftId = getCellString(row.getCell(4),formatter);
-                //5
-                Double rating = parseDoubleOrNull(getCellString(row.getCell(5), formatter));
-                //6
-                List<String> tags = parseTags(getCellString(row.getCell(6), formatter));
-                //7
-                String comment = getCellString(row.getCell(7), formatter);
-                if(comment != null) comment = comment.replaceAll("[\r\n]{2,}", "\n");
-                //8
-                String imageUrl = getCellString(row.getCell(8), formatter);
 
-                rowDataMap.put(kakaoId, new PlaceData.RowData(name,x,y,naegiftId,rating,tags,comment,imageUrl));
+                //시트별로 헤더 인덱스 매핑
+                Map<String, Integer> headerMap = new HashMap<>();
+                for (int col = 0; col < headerRow.getLastCellNum(); col++) {
+                    String colName = getCellString(headerRow.getCell(col), formatter);
+                    if (colName != null && !colName.isBlank()) {
+                        headerMap.put(colName.trim(), col);
+                    }
+                }
+
+                //해당 시트 데이터 파싱
+                for(int i = 1; i <= sheet.getLastRowNum(); i++){
+                    Row row = sheet.getRow(i);
+                    if(row == null) continue;
+
+                    String kakaoId = getCellValue(row, "KakaoId", headerMap, formatter);
+                    if(kakaoId == null || kakaoId.isBlank()) continue;
+
+                    String name = getCellValue(row, "PlaceName", headerMap,formatter);
+                    String address = getCellValue(row, "Address", headerMap, formatter);
+                    PlaceCategory placeCategory = PlaceCategory.valueOf(getCellValue(row,"PlaceCategory",headerMap,formatter));
+                    Double x = parseDoubleOrNull(getCellValue(row,"X", headerMap, formatter));
+                    Double y = parseDoubleOrNull(getCellValue(row, "Y", headerMap,formatter));
+                    String expertComment = getCellValue(row,"Comment", headerMap,formatter);
+                    if(expertComment != null) expertComment = expertComment.replaceAll("[\r\n]{2,}", "\n");
+                    Double ourRating = parseDoubleOrNull(getCellValue(row,"Rating", headerMap,formatter));
+                    String thumbnailUrl = getCellValue(row, "Image", headerMap,formatter);
+                    String naegiftId = getCellValue(row,"naegiftId", headerMap,formatter);
+                    List<String> tags = parseTags(getCellValue(row, "Tags", headerMap,formatter));
+
+                    rowDataMap.put(kakaoId, new PlaceData.RowData(kakaoId,name,address,placeCategory,x,y,expertComment,ourRating,thumbnailUrl,naegiftId,tags));
+                }
             }
-
             if (rowDataMap.isEmpty()) return "등록할 데이터가 없습니다.";
 
             // 2. DB 조회 (Bulk Select)
@@ -235,19 +245,19 @@ public class PlaceService {
                     place = Place.builder()
                             .kakaoId(kakaoId)
                             .name(rd.name())
-                            .address(null)
-                            .placeCategory(null)
+                            .address(rd.address())
+                            .placeCategory(rd.placeCategory())
                             .x(rd.x())
                             .y(rd.y())
-                            .ourRating(rd.rating() != null ? rd.rating() : 0.0)
-                            .tags(rd.tags())
+                            .expertComment(rd.expertComment())
+                            .ourRating(rd.ourRating())
+                            .thumbnailUrl(rd.thumbnailUrl())
                             .naegiftId(rd.naegiftId())
-                            .expertComment(rd.comment())
-                            .thumbnailUrl(rd.imageUrl())
+                            .tags(rd.tags())
                             .build();
                 } else {
                     // 업데이트 (Update)
-                    place.updateMyData(rd.rating(), rd.tags(), rd.imageUrl(), rd.comment());
+                    place.updateMyData(rd.ourRating(), rd.tags(), rd.thumbnailUrl(), rd.expertComment());
                 }
                 toSave.add(place);
             }
@@ -268,7 +278,7 @@ public class PlaceService {
     // --- Helper Methods ---
 
     private String getCellString(Cell cell, DataFormatter formatter) {
-        if (cell == null) return "";
+        if (cell == null || cell.getCellType() == CellType.BLANK) return "";
         return formatter.formatCellValue(cell).trim();
     }
 
@@ -289,6 +299,12 @@ public class PlaceService {
                 .map(tag -> tag.startsWith("#") ? tag : "#" + tag) // # 강제 부착
                 .distinct()
                 .toList();
+    }
+
+    private String getCellValue(Row row, String colName,Map<String, Integer> headerMap, DataFormatter formatter){
+        Integer colIndex = headerMap.get(colName);
+        if(colIndex == null) return null;
+        return getCellString(row.getCell(colIndex), formatter);
     }
 
     public List<Place> searchByIntent(PlaceSearchRequest request) {
