@@ -3,8 +3,10 @@ package com.example.IncheonMate.common.config;
 import com.example.IncheonMate.common.auth.handler.CustomAuthenticationEntryPoint;
 //import com.example.IncheonMate.common.auth.handler.OAuth2SuccessHandler;
 //import com.example.IncheonMate.common.auth.service.CustomOAuth2UserService;
+import com.example.IncheonMate.common.filter.MDCLoggingFilter;
 import com.example.IncheonMate.common.jwt.JWTFilter;
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import io.netty.channel.ChannelPipeline;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +17,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.session.DisableEncodeUrlFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
 
@@ -55,6 +58,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/onboarding/**").hasAnyRole("PENDING","USER")
                 .anyRequest().authenticated());
 
+        //로깅 필터 filter chain 최상단에 끼워넣기
+        http.addFilterBefore(new MDCLoggingFilter(), DisableEncodeUrlFilter.class);
         // 4. JWTFilter 등록 (기존 로그인 필터 앞에 끼워넣기)
         http.addFilterBefore(new JWTFilter(jwtUtil,redisTemplate), UsernamePasswordAuthenticationFilter.class);
 
