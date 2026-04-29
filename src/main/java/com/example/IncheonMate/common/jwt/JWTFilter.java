@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -50,6 +51,8 @@ public class JWTFilter extends OncePerRequestFilter {
             //2. 토큰이 유효할 때만 정보 추출
             String identifier = jwtUtil.getIdentifier(token);
             String role = jwtUtil.getRole(token);
+
+            MDC.put("userId", identifier);
 
             if("ROLE_GUEST".equals(role)){
                 if(Boolean.FALSE.equals(redisTemplate.hasKey("GUEST_PROFILE:"+ identifier))){
