@@ -1,4 +1,4 @@
-package com.example.IncheonMate.common.security;
+package com.example.IncheonMate.common.config;
 
 import com.example.IncheonMate.common.auth.handler.CustomAuthenticationEntryPoint;
 //import com.example.IncheonMate.common.auth.handler.OAuth2SuccessHandler;
@@ -17,9 +17,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
