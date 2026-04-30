@@ -27,7 +27,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
+        String requestUri = request.getRequestURI();
         // 1. 헤더에서 Authorization 키 값 꺼내기
         String authorization = request.getHeader("Authorization");
 
@@ -45,6 +45,7 @@ public class JWTFilter extends OncePerRequestFilter {
         try {
             //1. 만료 여부 먼저 확인
             if (jwtUtil.isExpired(token)) {
+                log.warn("[Auth] JWT Filter - 토큰 만료 (URI: {})", requestUri);
                 throw new ExpiredJwtException(null, null, "만료된 토큰");
             }
 
@@ -53,12 +54,13 @@ public class JWTFilter extends OncePerRequestFilter {
             String role = jwtUtil.getRole(token);
 
             MDC.put("userId", identifier);
+            log.debug("[Auth] JWT Filter - 토큰 검증 성공 (Identifier: {}, Role: {}, URI: {})", identifier, role, requestUri);
 
             if("ROLE_GUEST".equals(role)){
                 if(Boolean.FALSE.equals(redisTemplate.hasKey("GUEST_PROFILE:"+ identifier))){
-                    log.warn("게스트 정보가 Redis에 없음:{}", identifier);
+                    log.warn("[Auth] JWT Filter - 게스트 정보 Redis에 없음 (Identifier: {}, URI: {})", identifier, requestUri);
                     request.setAttribute("exception","GUEST_NOT_EXIST");
-                    throw new IllegalStateException("게스트 정보 없음");
+                    throw new IllegalStateException("[Auth] 게스트 정보 없음");
                 }
             }
 
@@ -75,10 +77,10 @@ public class JWTFilter extends OncePerRequestFilter {
             // 4.2 세션에 사용자 등록
             SecurityContextHolder.getContext().setAuthentication(authToken);
         } catch(ExpiredJwtException e){
-            log.info("JWT Filter - 토큰 만료 감지: {}", e.getMessage());
+            log.warn("[Auth] JWT Filter - 토큰 만료 예외 (URI: {})", requestUri);
             request.setAttribute("exception", "TOKEN_EXPIRED");
         }catch (Exception e){
-            log.info("JWT Filter - 유효하지 않은 토큰: {}" ,e.getMessage());
+            log.warn("[Auth] JWT Filter - 유효하지 않은 토큰 예외 (URI: {}, Error: {})", requestUri, e.getMessage());
             if(request.getAttribute("exception") == null) {
                 request.setAttribute("exception", "INVALID_TOKEN");
             }

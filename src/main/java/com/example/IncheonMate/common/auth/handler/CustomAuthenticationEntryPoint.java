@@ -28,7 +28,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint{
         String requestUri = request.getRequestURI();
 
         //2. 로그 기록(디버깅용)
-        log.warn("[JWT 인증 실패] URI: {}, Error: {}",requestUri,authException.getMessage());
+        log.warn("[Auth] 인증 실패 (URI: {}, Error: {})", requestUri, authException.getMessage());
 
         //3. 응답 헤더 설정(JSON,UTF-8)
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -45,14 +45,17 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint{
         //5. 상황별 에러 코드 및 메시지 분기 처리
         if("TOKEN_EXPIRED".equals(exceptionAttribute)) {
             //CASE A:토큰 만료 -> 프론트엔드가 토큰 재발급 요청(/auth/refresh) 시도
+            log.warn("[Auth] Access Token 만료 (URI: {})", requestUri);
             body.put("code", "TOKEN_EXPIRED");
             body.put("message", "Access token이 만료되었습니다. 재발급이 필요합니다.");
         }else if("GUEST_NOT_EXIST".equals(exceptionAttribute)){
             //CASE B: 게스트 정보 없음 -> 로그인 화면으로 이동해야함
+            log.warn("[Auth] 게스트 정보 없음 (URI: {})", requestUri);
             body.put("code","GUEST_NOT_EXIST");
             body.put("message","Guest의 정보가 없습니다. 새로 가입해야합니다.");
         }else{
             //CASE C: 토큰 없음, 위조됨, 그 외의 모든 인증 실패 -> 프론트엔드가 로그인 페이지로 이동
+            log.warn("[Auth] 인증 필요 (URI: {})", requestUri);
             body.put("code", "LOGIN_REQUIRED");
             body.put("message","인증이 필요합니다. 로그인 해주세요");
         }
