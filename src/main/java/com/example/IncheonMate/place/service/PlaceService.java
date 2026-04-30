@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.apache.poi.ss.usermodel.*;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
@@ -40,20 +41,21 @@ public class PlaceService {
     private String kakaoApiKey;
 
     @Transactional(readOnly = true)
-    public List<PlaceResponseDto> searchAndOverlay(String keyword,String identifier,boolean isGuest) {
+    public List<PlaceResponseDto> searchAndOverlay(String keyword, String identifier, boolean isGuest) {
 
         // 1. 카카오 API 호출, 헤더만들기 (FeignClient 사용)
         String authHeader = "KakaoAK " + kakaoApiKey;
 
         KakaoApiResponseDto kakaoResult = kakaoFeignClient.searchByKeyword(authHeader, keyword);
 
-        return mergeWithMyData(kakaoResult.getDocuments(),identifier,isGuest);
+        return mergeWithMyData(kakaoResult.getDocuments(), identifier, isGuest);
     }
 
     @Transactional(readOnly = true)
-    public List<PlaceResponseDto> searchCategoryAndOverlay(PlaceCategory category, double x, double y,String identifier,boolean isGuest) {
+    public List<PlaceResponseDto> searchCategoryAndOverlay(PlaceCategory category, double x, double y, String identifier, boolean isGuest) {
 
         String authHeader = "KakaoAK " + kakaoApiKey;
+
 
         // 카테고리 검색 호출
         KakaoApiResponseDto kakaoResult = kakaoFeignClient.searchByCategory(
@@ -64,10 +66,28 @@ public class PlaceService {
                 "distance" // 거리순
         );
 
-        return mergeWithMyData(kakaoResult.getDocuments(),identifier,isGuest);
+        if ("AT4".equals(category.getCode())) {
+            KakaoApiResponseDto kakaoCT1Result = kakaoFeignClient.searchByCategory(
+                    authHeader,
+                    "CT1",
+                    x, y,
+                    1000,
+                    "distance"
+            );
+
+            if (kakaoCT1Result != null && kakaoResult != null) {
+                List<KakaoApiResponseDto.DocumentDto> kakaoList = kakaoResult.getDocuments();
+                kakaoList.addAll(kakaoCT1Result.getDocuments());
+
+                return mergeWithMyData(kakaoList, identifier, isGuest);
+            }
+        }
+
+
+        return mergeWithMyData(kakaoResult.getDocuments(), identifier, isGuest);
     }
 
-    private List<PlaceResponseDto> mergeWithMyData(List<KakaoApiResponseDto.DocumentDto> kakaoList,String identifier,boolean isGuest) {
+    private List<PlaceResponseDto> mergeWithMyData(List<KakaoApiResponseDto.DocumentDto> kakaoList, String identifier, boolean isGuest) {
         if (kakaoList == null || kakaoList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -88,7 +108,7 @@ public class PlaceService {
         // 아래 stream안에서 조회하면 N+1(성능) 문제
         Set<String> bookmarkedKakaoIds;
 
-        if(!isGuest) {
+        if (!isGuest) {
             List<Member.FavoritePlace> favoritePlaces = memberRepository.findByEmailOrElseThrow(identifier).getFavoritePlaces();
             bookmarkedKakaoIds = favoritePlaces.stream()
                     .map(Member.FavoritePlace::getKakaoPlaceId)
@@ -106,7 +126,7 @@ public class PlaceService {
 
                     //도로명 주소가 없으면 구 주소를 응답
                     String address = k.getRoadAddressName();
-                    if(!StringUtils.hasText(address)) address = k.getAddressName();
+                    if (!StringUtils.hasText(address)) address = k.getAddressName();
 
                     // 4-1. 공통 정보 (무조건 카카오 데이터 기준)
                     PlaceResponseDto.PlaceResponseDtoBuilder builder = PlaceResponseDto.builder()
@@ -188,7 +208,7 @@ public class PlaceService {
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
 
             //엑셀 파일의 모든 시트를 순회
-            for(Sheet sheet: workbook) {
+            for (Sheet sheet : workbook) {
                 Row headerRow = sheet.getRow(0);
                 if (headerRow == null) continue;
 
@@ -203,26 +223,26 @@ public class PlaceService {
                 }
 
                 //해당 시트 데이터 파싱
-                for(int i = 1; i <= sheet.getLastRowNum(); i++){
+                for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                     Row row = sheet.getRow(i);
-                    if(row == null) continue;
+                    if (row == null) continue;
 
                     String kakaoId = getCellValue(row, "KakaoId", headerMap, formatter);
-                    if(kakaoId == null || kakaoId.isBlank()) continue;
+                    if (kakaoId == null || kakaoId.isBlank()) continue;
 
-                    String name = getCellValue(row, "PlaceName", headerMap,formatter);
+                    String name = getCellValue(row, "PlaceName", headerMap, formatter);
                     String address = getCellValue(row, "Address", headerMap, formatter);
-                    PlaceCategory placeCategory = PlaceCategory.valueOf(getCellValue(row,"PlaceCategory",headerMap,formatter));
-                    Double x = parseDoubleOrNull(getCellValue(row,"X", headerMap, formatter));
-                    Double y = parseDoubleOrNull(getCellValue(row, "Y", headerMap,formatter));
-                    String expertComment = getCellValue(row,"Comment", headerMap,formatter);
-                    if(expertComment != null) expertComment = expertComment.replaceAll("[\r\n]{2,}", "\n");
-                    Double ourRating = parseDoubleOrNull(getCellValue(row,"Rating", headerMap,formatter));
-                    String thumbnailUrl = getCellValue(row, "Image", headerMap,formatter);
-                    String naegiftId = getCellValue(row,"naegiftId", headerMap,formatter);
-                    List<String> tags = parseTags(getCellValue(row, "Tags", headerMap,formatter));
+                    PlaceCategory placeCategory = PlaceCategory.valueOf(getCellValue(row, "PlaceCategory", headerMap, formatter));
+                    Double x = parseDoubleOrNull(getCellValue(row, "X", headerMap, formatter));
+                    Double y = parseDoubleOrNull(getCellValue(row, "Y", headerMap, formatter));
+                    String expertComment = getCellValue(row, "Comment", headerMap, formatter);
+                    if (expertComment != null) expertComment = expertComment.replaceAll("[\r\n]{2,}", "\n");
+                    Double ourRating = parseDoubleOrNull(getCellValue(row, "Rating", headerMap, formatter));
+                    String thumbnailUrl = getCellValue(row, "Image", headerMap, formatter);
+                    String naegiftId = getCellValue(row, "naegiftId", headerMap, formatter);
+                    List<String> tags = parseTags(getCellValue(row, "Tags", headerMap, formatter));
 
-                    rowDataMap.put(kakaoId, new PlaceData.RowData(kakaoId,name,address,placeCategory,x,y,expertComment,ourRating,thumbnailUrl,naegiftId,tags));
+                    rowDataMap.put(kakaoId, new PlaceData.RowData(kakaoId, name, address, placeCategory, x, y, expertComment, ourRating, thumbnailUrl, naegiftId, tags));
                 }
             }
             if (rowDataMap.isEmpty()) return "등록할 데이터가 없습니다.";
@@ -301,9 +321,9 @@ public class PlaceService {
                 .toList();
     }
 
-    private String getCellValue(Row row, String colName,Map<String, Integer> headerMap, DataFormatter formatter){
+    private String getCellValue(Row row, String colName, Map<String, Integer> headerMap, DataFormatter formatter) {
         Integer colIndex = headerMap.get(colName);
-        if(colIndex == null) return null;
+        if (colIndex == null) return null;
         return getCellString(row.getCell(colIndex), formatter);
     }
 
@@ -314,7 +334,7 @@ public class PlaceService {
 
         // 1. Repository의 @Query 호출
         List<Place> results = placeRepository.findByAiIntent(
-               request.getLocation(),categoryCode,request.getVibe(),request.getCompanion()
+                request.getLocation(), categoryCode, request.getVibe(), request.getCompanion()
         );
 
         // 2. 만약 검색 결과가 없다면? (사용자 경험을 위한 예외 처리)
