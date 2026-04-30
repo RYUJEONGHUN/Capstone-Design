@@ -129,7 +129,7 @@ public class LoginService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[Auth] 소셜 로그인 실패 (Provider: {})", provider, e);
+            log.warn("[Auth] 소셜 로그인 실패 (Provider: {})", provider, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "소셜 로그인 중 문제 발생");
         }
 
