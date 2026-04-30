@@ -41,6 +41,7 @@ public class ChatService {
     private final AiChatClient aiChatClient;
 
     public ChatResponse.TodayDto getTodayChat(String identifier, boolean isGuest){
+        log.debug("[Chat] 오늘 채팅 내역 조회 시작");
         //게스트 -> 채팅 횟수에 제한이 있어서 남은 횟수를 돌려줘야한다.
         if(isGuest){
             //게스트의 채팅 내역을 Redis에서 꺼내온다.
@@ -49,6 +50,7 @@ public class ChatService {
             //1. 기존 채팅 내역이 있을 경우
             if(guestChatSessionOpt.isPresent()) {
                 GuestChatSession guestChatSession = guestChatSessionOpt.get();
+                log.info("[Chat] 게스트 기존 채팅 내역 있음");
                 return ChatResponse.TodayDto.of(
                         guestChatSession.getId(),
                         guestChatSession.getTitle(),
@@ -59,6 +61,7 @@ public class ChatService {
             }
 
             //2. 기존 채팅 내역이 없을 경우
+            log.info("[Chat] 게스트 기존 채팅 내역 없음");
             return ChatResponse.TodayDto.of(
                     null,
                     null,
@@ -79,10 +82,12 @@ public class ChatService {
 
         //3. 정회원의 오늘 채팅 기록이 있으면 대화 내용 리턴
         if(todayChatSessionOpt.isPresent()) {
+            log.info("[Chat] 정회원 오늘 채팅 기록 있음");
             return ChatResponse.TodayDto.fromMember(todayChatSessionOpt.get());
         }
 
         //3. 정회원의 오늘 채팅 기록이 '없'으면 대화 내용이 없으니 null을 리턴
+        log.info("[Chat] 정회원 오늘 채팅 기록 없음");
         return ChatResponse.TodayDto.of(
                 null,
                 null,
@@ -98,11 +103,13 @@ public class ChatService {
         //1. 키가 Redis에 없으면 채팅을 처음 시작하는 게스트이므로 생성 및 10할당(TTL 14일)
         if(!redisTemplate.hasKey(key)){
             redisTemplate.opsForValue().set(key,"10",14, TimeUnit.DAYS);
+            log.debug("[Chat] 게스트 채팅 횟수 초기화 (Count: 10)");
             return 10;
         }
 
         //2. 키가 Redis에 있으면 채팅을 하고 있던 게스트이므로 저장값 반환
         String count = (String) redisTemplate.opsForValue().get(key);
+        log.debug("[Chat] 게스트 남은 채팅 횟수 조회 (Count: {})", count);
         return Integer.parseInt(count);
     }
 
@@ -110,6 +117,7 @@ public class ChatService {
     //나중에 AiService,GuestPolicyService로 나누는 리팩토링 필요
     @Transactional
     public ChatResponse.Generation sendChatMessage(String identifier, boolean isGuest, ChatRequest.MessageDto messageDto) {
+        log.debug("[Chat] 채팅 메시지 전송 시작");
 
         if(isGuest){
             //1.게스트이면 최대 채팅횟수 초과했는지 검사
@@ -117,6 +125,7 @@ public class ChatService {
             int remainingChatCount = (remainingChatCountStr != null) ? Integer.parseInt(remainingChatCountStr) : 0;
             // 게스트: 최대 채팅 횟수 초과했으면 게스트 채팅 초과 에러 return
             if(remainingChatCount <= 0){
+                log.info("[Chat] 게스트 채팅 횟수 초과");
                 throw new CustomException(ErrorCode.GUEST_CHAT_LIMIT_EXCEEDED);
             }
 
@@ -134,9 +143,11 @@ public class ChatService {
             String personaType = getPersonaType(identifier,isGuest);
 
             //5. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
+            log.debug("[Chat] FastAPI 채팅 요청 전송");
             FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(messageDto.message(),identifier,personaType));
             //6. error 응답이 오면 exception throw
             if(!StringUtils.hasText(chatResponseDto.answer())){
+                log.warn("[Chat] FastAPI 응답 오류");
                 throw new CustomException(ErrorCode.AI_SERVER_ERROR);
             }
 
@@ -152,9 +163,11 @@ public class ChatService {
             guestChatSession.addMessages(userMessage,aiMessage);
             //9. 저장
             guestChatSessionRepository.save(guestChatSession);
+            log.debug("[Chat] 게스트 채팅 메시지 저장 완료");
 
             //10. Redis에 있는 guest count 1감소
             redisTemplate.opsForValue().decrement("GUEST_COUNT:"+identifier);
+            log.debug("[Chat] 게스트 채팅 횟수 감소");
 
             return ChatResponse.Generation.fromGuest(userMessage,aiMessage);
 
@@ -172,9 +185,11 @@ public class ChatService {
             //3. FastAPI로 전송할 데이터 준비
             String personaType = getPersonaType(identifier,isGuest);
             //4. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
+            log.debug("[Chat] FastAPI 채팅 요청 전송");
             FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(messageDto.message(),identifier,personaType));
             //5. error 응답이 오면 exception throw
             if(!StringUtils.hasText(chatResponseDto.answer())){
+                log.warn("[Chat] FastAPI 응답 오류");
                 throw new CustomException(ErrorCode.AI_SERVER_ERROR);
             }
 
@@ -190,6 +205,7 @@ public class ChatService {
             chatSession.addMessages(userMessage,aiMessage);
             //8. 저장
             chatSessionRepository.save(chatSession);
+            log.debug("[Chat] 정회원 채팅 메시지 저장 완료");
 
             return ChatResponse.Generation.fromUser(userMessage,aiMessage);
         }
@@ -201,6 +217,7 @@ public class ChatService {
         if(isGuest){
             Object personaObj = redisTemplate.opsForHash().get("GUEST_PROFILE:" + identifier, "persona");
             if (personaObj == null) {
+                log.warn("[Chat] 게스트 프로필에 페르소나 정보 없음");
                 throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
             }
             return personaObj.toString();
@@ -223,6 +240,7 @@ public class ChatService {
                             .lastMessageAt(now)
                             .build();
 
+                    log.info("[Chat] 게스트 채팅 세션 생성");
                     return guestChatSessionRepository.save(newSession);
                 });
     }
@@ -245,6 +263,7 @@ public class ChatService {
                             .memberId(memberId)
                             .build();
 
+                    log.info("[Chat] 정회원 채팅 세션 생성");
                     return chatSessionRepository.save(newSession);
                 });
     }

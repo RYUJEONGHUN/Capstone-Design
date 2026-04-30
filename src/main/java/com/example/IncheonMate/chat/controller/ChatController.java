@@ -41,10 +41,12 @@ public class ChatController {
     @GetMapping("/today")
     public ResponseEntity<ChatResponse.TodayDto> getTodayChat(@AuthenticationPrincipal CustomOAuth2User user){
         String identifier = user.getIdentifier();
-        log.info("오늘 채팅 내역 조회 요청:{}",identifier);
+        log.info("[Chat] 오늘 채팅 내역 조회 요청 진입");
 
+        ChatResponse.TodayDto result = chatService.getTodayChat(identifier, user.isGuest());
+        log.info("[Chat] 오늘 채팅 내역 조회 성공");
         return ResponseEntity.status(HttpStatus.OK)
-                .body(chatService.getTodayChat(identifier, user.isGuest()));
+                .body(result);
     }
 
     //채팅창에서 채팅 입력
@@ -57,10 +59,12 @@ public class ChatController {
     @PostMapping
     public ResponseEntity<ChatResponse.Generation> sendChat(@AuthenticationPrincipal CustomOAuth2User user, @RequestBody ChatRequest.MessageDto messageDto){
         String identifier = user.getIdentifier();
-        log.info("AI 채팅 요청:{}",identifier);
+        log.info("[Chat] AI 채팅 요청");
 
+        ChatResponse.Generation result = chatService.sendChatMessage(identifier, user.isGuest(), messageDto);
+        log.info("[Chat] AI 채팅 응답 성공");
         return ResponseEntity.status(HttpStatus.OK)
-                .body(chatService.sendChatMessage(identifier,user.isGuest(),messageDto));
+                .body(result);
     }
 
 }
