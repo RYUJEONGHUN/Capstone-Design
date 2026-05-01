@@ -11,6 +11,7 @@ import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.dto.*;
 import com.example.IncheonMate.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlaceService {
 
     // FeignClient를 주입
@@ -47,7 +49,11 @@ public class PlaceService {
         String authHeader = "KakaoAK " + kakaoApiKey;
 
         KakaoApiResponseDto kakaoResult = kakaoFeignClient.searchByKeyword(authHeader, keyword);
-
+        if (kakaoResult == null) {
+            log.warn("[Place] 카카오맵 API 요청 실패 (Keyword: {})", keyword);
+            throw new CustomException(ErrorCode.KAKAO_SERVER_ERROR);
+        }
+        log.debug("[Place] 카카오맵 API 요청 성공 (Keyword: {})", keyword);
         return mergeWithMyData(kakaoResult.getDocuments(), identifier, isGuest);
     }
 
@@ -65,6 +71,11 @@ public class PlaceService {
                 1000, // 반경 300m
                 "distance" // 거리순
         );
+        if (kakaoResult == null) {
+            log.warn("[Place] 카카오맵 API 요청 실패 (Category: {})", category.getCode());
+            throw new CustomException(ErrorCode.KAKAO_SERVER_ERROR);
+        }
+        log.debug("[Place] 카카오맵 API 요청 성공 (Category: {})", category.getCode());
 
         if ("AT4".equals(category.getCode())) {
             KakaoApiResponseDto kakaoCT1Result = kakaoFeignClient.searchByCategory(
@@ -103,7 +114,7 @@ public class PlaceService {
         // 3. 빠른 조회를 위해 Map으로 변환 (Key: kakaoId, Value: Place 객체)
         Map<String, Place> myPlaceMap = myPlaces.stream()
                 .collect(Collectors.toMap(Place::getKakaoId, Function.identity()));
-
+        log.debug("[Place] DB의 Place 데이터 조회 완료");
         // 스트림 시작전 로그인한 유저 정보를 가져와서 찜한 카카오 ID만 Set으로 추출
         // 아래 stream안에서 조회하면 N+1(성능) 문제
         Set<String> bookmarkedKakaoIds;
@@ -116,9 +127,10 @@ public class PlaceService {
         } else {
             bookmarkedKakaoIds = Collections.emptySet();
         }
+        log.debug("[Place] 찜목록 조회 완료");
 
         // 4. 카카오 데이터 + 내 데이터 합치기
-        return kakaoList.stream()
+        List<PlaceResponseDto> result = kakaoList.stream()
                 .map(k -> {
                     Place myData = myPlaceMap.get(k.getId());
                     //추가. 찜 했는지 안했는지
@@ -163,6 +175,9 @@ public class PlaceService {
                     }
                 })
                 .collect(Collectors.toList());
+
+        log.info("[Place] 카테고리 검색 기본 데이터와 DB 데이터 병합 완료");
+        return result;
     }
 
     // 카카오가 좌표를 String으로 주는데 가끔 빈 문자열일 때가 있어서 안전하게 변환해야 함
@@ -181,6 +196,7 @@ public class PlaceService {
     public void registerPlace(PlaceRequestDto requestDto) {
         // 1. 이미 등록된 가게인지 확인 (중복 방지)
         if (placeRepository.findByKakaoId(requestDto.getKakaoId()).isPresent()) {
+            log.warn("[Place] 이미 등록된 장소 (관리자용)(KakaoPlaceId: {})", requestDto.getKakaoId());
             throw new CustomException(ErrorCode.DUPLICATE_RESOURCE);
         }
 
@@ -193,12 +209,16 @@ public class PlaceService {
                 .build();
 
         Place savedPlace = placeRepository.save(place);
+        log.info("[Place] 장소 등록 완료 (관리자용)(PlaceId: {})", place.getId());
     }
 
     @Transactional // 엑셀 데이터 db 저장
     public String uploadPlaceExcel(MultipartFile file) {
         // 파일이 비어있는지
-        if (file == null || file.isEmpty()) return "파일이 비어있습니다.";
+        if (file == null || file.isEmpty()) {
+            log.warn("[Place] 파일 없음 (관리자용)");
+            return "파일이 비어있습니다.";
+        }
 
         DataFormatter formatter = new DataFormatter();
 
@@ -284,6 +304,7 @@ public class PlaceService {
 
             // 4. 일괄 저장 // (Bulk Save)
             placeRepository.saveAll(toSave);
+            log.info("[Place] 엑셀 데이터 저장 완료 (관리자용)(신규: {}, 업데이트: {})",toSave.size(), toSave.size() - existingPlaces.size());
 
             return String.format("총 %d건 처리 완료 (신규: %d, 업데이트: %d)",
                     toSave.size(),
@@ -340,12 +361,14 @@ public class PlaceService {
         // 2. 만약 검색 결과가 없다면? (사용자 경험을 위한 예외 처리)
         if (results.isEmpty()) {
             // 위치랑 카테고리만으로 더 넓게 재검색하는 로직을 넣을 수 있어.
+            log.warn("[Place] 해당하는 조건의 장소 없음 (Location: {}, Category: {})", request.getLocation(), request.getCategory());
             return placeRepository.findByAddressContainingAndCategoryGroup(
                     request.getLocation(),
                     categoryCode
             );
         }
 
+        log.info("[Place] FastAPI 위치,카테고리 기반 장소 검색 성공");
         // 3. 별점(ourRating) 높은 순으로 정렬해서 반환
         return results.stream()
                 .sorted(Comparator.comparing(Place::getOurRating).reversed())

@@ -1,25 +1,26 @@
-package com.example.IncheonMate.common.security;
+package com.example.IncheonMate.common.config;
 
 import com.example.IncheonMate.common.auth.handler.CustomAuthenticationEntryPoint;
 //import com.example.IncheonMate.common.auth.handler.OAuth2SuccessHandler;
 //import com.example.IncheonMate.common.auth.service.CustomOAuth2UserService;
+import com.example.IncheonMate.common.filter.MDCLoggingFilter;
 import com.example.IncheonMate.common.jwt.JWTFilter;
 import com.example.IncheonMate.common.jwt.JWTUtil;
+import io.netty.channel.ChannelPipeline;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.session.DisableEncodeUrlFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
@@ -54,10 +55,15 @@ public class SecurityConfig {
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
                 .requestMatchers("/auth/**","/errror").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/my-info/favorite-places").hasRole("USER")
+                .requestMatchers(HttpMethod.POST,"/api/my-info/favorite-places").hasRole("USER")
+                .requestMatchers(HttpMethod.DELETE, "/api/my-info/favorite-places/{favorite-place-id}").hasRole("USER")
                 .requestMatchers("/api/onboarding/check").permitAll()
                 .requestMatchers("/api/onboarding/**").hasAnyRole("PENDING","USER")
                 .anyRequest().authenticated());
 
+        //로깅 필터 filter chain 최상단에 끼워넣기
+        http.addFilterBefore(new MDCLoggingFilter(), DisableEncodeUrlFilter.class);
         // 4. JWTFilter 등록 (기존 로그인 필터 앞에 끼워넣기)
         http.addFilterBefore(new JWTFilter(jwtUtil,redisTemplate), UsernamePasswordAuthenticationFilter.class);
 

@@ -39,6 +39,7 @@ public class LoginContoller {
     })
     @PostMapping("/user/login")
     public ResponseEntity<?> socialLogin(@RequestBody LoginDto.UserRequest userRequest, HttpServletResponse response,@AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("[Auth] 소셜 로그인 요청 진입 (Provider: {})", userRequest.provider());
         Tokens tokens = loginService.processSocialLogin(userRequest,user);
 
         //1. 신규 가입자
@@ -46,13 +47,13 @@ public class LoginContoller {
             //1.1 게스트 출신 신규 가입자(user가 null이 아님)
             if(user != null && user.isGuest()){
                 LoginDto.GuestProfile guestProfile = loginService.getProfileInRedis(user.getIdentifier());
-                log.info("게스트 계정 있는 사용자 소셜 로그인 요청 성공");
+                log.info("[Auth] 게스트 출신 신규 가입자 소셜 로그인 성공 (Guest ID: {})", user.getIdentifier());
                 return ResponseEntity.status(HttpStatus.OK)
                         .body(LoginDto.Response.from(tokens,guestProfile));
             }
 
             // 1.2 게스트 계정이 없는 신규 가입자(user가 null임)
-            log.info("게스트 계정이 없는 사용자 소셜 로그인 요청 성공");
+            log.info("[Auth] 신규 가입자 소셜 로그인 성공 (Provider: {})", userRequest.provider());
             return ResponseEntity.status(HttpStatus.OK)
                     .body(LoginDto.Response.onlyToken(tokens));
         }
@@ -69,7 +70,7 @@ public class LoginContoller {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());
         //accessToken과 role을 return
-        log.info("이미 가입 완료한 사용자 로그인 성공");
+        log.info("[Auth] 기존 회원 소셜 로그인 성공 및 RefreshToken 발급 완료 (Provider: {})", userRequest.provider());
         return ResponseEntity.status(HttpStatus.OK)
                 .body(LoginDto.Response.onlyToken(tokens));
 
@@ -81,7 +82,7 @@ public class LoginContoller {
     })
     @PostMapping("/guest/login")
     public ResponseEntity<LoginDto.Response> guestLogin(@RequestBody LoginDto.GuestRequest guestRequest, HttpServletResponse response) {
-        log.info("신규 게스트 로그인 요청");
+        log.info("[Auth] 게스트 로그인 요청 진입 (Persona: {}, Lang: {})", guestRequest.personaType(), guestRequest.lang());
 
         LoginDto.GuestLoginResult result  = loginService.guestLogin(guestRequest);
 
@@ -96,7 +97,7 @@ public class LoginContoller {
         response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());
 
         //2. Access Token과 Role을 Http Body에 담아서 전송한다.
-        log.info("신규 게스트 계정 생성 완료");
+        log.info("[Auth] 게스트 로그인 성공 및 RefreshToken 발급 완료 (Persona: {})", guestRequest.personaType());
         return ResponseEntity.status(HttpStatus.OK)
                 .body(LoginDto.Response.from(result.tokens(), result.guestProfile()));
     }

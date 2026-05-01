@@ -58,13 +58,13 @@ public class RouteService {
                     try {
                         return RouteResponse.RecentRouteDto.from(route);//정상
                     } catch (CustomException e) {
-                        log.error("길찾기 기록 조회중 오류 발생: {}", email); //비정상
+                        log.error("[Route] 길찾기 기록 조회중 오류 발생"); //비정상
                         throw new CustomException(ErrorCode.ROUTE_HISTORY_NOT_FOUND);
                     }
                 })
                 .toList();
 
-        log.info("최근 경로 검색 결과 {}개 반환: {}", result.size(), email);
+        log.info("[Route] 최근 경로 기록 조회 성공 (ResultCount: {})", result.size());
         return result;
     }
 
@@ -76,24 +76,33 @@ public class RouteService {
                     try {
                         return RouteResponse.RecentSearchDto.from(search);//정상
                     } catch (CustomException e) {
-                        log.error("검색 기록 조회중 오류 발생: {}", email); //비정상
+                        log.error("[Route] 검색 기록 조회중 오류 발생"); //비정상
                         throw new CustomException(ErrorCode.SEARCH_HISTORY_NOT_FOUND);
                     }
                 })
                 .toList();
 
-        log.info("최근 키워드 검색 결과 {}개 반환: {}", result.size(), email);
+        log.info("[Route] 최근 키워드 검색 기록 조회 성공  (ResultCount: {})", result.size());
         return result;
     }
 
     //3.검색 화면: 검색어를 입력하면 검색어에 맞는 장소를 보여주면서 키워드나 장소를 저장하는 기능-get+URI Param/searchAndSavePlaces(/api/route/searchs)
     @Transactional
     public List<RouteResponse.CurrentPlaceDto> searchAndSavePlaces(String email, boolean isGuest, String keyword, boolean save) {
-        log.debug("email:{}, keyword: {}, save:{}", email, keyword, save);
 
         //요청한다음에 KakaoApiResponseDto 전체 카카오 응답 받기(여기서 keyword 사용)
         KakaoApiResponseDto kakaoApiResponseDto = kakaoFeignClient.searchByKeyword("KakaoAK " + kakaoKey, keyword);
-        log.info("장소 검색 결과: {}개", kakaoApiResponseDto.getMeta().getPageableCount());
+        if (kakaoApiResponseDto == null) {
+            log.warn("[Route] 카카오 장소 검색 응답 실패 (Keyword: {})", keyword);
+        } else {
+            int resultCount = kakaoApiResponseDto.getMeta().getPageableCount();
+
+            if (save) {
+                log.info("[Route] 카카오 장소 검색 성공 (Keyword: {}, ResultCount: {})", keyword, resultCount);
+            } else {
+                log.debug("[Route] 카카오 장소 검색 성공 (Keyword: {}, ResultCount: {})", keyword, resultCount);
+            }
+        }
 
         //우리 DB에 저장된 장소이면 isRegistered를 true로 바꾼후 프론트에 전달할 형식으로 변경
         //1. 카카오 응답에서 ID만 추출
@@ -115,6 +124,7 @@ public class RouteService {
                         isRegistereds.get(i)
                 ))
                 .toList();
+        log.debug("[Route] DB에 저장된 장소와 결합 완료 (ResultCount: {}", result.size());
 
 
         if (save && !isGuest) {//save=true이고 게스트가 아닐때에만 저장
@@ -133,34 +143,35 @@ public class RouteService {
                     .each(recentSearch); //삽입할 데이터
             UpdateResult resultCount = mongoTemplate.updateFirst(query, update, Member.class);
             if (resultCount.getMatchedCount() == 0) {
-                log.error("사용자를 찾을 수 없습니다.: {}", email);
+                log.error("[Route] 사용자를 찾을 수 없습니다");
                 throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
             }
-            log.info("장소 검색 결과 저장 완료: {}", email);
+            log.info("[Route] 장소 키워드 검색 및 저장 완료 (Keyword: {})",keyword);
             return result;
         }
         //save=false이면 저장하지 않고 dto로 전송
+        log.debug("[Route] 장소 키워드 검색 성공 (Keyword: {})", keyword);
         return result;
     }
 
     //4.길찾기 조회 완료 화면: 출발지와 목적지를 입력하고 '길찾기'를 누르면 그에 맞는 경로들을 보여주면서 저장하는 기능-POST/findAndSavePaths(/api/route/paths)
     @Transactional
     public OdsayRouteSearchResponse findAndSaveRoutes(String email, boolean isGuest ,RouteRequest.RouteSearchRequest routeSearchRequest) {
-        log.info("{} -> {} ODsay 길찾기 API 요청", routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
+        log.info("[Route] ODsay 길찾기 API 요청");
         OdsayRouteSearchResponse odsayResponse = odsayClient.searchRoute(
                 routeSearchRequest.sx(), routeSearchRequest.sy(),
                 routeSearchRequest.ex(), routeSearchRequest.ey(), apiKey);
         //비정상 흐름 처리
         if (odsayResponse.error() != null) {
-            log.warn("ODsay 길찾기 에러: {},에러코드={}", email, odsayResponse.error().code());
+            log.warn("[Route] ODsay 길찾기 에러 (ErrorCode: {})", odsayResponse.error().code());
             handleOdsayError(odsayResponse.error().code());
         }
         if (odsayResponse.result() == null || odsayResponse.result().path() == null) {
-            log.info("ODsay 경로 탐색 결과 없음 (path is null)");
+            log.info("[Route] ODsay 경로 탐색 결과 없음");
             throw new CustomException(ErrorCode.NO_SEARCH_RESULT);
         }
 
-        log.info("ODsay 길찾기 정상 응답");
+        log.info("[Route] ODsay 길찾기 응답 성공");
         if(!isGuest) {
             //경로 저장 로직
             GeoJsonPoint departureLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.sx()), Double.parseDouble(routeSearchRequest.sy()));
@@ -186,10 +197,10 @@ public class RouteService {
 
             UpdateResult result = mongoTemplate.updateFirst(query, update, Member.class);
             if (result.getMatchedCount() == 0) {
-                log.error("사용자를 찾을 수 없습니다.: {}", email);
+                log.error("[Route] 사용자를 찾을 수 없습니다");
                 throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
             }
-            log.info("경로 기록 저장 완료: {}", email);
+            log.info("[Route] 경로 기록 저장 완료");
         }
 
         return odsayResponse;
@@ -200,9 +211,10 @@ public class RouteService {
     public void deleteRecentRoute(String email, String recentRouteId) {
         int isRemoved = memberRepository.deleteRecentRouteByEmail(email,recentRouteId);
         if(isRemoved == 0) {
+            log.warn("[Route] 길찾기 기록 삭제 실패 (RouteId: {})", recentRouteId);
             throw new CustomException(ErrorCode.ROUTE_HISTORY_NOT_FOUND);
         }
-        log.info("길찾기 기록(ID:{}) 제거 완료", recentRouteId);
+        log.info("[Route] 길찾기 기록 제거 완료 (RouteId:{})", recentRouteId);
     }
 
     //키워드 검색 기록 제거 서비스 로직
@@ -210,9 +222,10 @@ public class RouteService {
     public void deleteRecentSearch(String email, String recentSearchId) {
         int isRemoved = memberRepository.deleteRecentSearchByEmail(email,recentSearchId);
         if(isRemoved == 0) {
+            log.warn("[Route] 검색 기록 삭제 실패 (SearchId: {})", recentSearchId);
             throw new CustomException(ErrorCode.SEARCH_HISTORY_NOT_FOUND);
         }
-        log.info("키워드 검색 기록(ID:{}) 제거 완료", recentSearchId);
+        log.info("[Route] 검색 기록 제거 완료 (SearchId: {})", recentSearchId);
     }
 
     // ODsay 에러 코드 핸들링 내부 method
