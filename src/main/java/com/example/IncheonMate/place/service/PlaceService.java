@@ -62,6 +62,7 @@ public class PlaceService {
 
         String authHeader = "KakaoAK " + kakaoApiKey;
 
+
         // 카테고리 검색 호출
         KakaoApiResponseDto kakaoResult = kakaoFeignClient.searchByCategory(
                 authHeader,
@@ -75,6 +76,24 @@ public class PlaceService {
             throw new CustomException(ErrorCode.KAKAO_SERVER_ERROR);
         }
         log.debug("[Place] 카카오맵 API 요청 성공 (Category: {})", category.getCode());
+
+        if ("AT4".equals(category.getCode())) {
+            KakaoApiResponseDto kakaoCT1Result = kakaoFeignClient.searchByCategory(
+                    authHeader,
+                    "CT1",
+                    x, y,
+                    1000,
+                    "distance"
+            );
+
+            if (kakaoCT1Result != null && kakaoResult != null) {
+                List<KakaoApiResponseDto.DocumentDto> kakaoList = kakaoResult.getDocuments();
+                kakaoList.addAll(kakaoCT1Result.getDocuments());
+
+                return mergeWithMyData(kakaoList, identifier, isGuest);
+            }
+        }
+
 
         return mergeWithMyData(kakaoResult.getDocuments(), identifier, isGuest);
     }
