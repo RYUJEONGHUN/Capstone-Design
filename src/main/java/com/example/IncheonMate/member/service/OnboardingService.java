@@ -61,6 +61,7 @@ public class OnboardingService {
         */
         //온보딩DTO null 검증
         if (onboardingDto == null) {
+            log.warn("[Member] 온보딩 데이터가 Null임");
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"저장할 온보딩 데이터가 업습니다.");
         }
 
@@ -96,7 +97,6 @@ public class OnboardingService {
 
         memberRepository.save(newMember);
 
-
         //게스트 계정으로 가입한 내역이 있는 멤버이면 채팅 내역도 DB에 저장해야함
         if(!"newUser".equals(guestId)){
             //---------------------나중에 채팅 기능 추가하면 코드 작성---------------------
@@ -106,10 +106,10 @@ public class OnboardingService {
             redisTemplate.delete("GUEST_PROFILE:"+guestId);
             //ROLE_GUEST로 만든 Refresh Token도 Redis에서 삭제하기
             redisTemplate.delete("RT:"+guestId);
-            log.info("게스트 가입자 {}의 임시 Redis 데이터 정리 완료",guestId);
+            log.info("[Member] 게스트 Redis 데이터 정리 완료 (GuestId: {})",guestId);
         }
 
-        log.info("'{}' 가입 완료",email);
+        log.info("[Member] 정회원 가입 완료");
     }
 
 
@@ -140,6 +140,8 @@ public class OnboardingService {
 
     //getOnboardingData 서비스
     public OnboardingBundle.OnboardingDto getOnboardingValues(String email) {
-        return OnboardingBundle.OnboardingDto.from(memberRepository.findByEmailOrElseThrow(email));
+        OnboardingBundle.OnboardingDto result =  OnboardingBundle.OnboardingDto.from(memberRepository.findByEmailOrElseThrow(email));
+        log.info("[Member] 사용자 정보 조회 성공");
+        return result;
     }
 }
