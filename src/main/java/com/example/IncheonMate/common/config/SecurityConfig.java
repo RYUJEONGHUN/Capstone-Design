@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -54,6 +55,9 @@ public class SecurityConfig {
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
                 .requestMatchers("/auth/**","/errror").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/my-info/favorite-places").hasRole("USER")
+                .requestMatchers(HttpMethod.POST,"/api/my-info/favorite-places").hasRole("USER")
+                .requestMatchers(HttpMethod.DELETE, "/api/my-info/favorite-places/{favorite-place-id}").hasRole("USER")
                 .requestMatchers("/api/onboarding/check").permitAll()
                 .requestMatchers("/api/onboarding/**").hasAnyRole("PENDING","USER")
                 .anyRequest().authenticated());
