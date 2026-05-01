@@ -56,11 +56,12 @@ public class RouteController {
     @GetMapping("/history/paths")
     public ResponseEntity<?> getRecentRoutes(@AuthenticationPrincipal CustomOAuth2User user) {
         if(user.isGuest()){
+            log.debug("[Route] 최근 길찾기 기록 사용 불가 (IsGuest: {})", user.isGuest());
             return ResponseEntity.status(HttpStatus.OK).
                     body(RouteResponse.GuestResponse.from("로그인이 필요한 서비스입니다. 최근 내역을 보려면 소셜 로그인을 진행해 주세요."));
         }
         String email = user.getIdentifier();
-        log.info("최근 길찾기 내역 조회 요청: {}", email);
+        log.info("[Route] 최근 길찾기 내역 조회 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(routeService.getRecentRoutes(email));
@@ -75,11 +76,12 @@ public class RouteController {
     @GetMapping("/history/places")
     public ResponseEntity<?> getRecentPlaces(@AuthenticationPrincipal CustomOAuth2User user) {
         if(user.isGuest()){
+            log.debug("[Route] 최근 검색 기록 사용 불가 (IsGuest: {})", user.isGuest());
             return ResponseEntity.status(HttpStatus.OK).
                     body(RouteResponse.GuestResponse.from("로그인이 필요한 서비스입니다. 최근 내역을 보려면 소셜 로그인을 진행해 주세요."));
         }
         String email = user.getIdentifier();
-        log.info("최근 검색 내역 조회 요청: {}", email);
+        log.info("[Route] 최근 검색 내역 조회 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(routeService.getRecentPlaces(email));
@@ -100,7 +102,10 @@ public class RouteController {
         boolean isGuest = user.isGuest();
         String email = user.getIdentifier();
         //0.3초나 0.5초간 입력을 멈출 때마다 로깅을 하면 로그가 너무 많아져 줄이기 위해서 DEBUG레벨로 로깅
-        log.debug("실시간 장소 검색 - 사용자: {}, 키워드: '{}'", email, keyword);
+        if(save) {
+            log.info("[Route] 장소 검색 및 저장 요청 (Keyword: {})", keyword);
+        }
+        log.debug("[Route] 장소 검색 요청 (Keyword: {})", keyword);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(routeService.searchAndSavePlaces(email,isGuest, keyword, save));
@@ -130,7 +135,7 @@ public class RouteController {
                                                                       @RequestBody @Valid RouteRequest.RouteSearchRequest routeSearchRequest) {
         boolean isGuest = user.isGuest();
         String email = user.getIdentifier();
-        log.info("길찾기 요청 - 사용자: {}, 출발지: {}, 목적지: {}", email, routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
+        log.info("[Route] 길찾기 요청 (출발지: {}, 목적지{})", routeSearchRequest.departureName(), routeSearchRequest.arrivalName());
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(routeService.findAndSaveRoutes(email,isGuest, routeSearchRequest));
@@ -146,11 +151,12 @@ public class RouteController {
     public ResponseEntity<?> deleteRecentRoute(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                   @PathVariable("recent-route-id") String recentRouteId) {
         if(user.isGuest()){
+            log.debug("[Route] 길찾기 기록 제거 기능 사용 불가(IsGuest: {})", user.isGuest());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(RouteResponse.GuestResponse.from("게스트는 이용할 수 없는 기능입니다."));
         }
         String email = user.getIdentifier();
-        log.info("길찾기 기록 제거 요청-사용자:{}, ID:{}", email, recentRouteId);
+        log.info("[Route] 길찾기 기록 제거 요청 (RouteId:{})",recentRouteId);
         routeService.deleteRecentRoute(email, recentRouteId);
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
@@ -167,11 +173,12 @@ public class RouteController {
     public ResponseEntity<?> deleteRecentSearch(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                    @PathVariable("recent-search-id") String recentSearchId) {
         if(user.isGuest()){
+            log.debug("[Route] 키워드 검색 기록 제거 기능 사용 불가(IsGuest: {})", user.isGuest());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(RouteResponse.GuestResponse.from("게스트는 이용할 수 없는 기능입니다."));
         }
         String email = user.getIdentifier();
-        log.info("키워드 검색 기록 제거 요청-사용자:{}, ID:{}", email, recentSearchId);
+        log.info("[Route] 키워드 검색 기록 제거 요청 (SearchId:{})",recentSearchId);
         routeService.deleteRecentSearch(email, recentSearchId);
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
