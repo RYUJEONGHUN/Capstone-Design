@@ -33,7 +33,7 @@ public interface MemberRepository extends MongoRepository<Member, String> {
                 .orElseThrow(() -> {
                     //인터페이스에서는 @Slf4j를 못쓰니 직접 호출
                     Logger log = LoggerFactory.getLogger(MemberRepository.class);
-                    log.warn("{}에 해당하는 멤버를 찾을 수 없습니다.",email);
+                    log.warn("[Member] DB에 사용자 없음");
 
                     return new CustomException(ErrorCode.MEMBER_NOT_FOUND);
                 });
@@ -63,7 +63,7 @@ public interface MemberRepository extends MongoRepository<Member, String> {
                 .orElseThrow(() -> {
                     //인터페이스에서는 @Slf4j를 못쓰니 직접 호출
                     Logger log = LoggerFactory.getLogger(MemberRepository.class);
-                    log.warn("{}에 해당하는 멤버를 찾을 수 없습니다.",email);
+                    log.warn("[Member] DB에 사용자 없음");
 
                     return new CustomException(ErrorCode.MEMBER_NOT_FOUND);
                 });

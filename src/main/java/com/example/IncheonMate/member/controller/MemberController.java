@@ -57,7 +57,7 @@ public class MemberController {
     @GetMapping
     public ResponseEntity<MyInfoResponse.MyProfileMainDto> getMyProfile(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 메인화면 정보 요청", email);
+        log.info("[Member] [MyInfo] 메인화면 정보 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.getMyProfileMainInfo(email));
@@ -69,7 +69,7 @@ public class MemberController {
     @GetMapping("/favorite-places")
     public ResponseEntity<List<MyInfoResponse.FavoritePlaceDto>> getFavoritePlaces(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 찜목록 정보 요청", email);
+        log.info("[Member] [MyInfo] 찜목록 조회 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.getFavoritePlaces(email));
@@ -84,7 +84,7 @@ public class MemberController {
     @GetMapping("/my-wallet")
     public ResponseEntity<MyInfoResponse.ExternalServiceDto> getMyWalletUri(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 나의 지갑 이동 요청", email);
+        log.info("[Member] [MyInfo] 내기프트-받은 선물함 이동 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.getMyWalletUri(email));
@@ -99,7 +99,7 @@ public class MemberController {
     @GetMapping("/profile")
     public ResponseEntity<MyInfoResponse.MyProfileDto> getProfileForEdit(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 내 정보 수정을 위한 원본 정보 요청", email);
+        log.info("[Member] [MyInfo] 수정에 필요한 정보 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.getProfileInfoForEdit(email));
@@ -112,7 +112,7 @@ public class MemberController {
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknamePolicy(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                                  @Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 내 정보 수정을 위한 닉네임 검사 요청: {}", email, nickname);
+        log.info("[Member] [MyInfo] 닉네임 검사 요청(nickname: {})", nickname);
 
         //온보딩 서비스에 같은 기능 있음 -> 나중에 sharedMemberService로 합쳐야함
         return ResponseEntity.status(HttpStatus.OK)
@@ -131,7 +131,7 @@ public class MemberController {
     public ResponseEntity<MemberCommonDto.SasangResponseDto> updateSasang(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                           @Parameter(description = "사상의학 설문 선택 결과 목록") @RequestBody @Valid MemberCommonDto.SasangRequestDto sasangAnswerDtos) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 사상의학 결과 및 저장 요청", email);
+        log.info("[Member] [MyInfo] 사상의학 결과 도출 및 저장 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.deriveSasangResult(email, sasangAnswerDtos.answers()));
@@ -148,7 +148,7 @@ public class MemberController {
     public ResponseEntity<MyInfoResponse.MyProfileDto> updateProfile(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                      @Parameter(description = "수정할 사용자 정보 목록") @RequestBody @Valid MyInfoResponse.MyProfileDto myProfileDto) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 사용자 정보 업데이트 요청 ", email);
+        log.info("[Member] [MyInfo] 사용자 정보 업데이트 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.updateProfile(email, myProfileDto));
@@ -165,7 +165,7 @@ public class MemberController {
     public ResponseEntity<Void> deleteFavoritePlace(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                     @Parameter(description = "삭제할 찜한 장소 ID", example = "550e8400-e29b-41d4-a716-446655440000", required = true)@PathVariable("favorite-place-id") String favoritePlaceId) {
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 찜한 장소 삭제 요청: {}", email, favoritePlaceId);
+        log.info("[Member] 찜한 장소 삭제 요청 (FavoritePlaceId: {})", favoritePlaceId);
 
         memberService.deleteFavoritePlace(email, favoritePlaceId);
 
@@ -179,7 +179,7 @@ public class MemberController {
     public ResponseEntity<MyInfoResponse.FavoritePlaceDto> addFavoritePlace(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                          @RequestBody MyInfoRequest.AddFavoriteDto addFavoriteDto){
         String email = user.getIdentifier();
-        log.info("'{}' MyInfo 찜목록 추가 요청", email);
+        log.info("[Member] 찜목록 추가 요청 (KakaoPlaceId: {})", addFavoriteDto.kakaoPlaceId());
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberService.addFavoritePlace(email,addFavoriteDto));
