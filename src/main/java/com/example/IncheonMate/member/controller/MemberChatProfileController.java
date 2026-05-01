@@ -49,7 +49,7 @@ public class MemberChatProfileController {
     @GetMapping("/profile/{session_id}")
     public ResponseEntity<MemberChatProfileDto.ProfileResponse> getProfileForAi(@PathVariable(name = "session_id") String identifier){
         //CustomOAuth2User를 사용하면 안된다. FastAPI와의 통신은 JWT를 사용하지 않을 것이기 때문에
-        log.info("채팅에 필요한 사용자 정보 요청:{}", identifier);
+        log.info("[Member] [FastAPI] 채팅에 필요한 사용자 정보 제공 요청 (UserId: {})", identifier);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberChatProfileService.getProfile(identifier));

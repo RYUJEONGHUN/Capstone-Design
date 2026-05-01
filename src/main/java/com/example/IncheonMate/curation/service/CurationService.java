@@ -47,11 +47,13 @@ public class CurationService {
                 : PersonaType.BEAR;
 
         List<CurationSpot> spots = cacheService.getCachedAllSpots(); // 캐시로 몽고 조회 최소화
+        log.debug("[Curation] 캐시 Spot 목록 조회 성공");
 
         return spots.stream()
                 .filter(spot -> !isCoolingDown(email, spot.getPlaceId()))
                 .map(spot -> {
                     String comment = spot.getAiComments().getOrDefault(persona, "추천 코멘트 불러오기 실패");
+                    if("추천 코멘트 불러오기 실패".equals(comment)) log.warn("[Curation] 추천 코멘트 불러오기 실패");
 
                     return CurationSpotForUserDto.builder()
                             .placeId(spot.getPlaceId())
@@ -73,13 +75,15 @@ public class CurationService {
         String key = "history:view:" + email + ":" + placeId;
         // Redis에 키 저장 (값은 "1", 유효기간 24시간)
         redisTemplate.opsForValue().set(key, "1", Duration.ofHours(24));
-        log.info(" 유저({})가 장소({}) 팝업을 봄 -> 24시간 쿨타임 시작", email, placeId);
+        log.info("[Curation] 24시간 쿨타임 시작(PlaceId: {})",placeId);
     }
 
     // 쿨타임 중인지 확인 (Redis에 키가 살아있는지 체크)
     private boolean isCoolingDown(String userId, String placeId) {
         String key = "history:view:" + userId + ":" + placeId;
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        boolean isCoolingDown = Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        if(isCoolingDown) log.debug("[Curation] [CoolDown] 쿨타임 적용 중 - 조회 내역에서 제외 (PlaceId: {})",placeId);
+        return isCoolingDown;
     }
 
 
@@ -90,6 +94,7 @@ public class CurationService {
     @Transactional
     public void registerSpot(String placeId) {
         if (curationRepository.existsByPlaceId(placeId)) {
+            log.warn("[Curation] 이미 등록된 Curation spot (관리자용)(PlaceId: {})", placeId);
             throw new RuntimeException("이미 등록된 큐레이션 스팟입니다.");
         }
 
@@ -113,13 +118,12 @@ public class CurationService {
 
         // 저장 성공 후 캐시 제거
         cacheService.evictActiveSpotsCache();
+        log.info("[Curation] Spot 등록 완료,캐시 제거 완료 (관리자용)(PlaceId: {})",placeId);
     }
 
     private Map<PersonaType, String> generateCommentsByPlaceCategory(PlaceCategory placeCategory, String placeName) {
         //AT4-관광명소, AD5-숙박, FD6-음식점, CE7-카페
         Map<PersonaType, String> generatedComments = new HashMap<>();
-
-
         switch (placeCategory) {
             case CE7:
                 generatedComments.put(PersonaType.BEAR, "허허, 우리 조카가 편히 쉴 수 있는 " + placeName + " 카페에 내가 가봤는데 참 좋더라고.");
@@ -152,9 +156,9 @@ public class CurationService {
                 generatedComments.put(PersonaType.CAT,"흥, 딱히 널 위해 찾은 건 아니니까 오해하지 마, 그냥 가벼운 나들이 삼아 " + placeName + "가서 구경이나 좀 하고 오라구, 냐옹.");
                 break;
             default:
+                log.warn("[Curation] 카테코리에 따른 코멘트 생성 불가 (관리자용)(PlaceCategory: {})", placeCategory);
                 throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"장소 카테고리 코드가 잘못되었습니다:{"+placeCategory+"}");
         }
-
 
         return generatedComments;
     }
@@ -172,6 +176,7 @@ public class CurationService {
         String comment = spot.getAiComments().get(persona);
         if (comment == null) comment = spot.getAiComments().get("1"); // fallback
 
+        log.info("[Curation] Spot 상세 정보 조회 성공 (PlaceId: {})", placeId);
         return CurationConfirmResponseDto.builder()
                 .placeId(place.getId())
                 .kakaoId(place.getKakaoId())

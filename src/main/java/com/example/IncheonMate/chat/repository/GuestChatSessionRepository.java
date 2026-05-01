@@ -14,7 +14,7 @@ public interface GuestChatSessionRepository extends CrudRepository<GuestChatSess
     default GuestChatSession findByIdOrElseThrow(String guestId){
         return findById(guestId).orElseThrow(() -> {
                 Logger log = LoggerFactory.getLogger(GuestChatSessionRepository.class);
-                log.warn("{}에 해당하는 게스트를 찾을 수 없습니다.",guestId);
+                log.warn("[Chat] 게스트를 찾을 수 없음");
 
                 return new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트를 찾을 수 없습니다.");
         });
