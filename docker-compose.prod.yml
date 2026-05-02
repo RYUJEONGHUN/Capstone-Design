@@ -43,7 +43,7 @@ services:
     image: redis:alpine
     container_name: incheon_mate-redis
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379" #redis는 FastAPI와 공유해야하기 때문에 열어줘야한다.
     restart: always
     networks:
       - incheon_mate_network
