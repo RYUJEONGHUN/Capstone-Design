@@ -139,19 +139,11 @@ public class ChatService {
 
             //3. 채팅 세션이 있는지 확인하고 없으면 생성
             GuestChatSession guestChatSession = getOrCreateGuestChatSession(identifier);
-            //4. FastAPI로 전송할 데이터 준비
-            String personaType = getPersonaType(identifier,isGuest);
 
-            //5. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
-            log.debug("[Chat] FastAPI 채팅 요청 전송");
-            FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(messageDto.message(),identifier,personaType));
-            //6. error 응답이 오면 exception throw
-            if(!StringUtils.hasText(chatResponseDto.answer())){
-                log.warn("[Chat] FastAPI 응답 오류");
-                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
-            }
+            //4. FastAPI에서 message의 결과 받아옴
+            FastApi.ChatResponseDto chatResponseDto = getAnswerMessageFromFastApi(identifier,true,messageDto.message());
 
-            //7. AI Message 엔티티 생성
+            //5. AI Message 엔티티 생성
             GuestChatSession.Message aiMessage = GuestChatSession.Message.builder()
                     .id(UUID.randomUUID().toString())
                     .messagedAt(LocalDateTime.now())
@@ -159,15 +151,15 @@ public class ChatService {
                     .content(chatResponseDto.answer())
                     .build();
 
-            //8. GuestChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
+            //6. GuestChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
             guestChatSession.addMessages(userMessage,aiMessage);
-            //9. 저장
+            //7. 저장
             guestChatSessionRepository.save(guestChatSession);
             log.debug("[Chat] 게스트 채팅 메시지 저장 완료");
 
-            //10. Redis에 있는 guest count 1감소
-            redisTemplate.opsForValue().decrement("GUEST_COUNT:"+identifier);
-            log.debug("[Chat] 게스트 채팅 횟수 감소");
+            //8. Redis에 있는 guest count 1감소
+            Long remainingCount = redisTemplate.opsForValue().decrement("GUEST_COUNT:"+identifier);
+            log.debug("[Chat] 게스트 채팅 횟수 감소 (RemainingCount: {})", remainingCount);
 
             return ChatResponse.Generation.fromGuest(userMessage,aiMessage);
 
@@ -182,18 +174,11 @@ public class ChatService {
 
             //2. 오늘자로 생성된 채팅 세션이 있는지 확인하고 없으면 생성
             ChatSession chatSession = getOrCreateChatSession(identifier);
-            //3. FastAPI로 전송할 데이터 준비
-            String personaType = getPersonaType(identifier,isGuest);
-            //4. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
-            log.debug("[Chat] FastAPI 채팅 요청 전송");
-            FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(messageDto.message(),identifier,personaType));
-            //5. error 응답이 오면 exception throw
-            if(!StringUtils.hasText(chatResponseDto.answer())){
-                log.warn("[Chat] FastAPI 응답 오류");
-                throw new CustomException(ErrorCode.AI_SERVER_ERROR);
-            }
 
-            //6. AI Message 엔티티 생성
+            //3. FastAPI에서 message의 결과 받아옴
+            FastApi.ChatResponseDto chatResponseDto = getAnswerMessageFromFastApi(identifier,false,messageDto.message());
+
+            //4. AI Message 엔티티 생성
             ChatSession.Message aiMessage = ChatSession.Message.builder()
                     .id(UUID.randomUUID().toString())
                     .messagedAt(LocalDateTime.now())
@@ -201,9 +186,9 @@ public class ChatService {
                     .content(chatResponseDto.answer())
                     .build();
 
-            //7. ChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
+            //5. ChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
             chatSession.addMessages(userMessage,aiMessage);
-            //8. 저장
+            //6. 저장
             chatSessionRepository.save(chatSession);
             log.debug("[Chat] 정회원 채팅 메시지 저장 완료");
 
@@ -224,6 +209,22 @@ public class ChatService {
         }else{
             return memberRepository.findByEmailOrElseThrow(identifier).getSelectedPersona().toString();
         }
+    }
+
+    private FastApi.ChatResponseDto getAnswerMessageFromFastApi(String identifier, boolean isGuest, String userMessage){
+        //1. FastAPI로 전송할 데이터 준비
+        String personaType = getPersonaType(identifier,isGuest);
+
+        //2. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
+        log.debug("[Chat] FastAPI 채팅 요청 전송");
+        FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(userMessage,identifier,personaType));
+        //3. error 응답이 오면 exception throw
+        if(!StringUtils.hasText(chatResponseDto.answer())){
+            log.warn("[Chat] FastAPI 응답 오류");
+            throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+        }
+
+        return chatResponseDto;
     }
 
     //생성된 게스트 채팅 세션을 불러오고 없으면 새로 생성
