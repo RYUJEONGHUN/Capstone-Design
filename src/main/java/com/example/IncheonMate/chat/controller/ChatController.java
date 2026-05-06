@@ -33,18 +33,18 @@ public class ChatController {
     private final ChatService chatService;
 
     //메인 화면에서 채팅을 내역을 불러올 때 사용
-    @Operation(summary = "오늘 채팅 내역 불러오기", description = "메인 화면에서 채팅 내역을 조회합니다.")
+    @Operation(summary = "최신 채팅 내역 불러오기", description = "메인 화면에서 채팅 내역을 조회합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "채팅 내역 전체 조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ChatResponse.TodayDto.class)))),
+            @ApiResponse(responseCode = "200", description = "채팅 내역 전체 조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ChatResponse.CurrentDto.class)))),
             @ApiResponse(responseCode = "404", description = "채팅 세션을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/today")
-    public ResponseEntity<ChatResponse.TodayDto> getTodayChat(@AuthenticationPrincipal CustomOAuth2User user){
+    @GetMapping("/current")
+    public ResponseEntity<ChatResponse.CurrentDto> getCurrentChat(@AuthenticationPrincipal CustomOAuth2User user){
         String identifier = user.getIdentifier();
-        log.info("[Chat] 오늘 채팅 내역 조회 요청 진입");
+        log.info("[Chat] 최근 채팅 내역 조회 요청");
 
-        ChatResponse.TodayDto result = chatService.getTodayChat(identifier, user.isGuest());
-        log.info("[Chat] 오늘 채팅 내역 조회 성공");
+        ChatResponse.CurrentDto result = chatService.getCurrentChat(identifier, user.isGuest());
+        log.info("[Chat] 최근 채팅 내역 조회 성공");
         return ResponseEntity.status(HttpStatus.OK)
                 .body(result);
     }

@@ -89,4 +89,15 @@ public class ChatSessionController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(result);
     }
+
+    @Operation(summary = "새로운 채팅 세션 생성", description = "정회원의 신규 채팅 세션을 생성합니다.")
+    @PostMapping
+    public ResponseEntity<ChatSessionResponse.SummaryDto> createChatSession(@AuthenticationPrincipal CustomOAuth2User user){
+        log.info("[Chat] 새로운 채팅 세션 생성 요청");
+
+        ChatSessionResponse.SummaryDto result = chatSessionService.createChatSession(user.getIdentifier());
+        log.info("[Chat] 새로운 채팅 세션 생성 완료 (ChatSessionId: {})", result.chatSessionId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(result);
+    }
 }
