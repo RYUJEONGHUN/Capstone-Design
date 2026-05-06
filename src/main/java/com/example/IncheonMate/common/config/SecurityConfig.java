@@ -58,6 +58,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/my-info/favorite-places").hasRole("USER")
                 .requestMatchers(HttpMethod.POST,"/api/my-info/favorite-places").hasRole("USER")
                 .requestMatchers(HttpMethod.DELETE, "/api/my-info/favorite-places/{favorite-place-id}").hasRole("USER")
+                .requestMatchers(HttpMethod.POST, "/api/chat-sessions").hasRole("USER")
                 .requestMatchers("/api/onboarding/check").permitAll()
                 .requestMatchers("/api/onboarding/**").hasAnyRole("PENDING","USER")
                 .anyRequest().authenticated());

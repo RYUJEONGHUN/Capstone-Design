@@ -9,21 +9,21 @@ import java.util.List;
 
 public class ChatResponse {
 
-    public record TodayDto(
+    public record CurrentDto(
             String sessionId, //세션 ID
             String title, //제목
             List<MessageDto> messages,
             Integer remainingChatCount //게스트 남은 채팅 횟수(null이면 정회원,not null이면 게스트): 프론트엔드는 이걸로 정회원,게스트 분리
     ){
-        public static ChatResponse.TodayDto of(String sessionId,String title,List<MessageDto> messages, Integer remainingChatCount){
-            return new ChatResponse.TodayDto(sessionId,title,messages,remainingChatCount);
+        public static ChatResponse.CurrentDto of(String sessionId,String title,List<MessageDto> messages, Integer remainingChatCount){
+            return new ChatResponse.CurrentDto(sessionId,title,messages,remainingChatCount);
         }
 
-        public static ChatResponse.TodayDto fromMember(ChatSession chatSession){
+        public static ChatResponse.CurrentDto fromMember(ChatSession chatSession){
             List<MessageDto> messageDtoList = chatSession.getMessages().stream()
                     .map(ChatResponse.MessageDto::fromMember)
                     .toList();
-            return new ChatResponse.TodayDto(chatSession.getId(), chatSession.getTitle().toString(),messageDtoList,null);
+            return new ChatResponse.CurrentDto(chatSession.getId(), chatSession.getTitle().toString(),messageDtoList,null);
         }
     }
 

@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -71,5 +73,26 @@ public class ChatSessionService {
                 .filter(msg -> msg.getContent().contains(keyword))
                 .map(ChatSessionResponse.SearchedMessageDto::from)
                 .toList();
+    }
+
+    @Transactional
+    public ChatSessionResponse.SummaryDto createChatSession(String identifier) {
+        //정회원 채팅 세션만 생성(게스트는 새로운 채팅 세션 생성 못함)
+
+        //1. 유저가 있는지 확인
+        Member member = memberRepository.findByEmailOrElseThrow(identifier);
+
+        //2. 새로운 채팅 세션 생성
+        ChatSession newChatSession = ChatSession.builder()
+                .title(LocalDate.now().toString())
+                .lastMessageAt(LocalDateTime.now())
+                .memberId(member.getId())
+                .build();
+
+        //3. 새 세션 저장
+        chatSessionRepository.save(newChatSession);
+        log.debug("[Chat] 정회원 새 채팅 세션 생성 및 저장 성공 (SessionId: {})", newChatSession.getId());
+
+    return ChatSessionResponse.SummaryDto.from(newChatSession);
     }
 }
