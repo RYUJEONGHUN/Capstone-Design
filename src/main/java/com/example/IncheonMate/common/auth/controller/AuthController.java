@@ -113,7 +113,7 @@ public class AuthController {
         log.info("[Auth] 토큰 재발급 성공 (Identifier: {}, Role: {})", identifier, role);
 
         // 6. 새 accessToken 전달 (JSON으로)
-        Tokens tokens = Tokens.of(newAccess,"",role);
+        Tokens tokens = Tokens.of(newAccess,"",role,null);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(LoginDto.Response.onlyToken(tokens));
     }

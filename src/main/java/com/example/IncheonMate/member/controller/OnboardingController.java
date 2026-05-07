@@ -162,6 +162,6 @@ public class OnboardingController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(LoginDto.Response.onlyToken(
-                        Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue())));
+                        Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue(),null)));
     }
 }
