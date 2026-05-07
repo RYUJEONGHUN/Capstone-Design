@@ -1,6 +1,9 @@
 package com.example.IncheonMate.chat.domain;
 
 import com.example.IncheonMate.chat.domain.type.AuthorType;
+import com.example.IncheonMate.chat.domain.type.ChatResponseProvider;
+import com.example.IncheonMate.chat.domain.type.ChatResponseType;
+import com.mongodb.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,6 +44,8 @@ public class GuestChatSession implements Serializable {
         private LocalDateTime messagedAt;
         private AuthorType authorType;
         private String content;
+        @Nullable private ChatResponseType chatResponseType;
+        @Nullable private ChatResponseProvider chatResponseProvider;
     }
 
 
