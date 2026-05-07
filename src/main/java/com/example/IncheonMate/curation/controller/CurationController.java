@@ -32,7 +32,7 @@ public class CurationController {
             @AuthenticationPrincipal CustomOAuth2User user
     ) {
         log.info("[Curation] 캐시에 Spot 저장 or 캐시 목록 요청");
-        return ResponseEntity.ok(curationService.getActiveSpotsForUser(user.getIdentifier()));
+        return ResponseEntity.ok(curationService.getActiveSpotsForUser(user.getIdentifier(), user.isGuest()));
     }
 
     /**
@@ -40,7 +40,7 @@ public class CurationController {
      */
     @Operation(summary = "큐레이션 팝업 조회 확인 처리(24시간 쿨타임 기록)", description = """
                 사용자가 큐레이션 팝업을 확인(노출)했음을 서버에 기록합니다.
-                - Redis에 history:view:{email}:{placeId} 키를 저장하고 TTL=24시간으로 쿨타임을 적용합니다.
+                - Redis에 history:view:{identifier}:{placeId} 키를 저장하고 TTL=24시간으로 쿨타임을 적용합니다.
                 - 이후 24시간 동안은 해당 placeId가 큐레이션 추천 목록에서 제외됩니다.
                 - 응답 본문은 없으며 204 No Content를 반환합니다.
                 """)
@@ -83,7 +83,7 @@ public class CurationController {
             @AuthenticationPrincipal CustomOAuth2User user,
             @PathVariable String placeId
     ) {
-        log.info("[Curation] 특정 Spot 상세 정보 요청 (PlaceId{})",placeId);
-        return ResponseEntity.ok(curationService.getConfirmDto(user.getIdentifier(), placeId));
+        log.info("[Curation] 특정 Spot 상세 정보 요청 (PlaceId: {})",placeId);
+        return ResponseEntity.ok(curationService.getConfirmDto(user.getIdentifier(), placeId,user.isGuest()));
     }
 }

@@ -16,6 +16,7 @@ import com.example.IncheonMate.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,23 +35,45 @@ public class CurationService {
     private final PlaceRepository placeRepository;
     private final CurationCacheService cacheService;
     private final MemberRepository memberRepository;
+    private final StringRedisTemplate stringRedisTemplate;
     // 쿨타임 관리를 위해 RedisTemplate 직접 사용 (StringRedisTemplate 권장)
     private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * Redis 캐시에서 전체 리스트를 0.01초 만에 가져옴. 사용자가 24시간 내에 본 곳(Redis History)은 리스트에서 뺌.
      */
-    public List<CurationSpotForUserDto> getActiveSpotsForUser(String email) {
-        Member member = memberRepository.getMemberByEmail(email);
-        PersonaType persona = (member != null && member.getSelectedPersona() != null)
-                ? member.getSelectedPersona()
-                : PersonaType.BEAR;
+    public List<CurationSpotForUserDto> getActiveSpotsForUser(String identifier, boolean isGuest) {
+        PersonaType persona;
+
+        if(isGuest){
+            String key = "GUEST_PROFILE:" + identifier;
+            String personaStr = (String) stringRedisTemplate.opsForHash().get(key, "persona");
+
+            if(personaStr != null) {
+                try {
+                    persona = PersonaType.valueOf(personaStr);
+                } catch (IllegalArgumentException e) {
+                    log.warn("[Curation] 잘못된 페르소나 타입: {}", personaStr);
+                    throw new CustomException(ErrorCode.PERSONA_NOT_FOUND, "해당 게스트의 페르소나 정보를 가져올 수 업습니다.");
+                }
+            }else{
+                log.warn("[Curation] 게스트 페르소나 정보 없음 - 기본값 BEAR 적용");
+                persona = PersonaType.BEAR;
+            }
+
+        }else {
+            Member member = memberRepository.getMemberByEmail(identifier);
+            if (member == null) {
+                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "해당 유저 정보를 찾을 수 없습니다.");
+            }
+            persona = member.getSelectedPersona();
+        }
 
         List<CurationSpot> spots = cacheService.getCachedAllSpots(); // 캐시로 몽고 조회 최소화
         log.debug("[Curation] 캐시 Spot 목록 조회 성공");
 
         return spots.stream()
-                .filter(spot -> !isCoolingDown(email, spot.getPlaceId()))
+                .filter(spot -> !isCoolingDown(identifier, spot.getPlaceId()))
                 .map(spot -> {
                     String comment = spot.getAiComments().getOrDefault(persona, "추천 코멘트 불러오기 실패");
                     if("추천 코멘트 불러오기 실패".equals(comment)) log.warn("[Curation] 추천 코멘트 불러오기 실패");
@@ -71,8 +94,8 @@ public class CurationService {
     /**
      * 앱이 "나 이거 봤어!" 보고하면 -> 24시간 쿨타임 적용
      */
-    public void markAsViewed(String email, String placeId) {
-        String key = "history:view:" + email + ":" + placeId;
+    public void markAsViewed(String identifier, String placeId) {
+        String key = "history:view:" + identifier + ":" + placeId;
         // Redis에 키 저장 (값은 "1", 유효기간 24시간)
         redisTemplate.opsForValue().set(key, "1", Duration.ofHours(24));
         log.info("[Curation] 24시간 쿨타임 시작(PlaceId: {})",placeId);
@@ -163,9 +186,32 @@ public class CurationService {
         return generatedComments;
     }
 
-    public CurationConfirmResponseDto getConfirmDto(String email, String placeId) {
-        Member member = memberRepository.getMemberByEmail(email);
-        PersonaType persona = member.getSelectedPersona();
+    public CurationConfirmResponseDto getConfirmDto(String identifier, String placeId, boolean isGuest) {
+        PersonaType persona;
+
+        if(isGuest){
+            String key = "GUEST_PROFILE:" + identifier;
+            String personaStr = (String) stringRedisTemplate.opsForHash().get(key, "persona");
+
+            if(personaStr != null) {
+                try {
+                    persona = PersonaType.valueOf(personaStr);
+                } catch (IllegalArgumentException e) {
+                    log.warn("[Curation] 잘못된 페르소나 타입: {}", personaStr);
+                    throw new CustomException(ErrorCode.PERSONA_NOT_FOUND, "해당 게스트의 페르소나 정보를 가져올 수 업습니다.");
+                }
+            }else{
+                log.warn("[Curation] 게스트 페르소나 정보 없음 - 기본값 BEAR 적용");
+                persona = PersonaType.BEAR;
+            }
+
+        }else {
+            Member member = memberRepository.getMemberByEmail(identifier);
+            if (member == null) {
+                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "해당 유저 정보를 찾을 수 없습니다.");
+            }
+            persona = member.getSelectedPersona();
+        }
 
         CurationSpot spot = Optional.ofNullable(curationRepository.getCurationSpotByPlaceId(placeId))
                 .orElseThrow(() -> new RuntimeException("큐레이션 스팟이 없습니다. placeId=" + placeId));
@@ -174,7 +220,7 @@ public class CurationService {
                 .orElseThrow(() -> new RuntimeException("장소를 찾을 수 없습니다."));
 
         String comment = spot.getAiComments().get(persona);
-        if (comment == null) comment = spot.getAiComments().get("1"); // fallback
+        if (comment == null) comment = "추천 코멘트 불러오기 실패";
 
         log.info("[Curation] Spot 상세 정보 조회 성공 (PlaceId: {})", placeId);
         return CurationConfirmResponseDto.builder()
