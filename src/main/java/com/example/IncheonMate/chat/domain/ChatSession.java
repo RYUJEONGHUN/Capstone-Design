@@ -1,6 +1,9 @@
 package com.example.IncheonMate.chat.domain;
 
 import com.example.IncheonMate.chat.domain.type.AuthorType;
+import com.example.IncheonMate.chat.domain.type.ChatResponseProvider;
+import com.example.IncheonMate.chat.domain.type.ChatResponseType;
+import com.mongodb.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -51,6 +54,9 @@ public class ChatSession {
         private AuthorType authorType; //USER,AI enum
         
         private String content; //메시지 내용
+
+        @Nullable private ChatResponseType chatResponseType;
+        @Nullable private ChatResponseProvider chatResponseProvider;
     }
 
     public void addMessages(Message userMessage, Message aiMessage){
