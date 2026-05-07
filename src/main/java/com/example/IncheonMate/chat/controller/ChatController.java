@@ -35,7 +35,7 @@ public class ChatController {
     //메인 화면에서 채팅을 내역을 불러올 때 사용
     @Operation(summary = "최신 채팅 내역 불러오기", description = "메인 화면에서 채팅 내역을 조회합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "채팅 내역 전체 조회 성공", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ChatResponse.CurrentDto.class)))),
+            @ApiResponse(responseCode = "200", description = "채팅 내역 전체 조회 성공", content = @Content(schema = @Schema(implementation = ChatResponse.CurrentDto.class))),
             @ApiResponse(responseCode = "404", description = "채팅 세션을 찾을 수 없음", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/current")
@@ -52,7 +52,7 @@ public class ChatController {
     //채팅창에서 채팅 입력
     @Operation(summary = "채팅 전송", description = "채팅 입력 후 AI에게 메시지를 전송합니다.")
     @ApiResponses(value ={
-            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(schema = @Schema(implementation = ChatResponse.Generation.class))),
+            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(schema = @Schema(implementation = ChatRequest.MessageDto.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 채팅 요청", content = @Content(schema = @Schema(implementation = CustomException.class))),
             @ApiResponse(responseCode = "500", description = "AI 서버 응답 지연 또는 시스템 오류", content = @Content(schema = @Schema(implementation = CustomException.class)))
     })
