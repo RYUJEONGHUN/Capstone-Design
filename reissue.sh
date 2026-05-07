@@ -12,24 +12,11 @@ else
   exit 1
 fi
 
-#3. 변수 사용
-LIVE_DIR="/etc/letsencrypt/live/$DOMAIN"
+#인증서 갱신 시도
+certbot renew --quiet
 
-#4. .pem -> .p12 변환
-openssl pkcs12 -export \
-  -in "$LIVE_DIR/fullchain.pem" \
-      -inkey "$LIVE_DIR/privkey.pem" \
-      -out "$LIVE_DIR/keystore.p12" \
-      -name tomcat \
-      -passout "pass:$SSL_PASSWORD"
+#Nginx 설정 및 인증서 무중단 재로드
+#Spring boot container는 재시작할 필요 없이 Nginx만 리로드하여 새 인증서를 적용
+docker exec incheon_mate-nginx nginx -s reload
 
-#5. 백엔드 컨테이너 재시작
-docker restart incheon_mate-backend
-
-
-#+++++++++++++++++++ Nginx로 배포시 아래 명령어를 사용 ++++++++++++++++++
-##인증서 갱신 시도
-#certbot renew --quiet
-#
-##Nginx 설정 및 인증서 무중단 재로드
-#docker exec incheon_mate-nginx nginx -s reload
+echo "SSL 인증서 재발급 및 Nginx reload 성공"
