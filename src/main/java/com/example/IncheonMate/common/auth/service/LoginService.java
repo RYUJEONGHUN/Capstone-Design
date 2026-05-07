@@ -175,7 +175,7 @@ public class LoginService {
                     .set("RT:" + oAuthEmail, refreshToken, 14, TimeUnit.DAYS);
             log.info("[Auth] Refresh Token Redis 저장 완료 (Email: {})", oAuthEmail);
 
-            return Tokens.of(accessToken, refreshToken, Role.USER.getValue());
+            return Tokens.of(accessToken, refreshToken, Role.USER.getValue(), oAuthEmail);
         }
         //4-분기2. 가입하지 않은 진짜 신규 유저인 경우
         else {
@@ -186,13 +186,13 @@ public class LoginService {
                 // [분기 B-1] 쌩신규 유저 (게스트 이력 없음)
                 log.info("[Auth] 신규 가입자 PENDING 토큰 발급 (Email: {}, Provider: {})", oAuthEmail, provider);
                 String accessToken = jwtUtil.createPendingJwt(oAuthEmail, "newUser", provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
-                return Tokens.of(accessToken, "", Role.PENDING.getValue());
+                return Tokens.of(accessToken, "", Role.PENDING.getValue(),oAuthEmail);
             } else {
                 // [분기 B-2] 게스트 출신 신규 유저
                 String guestId = user.getIdentifier(); // 토큰에서 추출한 게스트 ID
                 log.info("[Auth] 게스트 출신 신규 가입자 PENDING 토큰 발급 (Email: {}, Guest ID: {})", oAuthEmail, guestId);
                 String accessToken = jwtUtil.createPendingJwt(oAuthEmail, guestId, provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
-                return Tokens.of(accessToken, "", Role.PENDING.getValue());
+                return Tokens.of(accessToken, "", Role.PENDING.getValue(),oAuthEmail);
             }
 
         }
@@ -230,7 +230,7 @@ public class LoginService {
         log.info("[Auth] 게스트 Refresh Token Redis 저장 완료 (Guest ID: {})", guestId);
 
         // 반환을 위한 객체 조립
-        Tokens tokens = new Tokens(accessToken, refreshToken, Role.GUEST.getValue());
+        Tokens tokens = new Tokens(accessToken, refreshToken, Role.GUEST.getValue(),null);
         LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
                 "게스트" + guestId.substring(0, 4),
                 guestRequest.personaType(),

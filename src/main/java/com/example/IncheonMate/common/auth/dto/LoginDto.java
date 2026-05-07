@@ -40,14 +40,15 @@ public class LoginDto {
             String role,
             String nickname,
             PersonaType persona,
-            String lang
+            String lang,
+            String email
     ) {
         public static Response from(Tokens tokens, GuestProfile guestProfile) {
-            return new Response(tokens.accessToken(), tokens.role(), guestProfile.nickname(), guestProfile.persona(), guestProfile.lang());
+            return new Response(tokens.accessToken(), tokens.role(), guestProfile.nickname(), guestProfile.persona(), guestProfile.lang(),tokens.email());
         }
 
         public static Response onlyToken(Tokens tokens){
-            return new Response(tokens.accessToken(),tokens.role(),null,null,null);
+            return new Response(tokens.accessToken(),tokens.role(),null,null,null,tokens.email());
         }
     }
 }
