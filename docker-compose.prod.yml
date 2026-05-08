@@ -23,6 +23,8 @@ services:
       TZ: Asia/Seoul
     networks:
       - incheon_mate_network
+    volumes: # 💡 추가된 부분: AWS DocumentDB TLS 인증서 마운트
+      - ./global-bundle.pem:/app/global-bundle.pem:ro
 
   nginx:
     image: nginx:latest
