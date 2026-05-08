@@ -157,8 +157,8 @@ public class Member {
         private int spotOrder;
         private String kakaoId;
         private CoursePlaceCategory coursePlaceCategory;
-        private String recommendationReason;
         private String thumbnailUrl;
+        private String expertComment;
     }
 
     //++++++++++++++++++리워드 코스는 따로 만들어야함++++++++++++++++++++

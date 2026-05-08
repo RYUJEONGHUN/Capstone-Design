@@ -3,6 +3,8 @@ package com.example.IncheonMate.chat.dto;
 import com.example.IncheonMate.chat.domain.ChatSession;
 import com.example.IncheonMate.chat.domain.GuestChatSession;
 import com.example.IncheonMate.chat.domain.type.AuthorType;
+import com.example.IncheonMate.member.domain.Member;
+import com.example.IncheonMate.member.domain.type.CoursePlaceCategory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,19 +46,57 @@ public class ChatResponse {
 
     public record Generation(
             MessageDto user,
-            MessageDto ai
+            MessageDto ai,
+            boolean isCourse
     ){
         public static ChatResponse.Generation fromGuest(GuestChatSession.Message userMessage, GuestChatSession.Message aiChatMessage){
             return new Generation(
                     MessageDto.fromGuest(userMessage),
-                    MessageDto.fromGuest(aiChatMessage)
+                    MessageDto.fromGuest(aiChatMessage),
+                    false
             );
         }
 
         public static ChatResponse.Generation fromUser(ChatSession.Message userMessage, ChatSession.Message aiMessage){
             return new Generation(
                     MessageDto.fromMember(userMessage),
-                    MessageDto.fromMember(aiMessage)
+                    MessageDto.fromMember(aiMessage),
+                    false
+            );
+        }
+    }
+
+    public record CourseSpotDto(
+            int spotOrder, //여행 코스 순서
+            String name, // 장소명
+            String address, //주소
+            String thumbnailUrl, //사진
+            CoursePlaceCategory coursePlaceCategory, //카테고리(
+            String kakaoId, //카카오 ID
+            String naegiftUrl, //내기프트 URL
+            String expertComment,
+            String x,
+            String y
+    ){}
+
+    public record TravelCourseDto(
+            String title,
+            List<CourseSpotDto> courseSpots
+    ){}
+
+    public record GenerationWithCourse(
+            MessageDto user,
+            MessageDto ai,
+            boolean isCourse,
+            TravelCourseDto travelCourse
+    ){
+        public static ChatResponse.GenerationWithCourse from(ChatSession.Message userMessage, ChatSession.Message aiMessage, TravelCourseDto travelCourse){
+            return new GenerationWithCourse(
+                    MessageDto.fromMember(userMessage),
+                    MessageDto.fromMember(aiMessage),
+                    true,
+                    travelCourse
+
             );
         }
     }

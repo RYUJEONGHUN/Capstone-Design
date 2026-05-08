@@ -232,11 +232,17 @@ public class ChatService {
             //3. FastAPI에서 message의 결과 받아옴
             FastApi.ChatResponseDto chatResponseDto = getAnswerMessageFromFastApi(identifier,false,messageDto.message());
 
+            //++++++++++++++++++++++++++++++++++++++코스 수정은 어떻게??++++++++++++++++++++++++++++++++++++++++++++++++++++++
             //4.1 코스 생성 요청인 경우
             if(ChatResponseType.COURSE.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) &&
                     Boolean.TRUE.equals(chatResponseDto.isCourse())) {
-                //String 파싱하여 코스 저장하고, 코스에 맞는 x,y좌표 및 정보를 fastapi 채팅 응답과 합쳐서 저장하는 메서드 만들어야함
-                return null;
+                //String 파싱하여 코스 추출+ Place 컬렉션과 합쳐서 프론트에 전송해야함(저장하면 안됨)
+                if(!parseCourse(chatResponseDto)){
+                    log.warn("[Chat] [Course] 여행 코스 파싱 실패 (isCourse: {})",chatResponseDto.isCourse());
+                    throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,"여행코스 파싱 실패");
+                }
+                return null; //새로운
+
             }
             //4.2 코스 생성 요청이 아닌 경우
             else if(ChatResponseType.CHAT.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) ||
@@ -309,6 +315,7 @@ public class ChatService {
         }
     }
 
+    //try-catch문 필요함
     private FastApi.ChatResponseDto getAnswerMessageFromFastApi(String identifier, boolean isGuest, String userMessage){
         //필요 데이터: input_message, 사용자 식별자(이메일,게스트uuid), 페르소나, mbti, sasang
 
