@@ -13,7 +13,7 @@ spring:
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI}
-      auto-index-creation: true
+      auto-index-creation: false #AWS Document DB에서는 자동 생성하려고 시도하면 앱 실행 자체가 실패할 수 있습니다.
     redis:
       host: ${REDIS_HOST:redis}
       port: 6379
