@@ -14,14 +14,20 @@ services:
     environment:
       DB_HOST: mongodb
       REDIS_HOST: redis
-      # [필수] 구글 로그인 정보
+      #ODsay 정보
+      ODSAY_KEY: ${ODSAY_KEY}
+      # 구글 로그인 정보
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # 카카오 로그인 정보
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
+      KAKAO_KEY: ${KAKAO_KEY}
       # 리다이렉트 주소 (Spring의 app.frontend.redirect-url 매핑)
-      APP_FRONTEND_REDIRECT_URL: https://4cd2403d53b0.ngrok-free.app/oauth/callback
+      # APP_FRONTEND_REDIRECT_URL: "https://2025-capstone-design-fe.vercel.app/oauth/callback"
+    networks:
+      - incheon_mate_network
 
   # 2. 몽고DB
   mongodb:
@@ -32,6 +38,8 @@ services:
     volumes:
       - ./data/mongo:/data/db
     restart: always
+    networks:
+      - incheon_mate_network
 
   # 3. 몽고DB 관리툴
   mongo-express:
@@ -44,6 +52,8 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
     depends_on:
       - mongodb
+    networks:
+      - incheon_mate_network
 
   # 4. Redis
   redis:
@@ -52,3 +62,9 @@ services:
     ports:
       - "6379:6379"
     restart: always
+    networks:
+      - incheon_mate_network
+
+networks:
+  incheon_mate_network:
+    external: true
