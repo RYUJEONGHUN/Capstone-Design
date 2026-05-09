@@ -52,7 +52,7 @@ public class ChatController {
     //채팅창에서 채팅 입력
     @Operation(summary = "채팅 전송", description = "채팅 입력 후 AI에게 메시지를 전송합니다.")
     @ApiResponses(value ={
-            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(schema = @Schema(implementation = ChatRequest.MessageDto.class))),
+            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(schema = @Schema(implementation = ChatResponse.Generation.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 채팅 요청", content = @Content(schema = @Schema(implementation = CustomException.class))),
             @ApiResponse(responseCode = "500", description = "AI 서버 응답 지연 또는 시스템 오류", content = @Content(schema = @Schema(implementation = CustomException.class)))
     })
