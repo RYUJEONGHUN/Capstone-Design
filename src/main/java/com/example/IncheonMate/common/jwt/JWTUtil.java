@@ -20,8 +20,8 @@ public class JWTUtil {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String getEmail(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("email", String.class);
+    public String getIdentifier(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("identifier", String.class);
     }
 
     public String getRole(String token) {
@@ -32,10 +32,36 @@ public class JWTUtil {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getExpiration().before(new Date());
     }
 
-    public String createJwt(String email, String role, Long expiredMs) {
+    //pendig jwt에 필요한 guestId,provider,name getter 생성
+    public String getGuestId(String token){
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("guestId",String.class);
+    }
+
+    public String getProvider(String token){
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("provider",String.class);
+    }
+
+    public String getName(String token){
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("name",String.class);
+    }
+
+    public String createJwt(String identifier, String role, Long expiredMs) {
         return Jwts.builder()
-                .claim("email", email)
+                .claim("identifier", identifier)
                 .claim("role", role)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String createPendingJwt(String identifier, String guestId, String provider, String role, String name, Long expiredMs){
+        return  Jwts.builder()
+                .claim("identifier",identifier)
+                .claim("guestId", guestId)
+                .claim("provider",provider)
+                .claim("role",role)
+                .claim("name",name)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(key, SignatureAlgorithm.HS256)
