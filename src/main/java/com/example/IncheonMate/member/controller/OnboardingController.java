@@ -72,7 +72,7 @@ public class OnboardingController {
     })
     @GetMapping
     public ResponseEntity<OnboardingBundle.OnboardingDto> getOnboardingData(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
-        log.info("'{}' 온보딩에서 저장한 정보 조회 요청", user.getIdentifier());
+        log.info("[Member] 사용자 정보 조회 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(onboardingService.getOnboardingValues(user.getIdentifier()));
@@ -87,7 +87,7 @@ public class OnboardingController {
     public ResponseEntity<MemberCommonDto.NicknamePolicyDto> checkNicknameAvailability(@Parameter(description = "검사할 닉네임", example = "사용할 닉네임123") @RequestParam("nickname") String nickname,
                                                                                        @Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("닉네임 검사 요청 : {}", email);
+        log.info("[Member] 닉네임 검사 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(memberCommonService.isNicknameAvailability(email, nickname));
@@ -107,7 +107,7 @@ public class OnboardingController {
     public ResponseEntity<MemberCommonDto.SasangResponseDto> submitSasangTest(@RequestBody @Valid MemberCommonDto.SasangRequestDto testResult,
                                                                               @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("'{}' 사상의학 테스트 결과 판별 요청", email);
+        log.info("[Member] 사상의학 테스트 결과 판별 요청");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(onboardingService.deriveSasangResult(testResult.answers(), email));
@@ -128,7 +128,7 @@ public class OnboardingController {
                                                                  HttpServletRequest request, //JWT을 직접 꺼내어 파싱(/complete때 딱 한번)
                                                                  HttpServletResponse response) {
         String email = user.getIdentifier();
-        log.info("'{}' 온보딩 데이터 검증 및 저장 요청", email);
+        log.info("[Member] 온보딩 데이터 검증 및 저장 요청");
 
         //토큰에서 {guestId,provider,name} 직접 꺼내옴
         String token = request.getHeader("Authorization").substring(7);
@@ -145,6 +145,7 @@ public class OnboardingController {
 
         String newAccessToken = jwtUtil.createJwt(email,Role.USER.getValue(), accessTime);
         String newRefreshToken = jwtUtil.createJwt(email,Role.USER.getValue(), refreshTime);
+        log.debug("[Member] ROLE_USER 토큰 발급 완료");
 
         redisTemplate.opsForValue()
                 .set("RT:" + email, newRefreshToken, 14, TimeUnit.DAYS);
@@ -157,9 +158,10 @@ public class OnboardingController {
                 .sameSite("None")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
+        log.debug("[Member] 토큰 저장 및 쿠키 등록 완료");
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(LoginDto.Response.onlyToken(
-                        Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue())));
+                        Tokens.of(newAccessToken,newRefreshToken,Role.USER.getValue(),null)));
     }
 }

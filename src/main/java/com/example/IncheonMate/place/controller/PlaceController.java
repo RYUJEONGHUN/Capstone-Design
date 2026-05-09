@@ -1,6 +1,7 @@
 package com.example.IncheonMate.place.controller;
 
 
+import com.example.IncheonMate.common.auth.dto.CustomOAuth2User;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import com.example.IncheonMate.place.dto.PlaceRequestDto;
@@ -11,7 +12,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Tag(name = "장소(Place) API", description = "장소 키워드 검색, 카테고리 검색, 엑셀 업로드 기능") //
 @RestController
+@Slf4j
 @RequestMapping("/api/places")
 @RequiredArgsConstructor
 public class PlaceController {
@@ -31,16 +35,18 @@ public class PlaceController {
     // 검색 API: GET /api/places/search/keyword?query=송도맛집
     @Operation(summary = "키워드 장소 검색", description = "카카오 API를 이용해 키워드로 장소를 검색하고, 우리 DB 데이터와 병합하여 반환.")
     @GetMapping("/search/keyword")
-    public ResponseEntity<List<PlaceResponseDto>> searchPlaces(@RequestParam String query) {
-        List<PlaceResponseDto> result = placeService.searchAndOverlay(query);
+    public ResponseEntity<List<PlaceResponseDto>> searchPlaces(@RequestParam String query, @AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("[Place] 카카오맵 API 키워드 검색 요청 (keyword: {})",query);
+        List<PlaceResponseDto> result = placeService.searchAndOverlay(query,user.getIdentifier(),user.isGuest());
         return ResponseEntity.ok(result);
     }
 
     // 카테고리 API: GET /api/places/search/category?code?CT1&x=179.23&y=124.23
     @Operation(summary = "카테고리 기반 주변 검색", description = "현재 위치(x, y)를 기준으로 특정 카테고리의 장소를 검색.")
     @GetMapping("/search/category")
-    public ResponseEntity<List<PlaceResponseDto>> searchCategoryPlaces(@RequestParam PlaceCategory category,@RequestParam double x, @RequestParam double y) {
-        List<PlaceResponseDto> result = placeService.searchCategoryAndOverlay(category,x,y);
+    public ResponseEntity<List<PlaceResponseDto>> searchCategoryPlaces(@RequestParam PlaceCategory category,@RequestParam double x, @RequestParam double y,@AuthenticationPrincipal CustomOAuth2User user) {
+        log.info("[Place] 카카오맵 API 주변 카테고리 검색 (Category: {})",category.getDescription());
+        List<PlaceResponseDto> result = placeService.searchCategoryAndOverlay(category,x,y,user.getIdentifier(),user.isGuest());
         return ResponseEntity.ok(result);
     }
 
@@ -55,12 +61,14 @@ public class PlaceController {
                 ))
                 .collect(Collectors.toList());
 
+        log.debug("[Place] 카테고리 목록 조회 완료");
         return ResponseEntity.ok(result);
     }
 
     @Operation(summary = "장소 개별 등록", description = "관리자가 장소를 하나씩 수동으로 등록.")
     @PostMapping
     public ResponseEntity<String> registerPlace(@RequestBody @Valid PlaceRequestDto requestDto) {
+        log.info("[Place] 장소 개별 등록 요청 (관리자용)(KakaoPlaceId: {}", requestDto.getKakaoId());
         placeService.registerPlace(requestDto);
         // 깔끔하게 문자열 메시지만 보냄
         return ResponseEntity.ok("장소 등록이 완료되었습니다!");
@@ -69,6 +77,7 @@ public class PlaceController {
     @Operation(summary = "장소 엑셀 대량 등록", description = "관리자용 엑셀 파일을 업로드하여 데이터를 일괄 등록/수정.")
     @PostMapping("/upload")
     public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
+        log.info("[Place] 장소 대량 등록 요청 (관리자용)(Size: {})",file.getSize());
         String result = placeService.uploadPlaceExcel(file);
         return ResponseEntity.ok(result);
     }
@@ -77,6 +86,7 @@ public class PlaceController {
     // ai 장소 검색
     @PostMapping("/search")
     public ResponseEntity<List<Place>> searchPlaces(@RequestBody PlaceSearchRequest request) {
+        log.info("[Place] FastAPI 위치,카테고리 기반 장소 검색 요청");
         List<Place> results = placeService.searchByIntent(request);
         return ResponseEntity.ok(results);
     }

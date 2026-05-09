@@ -19,13 +19,13 @@ public class CurationCacheService {
 
     @Cacheable(value = "curation_spots", key = "'active'")
     public List<CurationSpot> getCachedAllSpots() {
-        log.info("[Cache Miss] DB에서 전체 큐레이션 스팟 조회 중...");
+        log.info("[Curation] [Cache Miss] 활성 큐레이션 스팟 목록이 캐시에 없어 DB 조회를 수행");
         return curationRepository.findAllByIsActiveTrue();
     }
 
     @CacheEvict(value = "curation_spots", key = "'active'")
     public void evictActiveSpotsCache() {
         // 캐시 삭제됨.
-        log.info("[Cache Evict] curation_spots::active 캐시 삭제");
+        log.info("[Curation] [Cache Evict] curation_spots::active 캐시 삭제 완료");
     }
 }

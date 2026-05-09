@@ -46,10 +46,12 @@ public class ChatSessionController {
     @GetMapping
     public ResponseEntity<List<ChatSessionResponse.SummaryDto>> getChatSessionSummary(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user) {
         String email = user.getIdentifier();
-        log.info("'{}' 채팅 기록 조회 요청", email);
+        log.info("[Chat] 채팅 세션 목록 조회 요청");
 
+        List<ChatSessionResponse.SummaryDto> result = chatSessionService.getChatSessionSummaries(email);
+        log.info("[Chat] 채팅 세션 목록 조회 성공");
         return ResponseEntity.status(HttpStatus.OK)
-                .body(chatSessionService.getChatSessionSummaries(email));
+                .body(result);
     }
 
     //5. 채팅 기록 -> 세부 채팅 기록: 선택한 채팅 세션에 해당하는 채팅 전체를 보내줌 => Get getChatSessionDetail |도메인: chatSession
@@ -62,10 +64,12 @@ public class ChatSessionController {
     public ResponseEntity<ChatSessionResponse.DetailDto> getChatSessionDetail(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                               @Parameter(name = "chat-session-id", description = "조회할 채팅 세션의 ID", example = "65a1b2c...", required = true) @PathVariable("chat-session-id") String chatSessionId) {
         String email = user.getIdentifier();
-        log.info("'{}' 채팅세션({}) 메시지 조회 요청", email, chatSessionId);
+        log.info("[Chat] 특정 채팅 세션 채팅 내역 조회 요청 (ChatSessionId: {})",chatSessionId);
 
+        ChatSessionResponse.DetailDto result = chatSessionService.getChatSessionDetails(email, chatSessionId);
+        log.info("[Chat] 특정 채팅 세션 채팅 내역 조회 성공 (ChatSessionId: {})", chatSessionId);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(chatSessionService.getChatSessionDetails(email, chatSessionId));
+                .body(result);
     }
 
     //6. 채팅 기록 -> 키워드 검색: 전체 채팅 세션에서 검색한 결과를 보내줌 => Get + URI searchChatSessionDetail |도메인: chatSession
@@ -78,9 +82,22 @@ public class ChatSessionController {
     public ResponseEntity<List<ChatSessionResponse.SearchedMessageDto>> searchChatSessionDetail(@Parameter(hidden = true) @AuthenticationPrincipal CustomOAuth2User user,
                                                                                                 @Parameter(description = "검색할 메시지 키워드", example = "맛집", required = true) @RequestParam("keyword") String keyword) {
         String email = user.getIdentifier();
-        log.info("'{}' \"{}\"을(를) 포함하는 메시지 조회 요청", email, keyword);
+        log.info("[Chat] 키워드를 포함하는 채팅 내역 조회 요청 (Keyword: {})", keyword);
 
+        List<ChatSessionResponse.SearchedMessageDto> result = chatSessionService.searchMessagesByKeyword(email, keyword);
+        log.info("[Chat] 키워드를 포함하는 채팅 내역 조회 성공");
         return ResponseEntity.status(HttpStatus.OK)
-                .body(chatSessionService.searchMessagesByKeyword(email, keyword));
+                .body(result);
+    }
+
+    @Operation(summary = "새로운 채팅 세션 생성", description = "정회원의 신규 채팅 세션을 생성합니다.")
+    @PostMapping
+    public ResponseEntity<ChatSessionResponse.SummaryDto> createChatSession(@AuthenticationPrincipal CustomOAuth2User user){
+        log.info("[Chat] 새로운 채팅 세션 생성 요청");
+
+        ChatSessionResponse.SummaryDto result = chatSessionService.createChatSession(user.getIdentifier());
+        log.info("[Chat] 새로운 채팅 세션 생성 완료 (ChatSessionId: {})", result.chatSessionId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(result);
     }
 }

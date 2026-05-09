@@ -1,5 +1,6 @@
 package com.example.IncheonMate.place.domain;
 
+import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -24,7 +25,7 @@ public class Place {
     // --- 📝 기본 정보 ---
     private String name;
     private String address;
-    private String categoryGroup;
+    private PlaceCategory placeCategory;
 
     // 좌표
     private Double x;
@@ -35,18 +36,22 @@ public class Place {
     private Double ourRating;      // 자체 별점
     private String thumbnailUrl;   // 사진 URL
 
+    // --- 내기프트 연동---
+    private String naegiftId;
+
     // 리스트 그대로 저장
     private List<String> tags = new ArrayList<>();
 
     @Builder
-    public Place(String kakaoId, String name, String address, String categoryGroup, Double x, Double y, String expertComment, Double ourRating, String thumbnailUrl, List<String> tags) {
+    public Place(String kakaoId, String name, String address, PlaceCategory placeCategory, Double x, Double y, String expertComment, Double ourRating, String thumbnailUrl, List<String> tags,String naegiftId) {
         this.kakaoId = kakaoId;
         this.name = name;
         this.address = address;
-        this.categoryGroup = categoryGroup;
+        this.placeCategory = placeCategory;
         this.x = x;
         this.y = y;
         this.expertComment = expertComment;
+        this.naegiftId = naegiftId;
         this.ourRating = ourRating != null ? ourRating : 0.0;
         this.thumbnailUrl = thumbnailUrl;
         this.tags = tags != null ? tags : new ArrayList<>();

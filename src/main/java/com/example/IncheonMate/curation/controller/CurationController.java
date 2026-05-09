@@ -7,6 +7,7 @@ import com.example.IncheonMate.curation.service.CurationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/curation")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Curation API", description = "사용자가 특정 반경에 들어오면 그에 해당하는 특정위치를 추천해준다.")
 public class CurationController {
 
@@ -29,7 +31,8 @@ public class CurationController {
     public ResponseEntity<List<CurationSpotForUserDto>> getSpots(
             @AuthenticationPrincipal CustomOAuth2User user
     ) {
-        return ResponseEntity.ok(curationService.getActiveSpotsForUser(user.getIdentifier()));
+        log.info("[Curation] 캐시에 Spot 저장 or 캐시 목록 요청");
+        return ResponseEntity.ok(curationService.getActiveSpotsForUser(user.getIdentifier(), user.isGuest()));
     }
 
     /**
@@ -37,7 +40,7 @@ public class CurationController {
      */
     @Operation(summary = "큐레이션 팝업 조회 확인 처리(24시간 쿨타임 기록)", description = """
                 사용자가 큐레이션 팝업을 확인(노출)했음을 서버에 기록합니다.
-                - Redis에 history:view:{email}:{placeId} 키를 저장하고 TTL=24시간으로 쿨타임을 적용합니다.
+                - Redis에 history:view:{identifier}:{placeId} 키를 저장하고 TTL=24시간으로 쿨타임을 적용합니다.
                 - 이후 24시간 동안은 해당 placeId가 큐레이션 추천 목록에서 제외됩니다.
                 - 응답 본문은 없으며 204 No Content를 반환합니다.
                 """)
@@ -46,6 +49,7 @@ public class CurationController {
             @AuthenticationPrincipal CustomOAuth2User user,
             @PathVariable String placeId
     ) {
+        log.info("[Curation] 사용자가 Spot을 확인함, 쿨타임 적용 요청 (PlaceId: {})", placeId);
         curationService.markAsViewed(user.getIdentifier(), placeId);
         return ResponseEntity.noContent().build(); // 204
     }
@@ -61,6 +65,7 @@ public class CurationController {
                 """)
     @PostMapping("/register/{placeId}")
     public ResponseEntity<String> registerSpot(@PathVariable String placeId) {
+        log.info("[Curation] Spot 등록 요청 (관리자용)(PlaceId: {})", placeId);
         curationService.registerSpot(placeId);
         return ResponseEntity.ok("등록 완료");
     }
@@ -78,6 +83,7 @@ public class CurationController {
             @AuthenticationPrincipal CustomOAuth2User user,
             @PathVariable String placeId
     ) {
-        return ResponseEntity.ok(curationService.getConfirmDto(user.getIdentifier(), placeId));
+        log.info("[Curation] 특정 Spot 상세 정보 요청 (PlaceId: {})",placeId);
+        return ResponseEntity.ok(curationService.getConfirmDto(user.getIdentifier(), placeId,user.isGuest()));
     }
 }

@@ -37,16 +37,16 @@ public class MemberCommonService { //memberService와 onboardingService에서 �
     public MemberCommonDto.NicknamePolicyDto isNicknameAvailability(String email, String nickname) {
         //정책 검사
         if (!checkNicknamePolicy(nickname)) {
-            log.info("'{}' 닉네임 정책 위반", email);
+            log.info("[Member] 닉네임 정책 위반 (Nickname: {})", nickname);
             return MemberCommonDto.NicknamePolicyDto.of(false,"닉네임 정책 위반: " + nickname);
         }
         //중복 검사
         if (memberRepository.existsByNickname(nickname)) {
-            log.info("'{}' 닉네임 중복", email);
+            log.info("[Member] 닉네임 중복 (nickname: {})", nickname);
             return MemberCommonDto.NicknamePolicyDto.of(false,"닉네임 중복: " + nickname);
         }
 
-        log.info("'{}' 닉네임 검사 통과", email);
+        log.info("[Member] 닉네임 검사 통과 (nickname: {})", nickname);
         return MemberCommonDto.NicknamePolicyDto.of(true,"닉네임 검사 통과: " + nickname);
     }
 
@@ -57,12 +57,12 @@ public class MemberCommonService { //memberService와 onboardingService에서 �
         //nickname이 null이면 NullPointerExecption(unchecked) 발생 -> null check 제일 앞에
         //띄어쓰기만 있는 빈 문자열도 허용하지 않음
         if (!StringUtils.hasText(nickname)) {
-            log.info("null이거나 공백인 닉네임입니다: {}", nickname);
+            log.info("[Member] null이거나 공백인 닉네임 (nickname: {})", nickname);
             return false; // null 및 공백 체크 유틸 활용
         }
         String cleanNickname = nickname.replace(" ", "");
         if (cleanNickname.contains("사용자")) {
-            log.info("금칙어(사용자)가 포함된 닉네임입니다: {}", nickname);
+            log.info("[Member] 금칙어가 포함된 닉네임 (nickname: {})", nickname);
             return false;
         }
 
@@ -160,7 +160,7 @@ public class MemberCommonService { //memberService와 onboardingService에서 �
 
             return result;
         } catch (NumberFormatException | DateTimeException e){
-            log.warn("생년월일 파싱 실패: {}", birthdate);
+            log.warn("[Member] 생년월일 파싱 실패 (Birthdate: {})", birthdate);
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "올바르지 않은 생년월일 형식입니다.");
         }
     }
@@ -170,7 +170,7 @@ public class MemberCommonService { //memberService와 onboardingService에서 �
         try {
             return MbtiType.valueOf(mbti.toUpperCase());
         } catch (IllegalArgumentException e) {
-            log.warn("유효하지 않은 MBTI 입력: {}", mbti);
+            log.warn("[Member] 유효하지 않은 MBTI (MBTI: {})", mbti);
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 MBTI 값입니다: " + mbti);
         }
     }

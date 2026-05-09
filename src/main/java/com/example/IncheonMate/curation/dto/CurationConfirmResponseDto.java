@@ -11,8 +11,8 @@ public class CurationConfirmResponseDto {
     private String placeId;
     private String kakaoId;
     private String placeName;
-    private Double lat;
-    private Double lng;
+    private Double x;
+    private Double y;
 
     private String aiComment;       // persona에 맞춘 1개
     private Double ourRating;

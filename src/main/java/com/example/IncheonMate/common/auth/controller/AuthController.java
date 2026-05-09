@@ -42,35 +42,42 @@ public class AuthController {
     })
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+        log.info("[Auth] 토큰 재발급 요청 진입");
         // 1. 쿠키에서 refreshToken 꺼내기
         String refreshToken = extractCookie(request, "refreshToken");
         if (!StringUtils.hasText(refreshToken)) {
+            log.warn("[Auth] 토큰 재발급 실패 - Refresh Token 쿠키 없음");
             return ResponseEntity.status(401).body(Map.of("message", "No refresh token"));
         }
 
         // 추가. refresh token 자체의 유효성 검사
         try{
             if(jwtUtil.isExpired(refreshToken)){
+                log.warn("[Auth] 토큰 재발급 실패 - Refresh Token 만료됨");
                 return ResponseEntity.status(401).body(Map.of("message","Refresh token expired"));
             }
         } catch (Exception e){
+            log.warn("[Auth] 토큰 재발급 실패 - Refresh Token 유효성 검사 예외: {}", e.getMessage());
             return ResponseEntity.status(401).body(Map.of("message", "Invalid refresh token"));
         }
 
         // 2. refreshToken에서 정보 꺼내기
         String role = jwtUtil.getRole(refreshToken);
         String identifier = jwtUtil.getIdentifier(refreshToken);
+        log.debug("[Auth] Refresh Token에서 식별자 추출 완료 (Identifier: {}, Role: {})", identifier, role);
 
         // 3. Refresh Token 검증
         // 공통: Redis에 "RT:xxx" 가 저장되어 있는지
         String savedToken = redisTemplate.opsForValue().get("RT:"+ identifier);
         if(!refreshToken.equals(savedToken)){
+            log.warn("[Auth] 토큰 재발급 실패 - Redis에 저장된 Refresh Token과 불일치 (Identifier: {})", identifier);
             return ResponseEntity.status(401).body(Map.of("message", "Invalid refresh token"));
         }
         // 게스트 추가: 프로필이 살아있는지
         if("ROLE_GUEST".equals(role)){
             boolean isLived = redisTemplate.hasKey("GUEST_PROFILE:"+identifier);
             if(!isLived){
+                log.warn("[Auth] 토큰 재발급 실패 - 게스트 프로필 Redis에 없음 (Identifier: {})", identifier);
                 return ResponseEntity.status(401).body(Map.of("message","No guest profile"));
             }
         }
@@ -84,12 +91,14 @@ public class AuthController {
         // 5. refreshToken 회전: 새 refresh 발급 + Redis/쿠키 갱신
         String newRefresh = jwtUtil.createJwt(identifier, role, refreshTimeMs);
         redisTemplate.opsForValue().set("RT:" + identifier, newRefresh, 14, TimeUnit.DAYS);
+        log.debug("[Auth] Refresh Token 회전 완료 및 Redis 저장 (Identifier: {})", identifier);
 
         // ✅ 게스트인 경우 만료 기간도 14일로 갱신
         if ("ROLE_GUEST".equals(role)) {
             redisTemplate.expire("GUEST_PROFILE:" + identifier, 14, TimeUnit.DAYS);
-            //+++++++++++++++ 나중에 게스트 채팅 기능을 구현하면 GUEST_CHAT,GUEST_COUNT도 만료 기간 갱신 필요 ++++++++++++++++++
-            log.info("게스트 프로필 만료 기간 14일 연장 완료: {}", identifier);
+            if(redisTemplate.hasKey("GUEST_COUNT:"+identifier)) redisTemplate.expire("GUEST_COUNT"+identifier,14,TimeUnit.DAYS);
+            if(redisTemplate.hasKey("GUEST_CHAT:"+identifier)) redisTemplate.expire("GUEST_CHAT"+identifier,14,TimeUnit.DAYS);
+            log.debug("[Auth] 게스트 프로필 만료 기간 14일 연장 완료: {}", identifier);
         }
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefresh)
@@ -101,10 +110,10 @@ public class AuthController {
                 .build();
 
         response.addHeader("Set-Cookie", refreshCookie.toString());
-        log.info("새로운 Token 발급 완료: {}", identifier);
+        log.info("[Auth] 토큰 재발급 성공 (Identifier: {}, Role: {})", identifier, role);
 
         // 6. 새 accessToken 전달 (JSON으로)
-        Tokens tokens = Tokens.of(newAccess,"",role);
+        Tokens tokens = Tokens.of(newAccess,"",role,null);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(LoginDto.Response.onlyToken(tokens));
     }
@@ -123,13 +132,13 @@ public class AuthController {
     })
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response){
-        log.info("로그아웃 요청");
+        log.info("[Auth] 로그아웃 요청 진입");
         //1. 쿠키에서 refresh Token 추출
         String refreshToken = extractCookie(request, "refreshToken");
 
         //2. refresh token이 없으면 이미 로그아웃된 것으로 간주하여 200 반환
         if(!StringUtils.hasText(refreshToken)){
-            log.debug("refresh token이 없어서 이미 로그아웃 되어있음");
+            log.info("[Auth] 로그아웃 요청 - Refresh Token 없음 (이미 로그아웃 상태)");
             return ResponseEntity.status(HttpStatus.OK)
                     .body(Map.of("message","이미 로그아웃 되었습니다."));
         }
@@ -140,9 +149,10 @@ public class AuthController {
             String email = jwtUtil.getIdentifier(refreshToken);
             //Redis에서 삭제
             redisTemplate.delete("RT:" + email);
+            log.info("[Auth] Refresh Token Redis 삭제 완료 (Identifier: {})", email);
         } catch (Exception e){
             //예외. 어떤 에러가 나더라도 로그아웃은 성공해야함
-            log.warn("로그아웃 프로세스 중 토큰 처리 경고 (무시 가능): {}",e.getMessage());
+            log.warn("[Auth] 로그아웃 프로세스 중 토큰 처리 경고 (무시 가능): {}",e.getMessage());
         }
 
         //4. 쿠키에서 Refresh Token삭제(수명이 0인 쿠키를 넣어 즉시 만료)
@@ -158,7 +168,7 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE,deleteCookie.toString());
 
         //6. 결과 반환
-        log.info("로그아웃 성공");
+        log.info("[Auth] 로그아웃 성공");
         return ResponseEntity.ok(Map.of("message","로그아웃에 성공하였습니다"));
     }
 }
