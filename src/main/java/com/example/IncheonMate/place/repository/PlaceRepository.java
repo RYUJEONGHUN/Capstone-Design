@@ -4,6 +4,7 @@ import com.example.IncheonMate.place.domain.Place;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,4 +30,5 @@ public interface PlaceRepository extends MongoRepository<Place, String> {
     @Query("{ 'address': { '$regex': ?0, '$options': 'i' }, 'categoryGroup': ?1 }")
     List<Place> findByAddressContainingAndCategoryGroup(String location, String category); // 여기도 끝에만 딱!
 
+    List<Place> findByKakaoIdIn(List<String> targetKakaoIds);
 }

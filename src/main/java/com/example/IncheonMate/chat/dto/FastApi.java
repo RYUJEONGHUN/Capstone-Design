@@ -19,7 +19,7 @@ public class FastApi {
     public record ChatResponseDto(
             @JsonProperty("answer") String answer,
             @JsonProperty("isCourse") boolean isCourse,
-            @JsonProperty("response_type") String fastApiChatResponseType,
+            @JsonProperty("responseType") String fastApiChatResponseType,
             @JsonProperty("provider") String fastApiChatProvider
     ) {
     }

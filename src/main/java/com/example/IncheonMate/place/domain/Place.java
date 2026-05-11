@@ -1,5 +1,6 @@
 package com.example.IncheonMate.place.domain;
 
+import com.example.IncheonMate.member.domain.type.CoursePlaceCategory;
 import com.example.IncheonMate.place.domain.type.PlaceCategory;
 import lombok.*;
 import org.springframework.data.annotation.Id;
@@ -63,5 +64,17 @@ public class Place {
         this.tags = tags;
         this.thumbnailUrl = imageUrl;
         this.expertComment = comment;
+    }
+
+    public CoursePlaceCategory getCoursePlaceCategory() {
+        switch (this.getPlaceCategory()){
+            case AT4:
+                return CoursePlaceCategory.TOURIST_ATTRACTION;
+            case CT1:
+                return CoursePlaceCategory.TOURIST_ATTRACTION;
+            case FD6:
+                return CoursePlaceCategory.RESTAURANT;
+        }
+        return null;
     }
 }
