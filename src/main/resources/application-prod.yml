@@ -10,23 +10,30 @@ spring:
   application:
     name: incheon_mate-backend
 
+  mongodb:
+    uri: ${MONGO_URI}
+
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI}
-      auto-index-creation: false #AWS Document DB에서는 자동 생성하려고 시도하면 앱 실행 자체가 실패할 수 있습니다.
-    redis:
-      host: ${REDIS_HOST:redis}
-      port: 6379
+      auto-index-creation: false
+
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: 6379
+
+
+
+
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
   client-secret: ${GOOGLE_CLIENT_SECRET}
-  redirect-uri: ${FRONTEND_REDIRECT_URI}
+  redirect-uri: ${GOOGLE_FRONTEND_REDIRECT_URI}
 
 kakao:
   client-id: ${KAKAO_CLIENT_ID}
   client-secret: ${KAKAO_CLIENT_SECRET}
-  redirect-uri: ${FRONTEND_REDIRECT_URI}
+  redirect-uri: ${KAKAO_FRONTEND_REDIRECT_URI}
   api:
     key: ${KAKAO_KEY}
 
@@ -49,5 +56,8 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
 
-
-
+#로그 레벨 INFO로 조정
+logging:
+  level:
+    root: info
+    com.example.IncheonMate: info
