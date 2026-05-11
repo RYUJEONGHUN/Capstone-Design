@@ -323,13 +323,7 @@ public class ChatService {
 
     private String createCourseTitle(String identifier) {
         Member member = memberRepository.findByEmailOrElseThrow(identifier);
-
-        int travelCourseCount = member.getTravelCourses().size();
-        if(travelCourseCount != 0){
-            return identifier + " 코스1";
-        }else{
-            return identifier + " 코스" + travelCourseCount + 1;
-        }
+        return "\uD83D\uDCCD " + member.getNickname() + "님을 위한 맞춤 여행 코스";
     }
 
     //order-kakaoId(K-V)형태로 들어온 장소들을 Place 컬렉션 조회해서 TravelCourseDto를 만들어주는 함수
@@ -367,12 +361,13 @@ public class ChatService {
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++ 추가 필요+++++++++++++++++++++++++++++++++++++++++++++++
     //코스순서-카카오ID를 mapping
-    private Map<Integer, String> sortTravelSpotOrder(FastApi.ChatResponseDto aiChatResponseDto){
+    private Map<Integer, String> sortTravelSpotOrder(FastApi.ChatResponseDto aiChatResponseDto) {
         return null;
     }
 
 
-    private record UserAiTraitsDto(String persona, String mbti, String sasang) {}
+    private record UserAiTraitsDto(String persona, String mbti, String sasang) {
+    }
 
     private UserAiTraitsDto getUserAiTraits(String identifier, boolean isGuest) {
         if (isGuest) {
@@ -410,6 +405,8 @@ public class ChatService {
             log.warn("[Chat] FastAPI 응답 오류");
             throw new CustomException(ErrorCode.AI_SERVER_ERROR);
         }
+        log.info("[Chat] FastAPI 채팅 응답 성공 (IsCourse: {}, ResponseType: {}, provider: {})",
+                chatResponseDto.isCourse(), chatResponseDto.fastApiChatResponseType(), chatResponseDto.fastApiChatProvider());
 
         return chatResponseDto;
     }
@@ -463,46 +460,48 @@ public class ChatService {
     public ChatResponse.TravelCourseIdDto saveTravelCourse(String identifier, ChatRequest.TravelCourseDto travelCourseDto) {
         Member member = memberRepository.getMemberByEmail(identifier);
 
-        List<ChatRequest.CourseSpotDto> courseSpotDtos = travelCourseDto.courseSpots();
+        //1. 기존 코스가 있다면 ID를 유지, 없으면 새로 생성
+        String courseId = (member.getTravelCourse() != null)
+                ? member.getTravelCourse().getId()
+                : UUID.randomUUID().toString();
 
-        // DTO -> Entity 변환 (CourseSpot)
-        List<Member.CourseSpot> courseSpots = courseSpotDtos.stream()
-                .map(data -> Member.CourseSpot.builder()
-                        .spotOrder(data.spotOrder())
-                        .name(data.name())
-                        .address(data.address())
-                        .thumbnailUrl(data.thumbnailUrl())
-                        .coursePlaceCategory(data.coursePlaceCategory())
-                        .kakaoId(data.kakaoId())
-                        .expertComment(data.expertComment())
-                        .geoJsonPoint(new GeoJsonPoint(data.x(), data.y()))
-                        .build())
+        //2. DTO -> Entity 변환
+        List<Member.CourseSpot> courseSpots = travelCourseDto.courseSpots().stream()
+                .map(data -> {
+                    String kakaoId = data.kakaoUrl().replace("https://place.map.kakao.com/", "");
+                    String naegiftId = data.naegiftUrl().replace("https://shopuser-qa.naegift.com/", "").split("\\?")[0];
+
+                    return Member.CourseSpot.builder()
+                            .spotOrder(data.spotOrder())
+                            .name(data.name())
+                            .address(data.address())
+                            .thumbnailUrl(data.thumbnailUrl())
+                            .naegiftId(naegiftId)
+                            .coursePlaceCategory(data.coursePlaceCategory())
+                            .kakaoId(kakaoId)
+                            .expertComment(data.expertComment())
+                            .geoJsonPoint(new GeoJsonPoint(data.x(), data.y()))
+                            .build();
+                })
                 .toList();
 
-        // 신규 여행 코스 생성
+        //3. TravelCourse 객체 생성
         Member.TravelCourse travelCourse = Member.TravelCourse.builder()
-                .id(UUID.randomUUID().toString())
+                .id(courseId)
                 .title(travelCourseDto.title())
-                .isSelected(hasNoSelectedCourse(member.getTravelCourses()))
-                .createdAt(LocalDateTime.now())
+                .createdAt(member.getTravelCourse() != null ? member.getTravelCourse().getCreatedAt() : LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .spots(courseSpots)
                 .build();
 
-        // Member 리스트에 추가
-        member.getTravelCourses().add(travelCourse);
-        memberRepository.save(member);
+        //4. toBuilder로 새로운 Member 생성
+        Member updatedMember = member.toBuilder().
+                travelCourse(travelCourse)
+                .build();
+
+        memberRepository.save(updatedMember);
 
         return new ChatResponse.TravelCourseIdDto(travelCourse.getId());
-    }
-
-    private boolean hasNoSelectedCourse(List<Member.TravelCourse> travelCourses){
-        if (travelCourses == null || travelCourses.isEmpty()) {
-            return true;
-        }
-
-        return travelCourses.stream()
-                .noneMatch(Member.TravelCourse::isSelected);
     }
 
 

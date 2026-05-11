@@ -19,7 +19,7 @@ public class ChatRequest {
             String address, //주소
             String thumbnailUrl, //사진
             CoursePlaceCategory coursePlaceCategory, //카테고리(
-            String kakaoId, //카카오 ID
+            String kakaoUrl, //카카오 ID
             String naegiftUrl, //내기프트 URL
             String expertComment,
             Double x,
