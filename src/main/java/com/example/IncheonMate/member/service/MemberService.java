@@ -5,17 +5,22 @@ import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.domain.type.SasangType;
 import com.example.IncheonMate.member.dto.MemberCommonDto;
+import com.example.IncheonMate.member.dto.MyInfoRequest;
 import com.example.IncheonMate.member.dto.MyInfoResponse;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 
 @Service
@@ -33,7 +38,7 @@ public class MemberService {
     public MyInfoResponse.MyProfileMainDto getMyProfileMainInfo(String email) {
         //이메일로 사용자 전체 정보 꺼내오기
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
-        log.info("'{}' 사용자 정보 조회 완료", email);
+        log.info("[Member] 사용자 정보 조회 성공");
 
         //MyInfo메인에서 필요한 정보만 DTO에 담음
         return MyInfoResponse.MyProfileMainDto.from(targetMember);
@@ -48,6 +53,7 @@ public class MemberService {
                 .orElse(Collections.emptyList());
 
         //찜목록을 DTO에 담아서 리턴
+        log.info("[Member] 찜목록 조회 성공");
         return favoritePlaces.stream()
                 .map(MyInfoResponse.FavoritePlaceDto::from)
                 .toList();
@@ -57,7 +63,7 @@ public class MemberService {
     public MyInfoResponse.ExternalServiceDto getMyWalletUri(String email) {
         //이메일로 사용자 엔티티 가져오기
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
-        log.info("'{}' 사용자 정보 조회 완료", email);
+        log.info("[Member] 사용자 정보 조회 성공");
 
         return MyInfoResponse.ExternalServiceDto.from(targetMember);
     }
@@ -66,7 +72,7 @@ public class MemberService {
     public MyInfoResponse.MyProfileDto getProfileInfoForEdit(String email) {
         //이메일로 사용자 엔티티 가져오기
         Member targetMember = memberRepository.findByEmailOrElseThrow(email);
-        log.info("'{}' 사용자 정보 조회 완료", email);
+        log.info("[Member] 사용자 정보 조회 성공");
 
         return MyInfoResponse.MyProfileDto.from(targetMember);
     }
@@ -103,6 +109,7 @@ public class MemberService {
          */
         //dto null 검증
         if (myProfileDto == null) {
+            log.warn("[Member] [MyInfo] 수정할 데이터가 없음");
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"저장할 데이터가 없습니다.");
         }
 
@@ -117,7 +124,7 @@ public class MemberService {
         if(!originalNickname.equals(inputNickname)) {
             MemberCommonDto.NicknamePolicyDto checkResult = memberCommonService.isNicknameAvailability(email,inputNickname);
             if(!checkResult.isOk()){
-                log.warn("닉네임 변경 실패: {}",checkResult.message());
+                log.warn("[Member] [MyInfo] 닉네임 변경 실패 (Nickname: {})", inputNickname);
                 throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, checkResult.message());
             }
         }
@@ -136,6 +143,7 @@ public class MemberService {
 
         memberRepository.save(updateMember);
 
+        log.info("[Member] [MyInfo] 사용자 정보 수정 및 저장 성공");
         return MyInfoResponse.MyProfileDto.from(updateMember);
     }
 
@@ -151,9 +159,43 @@ public class MemberService {
                 .removeIf(place -> place.getId().equals(favoritePlaceId));
 
         //찜 목록에 있을 때에만 삭제
-        if(!isRemoved) throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"찜 목록에 없는 장소입니다.");
+        if(!isRemoved) {
+            log.warn("[Member] 찜목록에 없는 장소 (FavoritePlaceId: {})",favoritePlaceId);
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"찜 목록에 없는 장소입니다.");
+        }
         //removeIf는 Heap에서만 지워지고 MongoDB에는 반영을 안한다. 따라서 Heap의 변경사항을 MongoDB에 동기화 하기 위해서 save해야 한다
         memberRepository.save(targetMember);
-        log.info("'{}' 찜 장소 삭제 완료: {}", email, favoritePlaceId);
+        log.info("[Member] 찜한 장소에서 삭제 완료 (FavoritePlaceId: {})", favoritePlaceId);
+    }
+
+    @Transactional
+    public MyInfoResponse.FavoritePlaceDto addFavoritePlace(String email, MyInfoRequest.AddFavoriteDto addFavoriteDto) {
+        Member targetMember = memberRepository.findByEmailOrElseThrow(email);
+
+        boolean isAlreadyFavorite = targetMember.getFavoritePlaces().stream()
+                .anyMatch(f -> f.getKakaoPlaceId().equals(addFavoriteDto.kakaoPlaceId()));
+        if (isAlreadyFavorite) {
+            log.warn("[Member] 같은 장소를 이미 찜목록에 추가됨 (KakaoPlaceId: {})",addFavoriteDto.kakaoPlaceId());
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,"같은 장소를 이미 찜목록에 추가하였습니다.");
+        }
+
+        Member.FavoritePlace newFavoritePlace = Member.FavoritePlace.builder()
+                .id(UUID.randomUUID().toString())
+                .kakaoPlaceId(addFavoriteDto.kakaoPlaceId())
+                .placeName(addFavoriteDto.placeName())
+                .location(new GeoJsonPoint(addFavoriteDto.longitude(), addFavoriteDto.latitude()))
+                .address(addFavoriteDto.address())
+                .isRegistered(addFavoriteDto.isRegistered())
+                .ourRating(addFavoriteDto.ourRating())
+                .build();
+
+        // 3. 기존 리스트를 복사해서 새 항목 추가
+        List<Member.FavoritePlace> updatedList = new ArrayList<>(targetMember.getFavoritePlaces());
+        updatedList.add(newFavoritePlace);
+
+        memberRepository.save(targetMember.toBuilder().favoritePlaces(updatedList).build());
+
+        log.info("[Member] 찜목록에 추가 성공 (KakaoPlaceId: {})", newFavoritePlace.getKakaoPlaceId());
+        return MyInfoResponse.FavoritePlaceDto.from(newFavoritePlace);
     }
 }

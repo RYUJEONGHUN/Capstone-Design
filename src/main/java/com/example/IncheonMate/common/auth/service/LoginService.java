@@ -70,6 +70,7 @@ public class LoginService {
         String code = userRequest.code();
         String oAuthEmail = "";
         String oAuthName = "";
+        log.info("[Auth] 소셜 로그인 처리 시작 (Provider: {})", provider);
 
         try {
             if ("kakao".equals(provider)) {
@@ -122,23 +123,23 @@ public class LoginService {
                 oAuthName = googleOauthUserInfoResponse.name();
 
             } else {
-                log.warn("지원하지 않는 소셜 로그인 제공자: {}", provider);
+                log.warn("[Auth] 지원하지 않는 소셜 로그인 제공자: {}", provider);
                 throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "지원하지 않는 소셜 로그인 provider입니다.");
             }
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("소셜 로그인 실패. provider={}", provider, e);
+            log.warn("[Auth] 소셜 로그인 실패 (Provider: {})", provider, e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "소셜 로그인 중 문제 발생");
         }
 
         //이메일과 이름 검증
         if (oAuthEmail == null || oAuthEmail.isBlank()) {
-            log.warn("{} 인증 서버에서 이메일 정보를 가져오지 못했습니다", provider);
+            log.warn("[Auth] {} 인증 서버에서 이메일 정보를 가져오지 못함", provider);
             throw new CustomException(ErrorCode.INVALID_OAUTH_RESPONSE);
         }
         if (oAuthName == null || oAuthName.isBlank()) {
-            log.warn("{} 인증 서버에서 이름 정보를 가져오지 못했습니다", provider);
+            log.warn("[Auth] {} 인증 서버에서 이름 정보를 가져오지 못함", provider);
             throw new CustomException(ErrorCode.INVALID_OAUTH_RESPONSE);
         }
         //3. DB에 이메일이 있는지 부터 확인
@@ -153,16 +154,16 @@ public class LoginService {
 
             //게스트 토큰을 가진 기존 회원 방어(기존 회원이 게스트 계정을 또 만들어서 가입하려고 하는것 방어)
             if (user != null && user.isGuest()) {
-                log.info("기존 회원 {}이 게스트 상태에서 로그인을 시도했습니다. 게스트 데이터를 무시하고 로그인합니다.",oAuthEmail);
+                log.info("[Auth] 기존 회원이 게스트 상태에서 로그인 시도 - 게스트 데이터 무시 (Email: {})", oAuthEmail);
             }
 
             // 소셜 정보(provider)가 다를 경우 로그만 남기기
             //+++++++++++ [계정 통합] 이메일이 동일하면 소셜 제공자(Provider)에 상관없이 기존 계정으로 로그인 처리 ++++++++++++++++
             if (!existingMember.getProvider().equals(provider)) {
-                log.info("'{}'이메일은 이미 {}로 가입되어 있습니다.(현재 시도: {}) 기존 계정으로 연동하여 로그인합니다.",
+                log.info("[Auth] 이메일 기반 계정 통합 로그인 (Email: {}, 기존 Provider: {}, 시도 Provider: {})",
                         oAuthEmail, existingMember.getProvider(), provider);
             } else {
-                log.info("'{}' 기존 계정 로그인 성공", oAuthEmail);
+                log.info("[Auth] 기존 계정 로그인 성공 (Email: {})", oAuthEmail);
             }
 
             //이미 가입한 유저이기 때문에 User 토큰 발급(로그인 처리)
@@ -172,9 +173,9 @@ public class LoginService {
             //refreshToken을 redis에 저장
             redisTemplate.opsForValue()
                     .set("RT:" + oAuthEmail, refreshToken, 14, TimeUnit.DAYS);
-            log.info("Refresh Token Redis 저장 완료: {}", oAuthEmail);
+            log.info("[Auth] Refresh Token Redis 저장 완료 (Email: {})", oAuthEmail);
 
-            return Tokens.of(accessToken, refreshToken, Role.USER.getValue());
+            return Tokens.of(accessToken, refreshToken, Role.USER.getValue(), oAuthEmail);
         }
         //4-분기2. 가입하지 않은 진짜 신규 유저인 경우
         else {
@@ -183,13 +184,15 @@ public class LoginService {
             // ==========================================
             if (user == null || !user.isGuest()) {
                 // [분기 B-1] 쌩신규 유저 (게스트 이력 없음)
+                log.info("[Auth] 신규 가입자 PENDING 토큰 발급 (Email: {}, Provider: {})", oAuthEmail, provider);
                 String accessToken = jwtUtil.createPendingJwt(oAuthEmail, "newUser", provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
-                return Tokens.of(accessToken, "", Role.PENDING.getValue());
+                return Tokens.of(accessToken, "", Role.PENDING.getValue(),oAuthEmail);
             } else {
                 // [분기 B-2] 게스트 출신 신규 유저
                 String guestId = user.getIdentifier(); // 토큰에서 추출한 게스트 ID
+                log.info("[Auth] 게스트 출신 신규 가입자 PENDING 토큰 발급 (Email: {}, Guest ID: {})", oAuthEmail, guestId);
                 String accessToken = jwtUtil.createPendingJwt(oAuthEmail, guestId, provider, Role.PENDING.getValue(), oAuthName, 20 * 60 * 1000L);
-                return Tokens.of(accessToken, "", Role.PENDING.getValue());
+                return Tokens.of(accessToken, "", Role.PENDING.getValue(),oAuthEmail);
             }
 
         }
@@ -199,6 +202,7 @@ public class LoginService {
     public LoginDto.GuestLoginResult guestLogin(LoginDto.GuestRequest guestRequest) {
         //1. 게스트 UUID를 생성한다.
         String guestId = UUID.randomUUID().toString();
+        log.info("[Auth] 게스트 로그인 처리 시작 (Guest ID: {}, Persona: {})", guestId, guestRequest.personaType());
 
         //2. Redis에 GUEST_PROFILE:{UUID}로 게스트 정보를 저장한다/TTL은 14일이다
         Map<String, String> guestProfileForSave = new HashMap<>();
@@ -212,6 +216,7 @@ public class LoginService {
         String key = "GUEST_PROFILE:" + guestId;
         redisTemplate.opsForHash().putAll(key, guestProfileForSave);
         redisTemplate.expire(key, Duration.ofDays(14));
+        log.info("[Auth] 게스트 프로필 Redis 저장 완료 (Guest ID: {})", guestId);
 
         //3. Access/Refresh Token을 만든다
         long accessTime = 60 * 60 * 1000L; // 1시간
@@ -222,9 +227,10 @@ public class LoginService {
         //4. Redis에 Refresh Token을 저장한다.
         redisTemplate.opsForValue()
                 .set("RT:" + guestId, refreshToken, 14, TimeUnit.DAYS);
+        log.info("[Auth] 게스트 Refresh Token Redis 저장 완료 (Guest ID: {})", guestId);
 
         // 반환을 위한 객체 조립
-        Tokens tokens = new Tokens(accessToken, refreshToken, Role.GUEST.getValue());
+        Tokens tokens = new Tokens(accessToken, refreshToken, Role.GUEST.getValue(),null);
         LoginDto.GuestProfile guestProfile = new LoginDto.GuestProfile(
                 "게스트" + guestId.substring(0, 4),
                 guestRequest.personaType(),
@@ -239,8 +245,10 @@ public class LoginService {
         String key = "GUEST_PROFILE:" + guestId;
 
         if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+            log.warn("[Auth] 게스트 정보 Redis에서 찾을 수 없음 (Guest ID: {})", guestId);
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
         }
+        log.info("[Auth] 게스트 정보 Redis 조회 성공 (Guest ID: {})", guestId);
 
         String personaStr = (String) redisTemplate.opsForHash().get(key, "persona");
         String langStr = (String) redisTemplate.opsForHash().get(key, "lang");

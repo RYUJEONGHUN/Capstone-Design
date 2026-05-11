@@ -27,11 +27,6 @@ import java.util.List;
 @ToString(exclude = {"recentSearches", "recentRoutes", "favoritePlaces"})
 @Document(collection = "members") // MongoDB의 'members' 컬렉션에 저장됨
 public class Member {
-    /*
-    id, email, name, role, provider, createdAt, updatedAt
-    lang, nickname, profileImage, profileImageAsMarker(false), birthDate
-    mbti, sasang, companion, selectedPersona
-     */
     @Field(targetType = FieldType.STRING)
     private CompanionType companion;
 
@@ -91,20 +86,17 @@ public class Member {
     public static class FavoritePlace{
         // 내장 객체의 ID에는 @Indexed(unique=true)를 절대 걸면 안 됨! (UUID 생성 후 저장)
         private String id; //수동 UUID
-        @CreatedDate
         private LocalDateTime createdAt;
-        @Nullable
-        private String kakaoPlaceId; //카카오에서 제공해주는 장소 Id값-카카오에 없는 장소는 null
+        private String kakaoPlaceId; //카카오에서 제공해주는 장소 Id값
         private String placeName; //장소 이름
         private GeoJsonPoint location; //좌표
         private String address; //주소
-        private float rating; //평점
-        @Nullable
-        private String kakaoMapUrl; //카카오맵 주소
+
+        private boolean isRegistered;
+        @Nullable private Double ourRating; //우리가 크롤링한 평점
+        // -> 추후 서비스내에서 자체 평점 시스템 만들어야함
     }
 
-    //---- 6. 내 기프트 연동 링크(추후에 URI 파라미터나 accesToken이 붙은 형태로 변할 수 도 있기 때문에 저장)
-    private String externalServiceUri; //default URL넣어줘야함
 
     //--- 7. 길찾기 탭의 검색어 기록(최대 개수 일단 20개로 만들고 나중에 수정)
     @Builder.Default // 빌더 사용 시 null 방지
@@ -118,7 +110,6 @@ public class Member {
         //키워드 저장할떄 사용
         private String id; //수동 UUID
         private String keyword; //검색어 또는 장소명
-        @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
     }
 
@@ -136,8 +127,42 @@ public class Member {
         private String arrivalName; //도착 장소 이름
         private GeoJsonPoint departureLocation; //출발 장소 좌표
         private GeoJsonPoint arrivalLocation;//도착 장소 좌표
-        @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
     }
 
+    @Builder.Default
+    private List<TravelCourse> travelCourses = new ArrayList<>();
+
+    //여행 코스가 100개를 넘어간다면 Course Collection으로 분리해야함(거의 불가능)
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TravelCourse{
+        private String id;
+        private String title;
+        private boolean isSelected;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+
+        @Builder.Default
+        private List<CourseSpot> spots = new ArrayList<>();
+    }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CourseSpot{
+        private int spotOrder;
+        private String kakaoId;
+        private String name;
+        private String address;
+        private CoursePlaceCategory coursePlaceCategory;
+        private String thumbnailUrl;
+        private String expertComment;
+        private GeoJsonPoint geoJsonPoint;
+    }
+
+    //++++++++++++++++++리워드 코스는 따로 만들어야함++++++++++++++++++++
 }
