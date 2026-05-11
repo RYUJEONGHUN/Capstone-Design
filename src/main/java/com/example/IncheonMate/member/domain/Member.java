@@ -138,4 +138,39 @@ public class Member {
         private LocalDateTime searchedAt; //검색한 시간
     }
 
+    @Builder.Default
+    private List<TravelCourse> travelCourses = new ArrayList<>();
+
+    //여행 코스가 100개를 넘어간다면 Course Collection으로 분리해야함(거의 불가능)
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TravelCourse{
+        private String id;
+        private String title;
+        private boolean isSelected;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+
+        @Builder.Default
+        private List<CourseSpot> spots = new ArrayList<>();
+    }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CourseSpot{
+        private int spotOrder;
+        private String kakaoId;
+        private String name;
+        private String address;
+        private CoursePlaceCategory coursePlaceCategory;
+        private String thumbnailUrl;
+        private String expertComment;
+        private GeoJsonPoint geoJsonPoint;
+    }
+
+    //++++++++++++++++++리워드 코스는 따로 만들어야함++++++++++++++++++++
 }
