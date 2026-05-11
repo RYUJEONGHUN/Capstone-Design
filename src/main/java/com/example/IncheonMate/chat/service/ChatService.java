@@ -15,19 +15,23 @@ import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.repository.MemberRepository;
+import com.example.IncheonMate.place.domain.Place;
+import com.example.IncheonMate.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import java.util.Collections;
+
+import java.util.*;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -40,6 +44,7 @@ public class ChatService {
     private final GuestChatSessionRepository guestChatSessionRepository;
     private final StringRedisTemplate redisTemplate;
     private final AiChatClient aiChatClient;
+    private final PlaceRepository placeRepository;
 
     public ChatResponse.CurrentDto getCurrentChat(String identifier, boolean isGuest) {
         log.debug("[Chat] 오늘 채팅 내역 조회 시작");
@@ -111,12 +116,12 @@ public class ChatService {
 
 
         //게스트인 경우
-        if(isGuest){
+        if (isGuest) {
             String countKey = "GUEST_COUNT:" + identifier;
 
-            //1. 키가 없으면 최조 채팅이므로 Redis에 초기값 10할당(TTL 14일)
-            if(Boolean.FALSE.equals(redisTemplate.hasKey(countKey))){
-                redisTemplate.opsForValue().set(countKey, "10", 14,TimeUnit.DAYS);
+            //1. 키가 없으면 최초 채팅이므로 Redis에 초기값 10할당(TTL 14일)
+            if (Boolean.FALSE.equals(redisTemplate.hasKey(countKey))) {
+                redisTemplate.opsForValue().set(countKey, "10", 14, TimeUnit.DAYS);
                 log.debug("[Chat] 게스트 최초 채팅 진행. 남은 횟수 초기화(Initial Count: 10)");
             }
 
@@ -124,7 +129,7 @@ public class ChatService {
             Long remainingCount = redisTemplate.opsForValue().decrement(countKey);
 
             //3. 차감된 결과가 0미만이면 한도를 초과함
-            if(remainingCount != null && remainingCount < 0){
+            if (remainingCount != null && remainingCount < 0) {
                 redisTemplate.opsForValue().increment(countKey);//차감된 것 복구
                 log.info("[Chat] 게스트 채팅 횟수 초과");
                 throw new CustomException(ErrorCode.GUEST_CHAT_LIMIT_EXCEEDED);
@@ -146,7 +151,7 @@ public class ChatService {
             FastApi.ChatResponseDto chatResponseDto = null;
             try {
                 chatResponseDto = getAnswerMessageFromFastApi(identifier, true, messageDto.message());
-            }catch (Exception e){
+            } catch (Exception e) {
                 if (Boolean.TRUE.equals(redisTemplate.hasKey(countKey))) {
                     redisTemplate.opsForValue().increment(countKey);
                     log.debug("[Chat] AI 서버 응답 오류로 인해 게스트 채팅 횟수 복구 완료");
@@ -156,7 +161,7 @@ public class ChatService {
 
             //5. response type이 chat이나 search 이면 채팅 저장
             //게스트는 course 생성하지 못함
-            if(ChatResponseType.CHAT.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) ||
+            if (ChatResponseType.CHAT.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) ||
                     ChatResponseType.SEARCH.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType())) {
 
                 log.debug("[Chat] FastAPI 게스트 채팅 응답 성공 (Type: CHAT/SEARCH)");
@@ -181,14 +186,14 @@ public class ChatService {
 
 
                 //7. GuestChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
-                guestChatSession.addMessages(userMessage,aiMessage);
+                guestChatSession.addMessages(userMessage, aiMessage);
                 //8. 저장
                 guestChatSessionRepository.save(guestChatSession);
                 log.debug("[Chat] 게스트 채팅 메시지 저장 완료");
 
-                return ChatResponse.Generation.fromGuest(userMessage,aiMessage);
-            }else if(ChatResponseType.COURSE.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) ||
-                Boolean.TRUE.equals(chatResponseDto.isCourse())){
+                return ChatResponse.Generation.fromGuest(userMessage, aiMessage);
+            } else if (ChatResponseType.COURSE.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) ||
+                    Boolean.TRUE.equals(chatResponseDto.isCourse())) {
                 log.debug("[Chat] 코스 생성 요청 감지 (게스트 불가) - 이용 횟수 복구 및 안내 메시지 반환");
 
                 GuestChatSession.Message systemFallbackMessage = GuestChatSession.Message.builder()
@@ -216,8 +221,8 @@ public class ChatService {
             }
 
 
-        //정회원인 경우
-        }else{
+            //정회원인 경우
+        } else {
             //1. 유저 Message 엔티티 생성
             ChatSession.Message userMessage = ChatSession.Message.builder()
                     .id(UUID.randomUUID().toString())
@@ -230,32 +235,62 @@ public class ChatService {
             ChatSession chatSession = getOrCreateChatSession(identifier);
 
             //3. FastAPI에서 message의 결과 받아옴
-            FastApi.ChatResponseDto chatResponseDto = getAnswerMessageFromFastApi(identifier,false,messageDto.message());
+            FastApi.ChatResponseDto aiChatResponseDto = getAnswerMessageFromFastApi(identifier, false, messageDto.message());
 
+            //++++++++++++++++++++++++++++++++++++++코스 수정은 어떻게??++++++++++++++++++++++++++++++++++++++++++++++++++++++
             //4.1 코스 생성 요청인 경우
-            if(ChatResponseType.COURSE.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) &&
-                    Boolean.TRUE.equals(chatResponseDto.isCourse())) {
-                //String 파싱하여 코스 저장하고, 코스에 맞는 x,y좌표 및 정보를 fastapi 채팅 응답과 합쳐서 저장하는 메서드 만들어야함
-                return null;
+            if (ChatResponseType.COURSE.name().equalsIgnoreCase(aiChatResponseDto.fastApiChatResponseType()) &&
+                    Boolean.TRUE.equals(aiChatResponseDto.isCourse())) {
+
+                ChatSession.Message aiMessage = ChatSession.Message.builder()
+                        .id(UUID.randomUUID().toString())
+                        .messagedAt(LocalDateTime.now())
+                        .authorType(AuthorType.AI)
+                        .content(aiChatResponseDto.answer())
+                        .chatResponseType(
+                                aiChatResponseDto.fastApiChatResponseType() != null
+                                        ? ChatResponseType.valueOf(aiChatResponseDto.fastApiChatResponseType().toUpperCase())
+                                        : null
+                        )
+                        .chatResponseProvider(
+                                aiChatResponseDto.fastApiChatProvider() != null
+                                        ? ChatResponseProvider.valueOf(aiChatResponseDto.fastApiChatProvider().toUpperCase())
+                                        : null
+                        )
+                        .build();
+
+                //order:kakaoId(k-v)로 만들어서 fillPlaceDetails에 넣어야함
+                Map<Integer, String> spotKakaoIds = sortTravelSpotOrder(aiChatResponseDto);
+                //Place 컬렉션과 합쳐서 프론트에 전송해야함(저장하면 안됨)
+                List<ChatResponse.CourseSpotDto> courseSpotDtos = fillPlaceDetails(spotKakaoIds);
+                String title = createCourseTitle(identifier);
+                ChatResponse.TravelCourseDto travelCourseDto = ChatResponse.TravelCourseDto.of(title, courseSpotDtos);
+
+                if (travelCourseDto == null || travelCourseDto.courseSpots().isEmpty()) {
+                    log.warn("[Chat] [Course] 여행 코스 생성 실패 (isCourse: {})", aiChatResponseDto.isCourse());
+                    throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "여행코스 생성 실패");
+                }
+                return ChatResponse.Generation.fromUserWithTravelCourse(userMessage, aiMessage, travelCourseDto);
+
             }
             //4.2 코스 생성 요청이 아닌 경우
-            else if(ChatResponseType.CHAT.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType()) ||
-                    ChatResponseType.SEARCH.name().equalsIgnoreCase(chatResponseDto.fastApiChatResponseType())) {
+            else if (ChatResponseType.CHAT.name().equalsIgnoreCase(aiChatResponseDto.fastApiChatResponseType()) ||
+                    ChatResponseType.SEARCH.name().equalsIgnoreCase(aiChatResponseDto.fastApiChatResponseType())) {
 
                 //4. AI Message 엔티티 생성
                 ChatSession.Message aiMessage = ChatSession.Message.builder()
                         .id(UUID.randomUUID().toString())
                         .messagedAt(LocalDateTime.now())
                         .authorType(AuthorType.AI)
-                        .content(chatResponseDto.answer())
+                        .content(aiChatResponseDto.answer())
                         .chatResponseType(
-                                chatResponseDto.fastApiChatResponseType() != null
-                                        ? ChatResponseType.valueOf(chatResponseDto.fastApiChatResponseType().toUpperCase())
+                                aiChatResponseDto.fastApiChatResponseType() != null
+                                        ? ChatResponseType.valueOf(aiChatResponseDto.fastApiChatResponseType().toUpperCase())
                                         : null
                         )
                         .chatResponseProvider(
-                                chatResponseDto.fastApiChatProvider() != null
-                                        ? ChatResponseProvider.valueOf(chatResponseDto.fastApiChatProvider().toUpperCase())
+                                aiChatResponseDto.fastApiChatProvider() != null
+                                        ? ChatResponseProvider.valueOf(aiChatResponseDto.fastApiChatProvider().toUpperCase())
                                         : null
                         )
                         .build();
@@ -286,18 +321,69 @@ public class ChatService {
         throw new CustomException(ErrorCode.AI_SERVER_ERROR);
     }
 
+    private String createCourseTitle(String identifier) {
+        Member member = memberRepository.findByEmailOrElseThrow(identifier);
+
+        int travelCourseCount = member.getTravelCourses().size();
+        if(travelCourseCount != 0){
+            return identifier + " 코스1";
+        }else{
+            return identifier + " 코스" + travelCourseCount + 1;
+        }
+    }
+
+    //order-kakaoId(K-V)형태로 들어온 장소들을 Place 컬렉션 조회해서 TravelCourseDto를 만들어주는 함수
+    private List<ChatResponse.CourseSpotDto> fillPlaceDetails(Map<Integer, String> spotKakaoIds) {
+        //List<CourseSpotDto>만들기 -> title만들기 -> TravelCourseDto 생성 완료
+        //1. List<CourseSpotDto>
+        //1.1 places를 list형태로 가져온다.(순서 상관 없음)
+        List<String> targetKakaoIds = spotKakaoIds.values().stream().toList();
+        List<Place> places = placeRepository.findByKakaoIdIn(targetKakaoIds);
+        if (places == null || places.isEmpty()) {
+            log.warn("[Chat] [Course] KakaoId 목록에 해당하는 장소를 찾을 수 없습니다. (Require Size of Places: {})", targetKakaoIds.size());
+            throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
+        }
+        //1.2 빠른 조회를 위해 가져온 List<Place>를 Map<String(kakaoId), Place>로 변환
+        Map<String, Place> placeByKakaoId = places.stream()
+                .collect(Collectors.toMap(Place::getKakaoId, p -> p));
+        //1.3 List<CourseSpotDto>
+        return spotKakaoIds.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    Integer order = entry.getKey();
+                    String kakaoId = entry.getValue();
+
+                    Place place = placeByKakaoId.get(kakaoId);
+
+                    if (place == null) {
+                        log.warn("[Chat] [Course] 특정 KakaoId에 대한 장소 정보가 DB에 없습니다. (KakaoId: {})", kakaoId);
+                        throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
+                    }
+
+                    return ChatResponse.CourseSpotDto.of(order, place);
+                })
+                .toList();
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++ 추가 필요+++++++++++++++++++++++++++++++++++++++++++++++
+    //코스순서-카카오ID를 mapping
+    private Map<Integer, String> sortTravelSpotOrder(FastApi.ChatResponseDto aiChatResponseDto){
+        return null;
+    }
+
+
     private record UserAiTraitsDto(String persona, String mbti, String sasang) {}
 
     private UserAiTraitsDto getUserAiTraits(String identifier, boolean isGuest) {
-        if(isGuest){
+        if (isGuest) {
             Object personaObj = redisTemplate.opsForHash().get("GUEST_PROFILE:" + identifier, "persona");
             if (personaObj == null) {
                 log.warn("[Chat] 게스트 프로필에 페르소나 정보 없음");
                 throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "게스트 정보를 찾을 수 없습니다.");
             }
-            return new UserAiTraitsDto(personaObj.toString(), null,null);
+            return new UserAiTraitsDto(personaObj.toString(), null, null);
 
-        }else{
+        } else {
             Member targetMember = memberRepository.getMemberByEmail(identifier);
 
             // NPE 방어 로직: null인지 먼저 확인 후 메서드 호출
@@ -309,17 +395,18 @@ public class ChatService {
         }
     }
 
-    private FastApi.ChatResponseDto getAnswerMessageFromFastApi(String identifier, boolean isGuest, String userMessage){
+    //try-catch문 필요함
+    private FastApi.ChatResponseDto getAnswerMessageFromFastApi(String identifier, boolean isGuest, String userMessage) {
         //필요 데이터: input_message, 사용자 식별자(이메일,게스트uuid), 페르소나, mbti, sasang
 
         //1. FastAPI로 전송할 데이터 준비
-        UserAiTraitsDto userData = getUserAiTraits(identifier,isGuest);
+        UserAiTraitsDto userData = getUserAiTraits(identifier, isGuest);
 
         //2. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
         log.debug("[Chat] FastAPI 채팅 요청 전송");
-        FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(userMessage,identifier,userData.persona,userData.mbti,userData.sasang));
+        FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(userMessage, identifier, userData.persona, userData.mbti, userData.sasang));
         //3. error 응답이 오면 exception throw
-        if(!StringUtils.hasText(chatResponseDto.answer())){
+        if (!StringUtils.hasText(chatResponseDto.answer())) {
             log.warn("[Chat] FastAPI 응답 오류");
             throw new CustomException(ErrorCode.AI_SERVER_ERROR);
         }
@@ -329,7 +416,7 @@ public class ChatService {
 
     //생성된 게스트 채팅 세션을 불러오고 없으면 새로 생성
     @Transactional
-    private GuestChatSession getOrCreateGuestChatSession(String identifier) {
+    public GuestChatSession getOrCreateGuestChatSession(String identifier) {
         return guestChatSessionRepository.findById(identifier)
                 .orElseGet(() -> {
                     log.info("[Chat] 게스트 채팅 세션이 없음-신규 채팅 세션 생성");
@@ -350,7 +437,7 @@ public class ChatService {
 
     //가장 최근에 생성된 세션 1개를 가져오거나 생성함
     @Transactional
-    private ChatSession getOrCreateChatSession(String identifier){
+    public ChatSession getOrCreateChatSession(String identifier) {
         String memberId = memberRepository.findMemberIdByEmailOrElseThrow(identifier);
 
         return chatSessionRepository.findFirstByMemberIdOrderByCreatedAtDesc(memberId)
@@ -370,5 +457,53 @@ public class ChatService {
                     return chatSessionRepository.save(newSession);
                 });
     }
+
+
+    @Transactional
+    public ChatResponse.TravelCourseIdDto saveTravelCourse(String identifier, ChatRequest.TravelCourseDto travelCourseDto) {
+        Member member = memberRepository.getMemberByEmail(identifier);
+
+        List<ChatRequest.CourseSpotDto> courseSpotDtos = travelCourseDto.courseSpots();
+
+        // DTO -> Entity 변환 (CourseSpot)
+        List<Member.CourseSpot> courseSpots = courseSpotDtos.stream()
+                .map(data -> Member.CourseSpot.builder()
+                        .spotOrder(data.spotOrder())
+                        .name(data.name())
+                        .address(data.address())
+                        .thumbnailUrl(data.thumbnailUrl())
+                        .coursePlaceCategory(data.coursePlaceCategory())
+                        .kakaoId(data.kakaoId())
+                        .expertComment(data.expertComment())
+                        .geoJsonPoint(new GeoJsonPoint(data.x(), data.y()))
+                        .build())
+                .toList();
+
+        // 신규 여행 코스 생성
+        Member.TravelCourse travelCourse = Member.TravelCourse.builder()
+                .id(UUID.randomUUID().toString())
+                .title(travelCourseDto.title())
+                .isSelected(hasNoSelectedCourse(member.getTravelCourses()))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .spots(courseSpots)
+                .build();
+
+        // Member 리스트에 추가
+        member.getTravelCourses().add(travelCourse);
+        memberRepository.save(member);
+
+        return new ChatResponse.TravelCourseIdDto(travelCourse.getId());
+    }
+
+    private boolean hasNoSelectedCourse(List<Member.TravelCourse> travelCourses){
+        if (travelCourses == null || travelCourses.isEmpty()) {
+            return true;
+        }
+
+        return travelCourses.stream()
+                .noneMatch(Member.TravelCourse::isSelected);
+    }
+
 
 }
