@@ -156,9 +156,12 @@ public class Member {
     public static class CourseSpot{
         private int spotOrder;
         private String kakaoId;
+        private String name;
+        private String address;
         private CoursePlaceCategory coursePlaceCategory;
         private String thumbnailUrl;
         private String expertComment;
+        private GeoJsonPoint geoJsonPoint;
     }
 
     //++++++++++++++++++리워드 코스는 따로 만들어야함++++++++++++++++++++

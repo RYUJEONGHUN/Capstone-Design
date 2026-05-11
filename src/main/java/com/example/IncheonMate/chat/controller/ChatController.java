@@ -52,7 +52,7 @@ public class ChatController {
     //채팅창에서 채팅 입력
     @Operation(summary = "채팅 전송", description = "채팅 입력 후 AI에게 메시지를 전송합니다.")
     @ApiResponses(value ={
-            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(schema = @Schema(implementation = ChatRequest.MessageDto.class))),
+            @ApiResponse(responseCode = "200", description = "채팅 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChatResponse.Generation.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 채팅 요청", content = @Content(schema = @Schema(implementation = CustomException.class))),
             @ApiResponse(responseCode = "500", description = "AI 서버 응답 지연 또는 시스템 오류", content = @Content(schema = @Schema(implementation = CustomException.class)))
     })
@@ -64,6 +64,23 @@ public class ChatController {
         ChatResponse.Generation result = chatService.sendChatMessage(identifier, user.isGuest(), messageDto);
         log.info("[Chat] AI 채팅 응답 성공");
         return ResponseEntity.status(HttpStatus.OK)
+                .body(result);
+    }
+
+    //채팅창에서 코스 확정 버튼 누르면 DB에 저장하는 요청
+    @Operation(summary = "여행 코스 확정", description = "채팅창에서 여행 코스 확정후 DB에 저장합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201",  description = "여행코스 저장 성공", content = @Content(schema = @Schema(implementation = ChatResponse.TravelCourseIdDto.class))),
+            @ApiResponse(responseCode = "500", description = "여행코스 저장 실패", content = @Content(schema = @Schema(implementation = CustomException.class)))
+    })
+    @PostMapping("/travel-course")
+    public ResponseEntity<ChatResponse.TravelCourseIdDto> saveTravelCourse(@AuthenticationPrincipal CustomOAuth2User user, @RequestBody ChatRequest.TravelCourseDto travelCourseDto){
+        String identifier = user.getIdentifier();
+        log.info("[Chat] 여행 코스 저장 요청");
+
+        ChatResponse.TravelCourseIdDto result = chatService.saveTravelCourse(identifier, travelCourseDto);
+        log.info("[Chat] 여행 코스 저장 성공");
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(result);
     }
 
