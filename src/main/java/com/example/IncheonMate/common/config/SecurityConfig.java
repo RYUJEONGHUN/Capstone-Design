@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/chat-sessions").hasRole("USER")
                 .requestMatchers("/api/onboarding/check").permitAll()
                 .requestMatchers("/api/onboarding/**").hasAnyRole("PENDING","USER")
+                .requestMatchers("/api/courses/**").hasRole("USER")
                 .anyRequest().authenticated());
 
         //로깅 필터 filter chain 최상단에 끼워넣기
