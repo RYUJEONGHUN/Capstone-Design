@@ -27,11 +27,6 @@ import java.util.List;
 @ToString(exclude = {"recentSearches", "recentRoutes", "favoritePlaces"})
 @Document(collection = "members") // MongoDB의 'members' 컬렉션에 저장됨
 public class Member {
-    /*
-    id, email, name, role, provider, createdAt, updatedAt
-    lang, nickname, profileImage, profileImageAsMarker(false), birthDate
-    mbti, sasang, companion, selectedPersona
-     */
     @Field(targetType = FieldType.STRING)
     private CompanionType companion;
 
@@ -91,7 +86,6 @@ public class Member {
     public static class FavoritePlace{
         // 내장 객체의 ID에는 @Indexed(unique=true)를 절대 걸면 안 됨! (UUID 생성 후 저장)
         private String id; //수동 UUID
-        @CreatedDate
         private LocalDateTime createdAt;
         private String kakaoPlaceId; //카카오에서 제공해주는 장소 Id값
         private String placeName; //장소 이름
@@ -116,7 +110,6 @@ public class Member {
         //키워드 저장할떄 사용
         private String id; //수동 UUID
         private String keyword; //검색어 또는 장소명
-        @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
     }
 
@@ -134,7 +127,6 @@ public class Member {
         private String arrivalName; //도착 장소 이름
         private GeoJsonPoint departureLocation; //출발 장소 좌표
         private GeoJsonPoint arrivalLocation;//도착 장소 좌표
-        @CreatedDate
         private LocalDateTime searchedAt; //검색한 시간
     }
 
