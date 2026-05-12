@@ -43,8 +43,7 @@ public class CourseService {
     public List<CourseResponse.TravelCourseSummaryDto> retrieveRecommendationCourses() {
         List<CuratedCourse> curatedCourseList = curatedCourseRepository.findByIsVisibleTrue();
         if(curatedCourseList.isEmpty()){
-            log.warn("[Course] [Curated] 보여줄 큐레이션 코스 목록이 없습니다. (VisibleCuatedCourseSize: 0)");
-            throw new CustomException(ErrorCode.COURSE_NOT_FOUND, "보여줄 큐레이션 코스 목록이 없습니다");
+            return List.of(CourseResponse.TravelCourseSummaryDto.from(null));
         }
 
         return curatedCourseList.stream()

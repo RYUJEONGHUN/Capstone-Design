@@ -3,6 +3,7 @@ package com.example.IncheonMate.course.dto;
 import com.example.IncheonMate.course.domain.CuratedCourse;
 import com.example.IncheonMate.member.domain.type.CoursePlaceCategory;
 import com.example.IncheonMate.member.domain.Member;
+import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +23,10 @@ public class CourseResponse {
             Double y
     ) {
         public static CourseResponse.CourseSpotDto fromMemberCourseSpot(Member.CourseSpot courseSpot){
+            String naegiftUrl = StringUtils.hasText(courseSpot.getNaegiftId())
+                    ? "https://shopuser-qa.naegift.com/" + courseSpot.getNaegiftId() + "?channel_no=1"
+                    : null;
+
             return new CourseResponse.CourseSpotDto(
                     courseSpot.getSpotOrder(),
                     courseSpot.getName(),
@@ -29,7 +34,7 @@ public class CourseResponse {
                     courseSpot.getThumbnailUrl(),
                     courseSpot.getCoursePlaceCategory(),
                     "https://place.map.kakao.com/" + courseSpot.getKakaoId(), //https://place.map.kakao.com/xxxxx
-                    courseSpot.getNaegiftId() != null ? "https://shopuser-qa.naegift.com/" + courseSpot.getNaegiftId() + "?channel_no=1" : null, //https://shopuser-qa.naegift.com/xxxxx?channel_no=1
+                    naegiftUrl,
                     courseSpot.getExpertComment(),
                     courseSpot.getGeoJsonPoint().getX(),
                     courseSpot.getGeoJsonPoint().getY()
@@ -37,6 +42,10 @@ public class CourseResponse {
         }
 
         public static CourseResponse.CourseSpotDto fromCuratedCourseSpot(CuratedCourse.CuratedSpot curatedSpot){
+            String naegiftUrl = StringUtils.hasText(curatedSpot.getNaegiftId())
+                    ? "https://shopuser-qa.naegift.com/" + curatedSpot.getNaegiftId() + "?channel_no=1"
+                    : null;
+
             return new CourseResponse.CourseSpotDto(
                     curatedSpot.getSpotOrder(),
                     curatedSpot.getName(),
@@ -44,7 +53,7 @@ public class CourseResponse {
                     curatedSpot.getThumbnailUrl(),
                     curatedSpot.getCoursePlaceCategory(),
                     "https://place.map.kakao.com/"+curatedSpot.getKakaoId(),
-                    curatedSpot.getNaegiftId() != null ? "https://shopuser-qa.naegift.com/" + curatedSpot.getNaegiftId() + "?channel_no=1" : null,
+                    naegiftUrl,
                     curatedSpot .getExpertComment(),
                     curatedSpot.getGeoJsonPoint().getX(),
                     curatedSpot.getGeoJsonPoint().getY()
@@ -91,6 +100,8 @@ public class CourseResponse {
             List<CoursePlaceCategory> coursePlaceCategories
     ){
         public static CourseResponse.TravelCourseSummaryDto from(CuratedCourse course){
+            if(course == null) return new TravelCourseSummaryDto(null,null,Collections.emptyList(),Collections.emptyList());
+
             return new TravelCourseSummaryDto(
                     course.getId(),
                     course.getTitle(),
