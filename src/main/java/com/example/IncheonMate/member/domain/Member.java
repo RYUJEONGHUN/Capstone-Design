@@ -130,18 +130,17 @@ public class Member {
         private LocalDateTime searchedAt; //검색한 시간
     }
 
-    @Builder.Default
-    private List<TravelCourse> travelCourses = new ArrayList<>();
+    //AI 생성 코스는 1개만 가능
+    private TravelCourse travelCourse;
 
-    //여행 코스가 100개를 넘어간다면 Course Collection으로 분리해야함(거의 불가능)
+
     @Getter
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     public static class TravelCourse{
         private String id;
-        private String title;
-        private boolean isSelected;
+        private String title; //[사용자명]님을 위한 맞춤 여행 코스
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
@@ -156,6 +155,7 @@ public class Member {
     public static class CourseSpot{
         private int spotOrder;
         private String kakaoId;
+        @Nullable private String naegiftId;
         private String name;
         private String address;
         private CoursePlaceCategory coursePlaceCategory;

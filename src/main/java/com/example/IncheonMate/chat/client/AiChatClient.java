@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 //+++++++++++++++++++++++++++++++++++++++나중에 URL 수정 필수+++++++++++++++++++++++++++++++++++++++++++++
-@FeignClient(name = "ai-chat-client", url="${app.ai-server.url}/api/v1/ai")
+@FeignClient(name = "ai-chat-client", url="${app.ai-server.url}/api/v1/ai/chat")
 public interface AiChatClient {
 
     //채팅
