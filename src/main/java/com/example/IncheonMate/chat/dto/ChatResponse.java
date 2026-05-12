@@ -8,6 +8,7 @@ import com.example.IncheonMate.member.domain.type.CoursePlaceCategory;
 import com.example.IncheonMate.place.domain.Place;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.poi.ss.formula.functions.T;
+import org.springframework.util.StringUtils;
 
 import javax.swing.plaf.basic.BasicTreeUI;
 import java.time.LocalDateTime;
@@ -96,6 +97,10 @@ public class ChatResponse {
             Double y
     ) {
         public static CourseSpotDto of(int spotOrder, Place place) {
+            String naegiftUrl = StringUtils.hasText(place.getNaegiftId())
+                    ? "https://shopuser-qa.naegift.com/" + place.getNaegiftId() + "?channel_no=1"
+                    : null;
+
             return new CourseSpotDto(
                     spotOrder,
                     place.getName(),
@@ -103,7 +108,7 @@ public class ChatResponse {
                     place.getThumbnailUrl(),
                     place.getCoursePlaceCategory(),
                     "https://place.map.kakao.com/" + place.getKakaoId(), //https://place.map.kakao.com/xxxxx
-                    "https://shopuser-qa.naegift.com/" + place.getNaegiftId() + "?channel_no=1", //https://shopuser-qa.naegift.com/xxxxx?channel_no=1
+                    naegiftUrl,
                     place.getExpertComment(),
                     place.getX(),
                     place.getY()
