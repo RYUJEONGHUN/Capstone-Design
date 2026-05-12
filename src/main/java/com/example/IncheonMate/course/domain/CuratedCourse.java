@@ -1,6 +1,7 @@
 package com.example.IncheonMate.course.domain;
 
 import com.example.IncheonMate.member.domain.type.CoursePlaceCategory;
+import com.example.IncheonMate.place.domain.Place;
 import com.mongodb.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -53,5 +54,23 @@ public class CuratedCourse {
         private String thumbnailUrl;
         private String expertComment;
         private GeoJsonPoint geoJsonPoint;
+
+
+        public static CuratedSpot of(Place place, int spotOrder){
+            return CuratedSpot.builder()
+                    .spotOrder(spotOrder)
+                    .placeId(place.getId())
+                    .kakaoId(place.getKakaoId())
+                    .naegiftId(place.getNaegiftId())
+                    .name(place.getName())
+                    .address(place.getAddress())
+                    .coursePlaceCategory(place.getCoursePlaceCategory())
+                    .thumbnailUrl(place.getThumbnailUrl())
+                    .expertComment(place.getExpertComment())
+                    .geoJsonPoint(new GeoJsonPoint(place.getX(), place.getY()))
+                    .build();
+        }
     }
+
+
 }
