@@ -30,6 +30,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -240,27 +241,13 @@ public class ChatService {
             //++++++++++++++++++++++++++++++++++++++코스 수정은 어떻게??++++++++++++++++++++++++++++++++++++++++++++++++++++++
             //4.1 코스 생성 요청인 경우
             if (ChatResponseType.COURSE.name().equalsIgnoreCase(aiChatResponseDto.fastApiChatResponseType()) &&
-                    Boolean.TRUE.equals(aiChatResponseDto.isCourse())) {
+                    Boolean.TRUE.equals(aiChatResponseDto.isCourse()) &&
+                    !aiChatResponseDto.routeDto().isEmpty()) {
 
-                ChatSession.Message aiMessage = ChatSession.Message.builder()
-                        .id(UUID.randomUUID().toString())
-                        .messagedAt(LocalDateTime.now())
-                        .authorType(AuthorType.AI)
-                        .content(aiChatResponseDto.answer())
-                        .chatResponseType(
-                                aiChatResponseDto.fastApiChatResponseType() != null
-                                        ? ChatResponseType.valueOf(aiChatResponseDto.fastApiChatResponseType().toUpperCase())
-                                        : null
-                        )
-                        .chatResponseProvider(
-                                aiChatResponseDto.fastApiChatProvider() != null
-                                        ? ChatResponseProvider.valueOf(aiChatResponseDto.fastApiChatProvider().toUpperCase())
-                                        : null
-                        )
-                        .build();
+                ChatSession.Message aiMessage = createAiMessageFromDto(aiChatResponseDto);
 
                 //order:kakaoId(k-v)로 만들어서 fillPlaceDetails에 넣어야함
-                Map<Integer, String> spotKakaoIds = sortTravelSpotOrder(aiChatResponseDto);
+                Map<Integer, String> spotKakaoIds = sortTravelSpotOrder(aiChatResponseDto.routeDto());
                 //Place 컬렉션과 합쳐서 프론트에 전송해야함(저장하면 안됨)
                 List<ChatResponse.CourseSpotDto> courseSpotDtos = fillPlaceDetails(spotKakaoIds);
                 String title = createCourseTitle(identifier);
@@ -270,6 +257,11 @@ public class ChatService {
                     log.warn("[Chat] [Course] 여행 코스 생성 실패 (isCourse: {})", aiChatResponseDto.isCourse());
                     throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "여행코스 생성 실패");
                 }
+
+                chatSession.addMessages(userMessage, aiMessage);
+                chatSessionRepository.save(chatSession);
+                log.debug("[Chat] 정회원 채팅 메시지 저장 완료");
+
                 return ChatResponse.Generation.fromUserWithTravelCourse(userMessage, aiMessage, travelCourseDto);
 
             }
@@ -278,22 +270,7 @@ public class ChatService {
                     ChatResponseType.SEARCH.name().equalsIgnoreCase(aiChatResponseDto.fastApiChatResponseType())) {
 
                 //4. AI Message 엔티티 생성
-                ChatSession.Message aiMessage = ChatSession.Message.builder()
-                        .id(UUID.randomUUID().toString())
-                        .messagedAt(LocalDateTime.now())
-                        .authorType(AuthorType.AI)
-                        .content(aiChatResponseDto.answer())
-                        .chatResponseType(
-                                aiChatResponseDto.fastApiChatResponseType() != null
-                                        ? ChatResponseType.valueOf(aiChatResponseDto.fastApiChatResponseType().toUpperCase())
-                                        : null
-                        )
-                        .chatResponseProvider(
-                                aiChatResponseDto.fastApiChatProvider() != null
-                                        ? ChatResponseProvider.valueOf(aiChatResponseDto.fastApiChatProvider().toUpperCase())
-                                        : null
-                        )
-                        .build();
+                ChatSession.Message aiMessage = createAiMessageFromDto(aiChatResponseDto);
 
                 //5. ChatSession 엔티티의 LastMessageAt 업데이트 하고 Message 엔티티 추가
                 chatSession.addMessages(userMessage, aiMessage);
@@ -323,13 +300,7 @@ public class ChatService {
 
     private String createCourseTitle(String identifier) {
         Member member = memberRepository.findByEmailOrElseThrow(identifier);
-
-        int travelCourseCount = member.getTravelCourses().size();
-        if(travelCourseCount != 0){
-            return identifier + " 코스1";
-        }else{
-            return identifier + " 코스" + travelCourseCount + 1;
-        }
+        return "\uD83D\uDCCD " + member.getNickname() + "님을 위한 맞춤 여행 코스";
     }
 
     //order-kakaoId(K-V)형태로 들어온 장소들을 Place 컬렉션 조회해서 TravelCourseDto를 만들어주는 함수
@@ -339,13 +310,16 @@ public class ChatService {
         //1.1 places를 list형태로 가져온다.(순서 상관 없음)
         List<String> targetKakaoIds = spotKakaoIds.values().stream().toList();
         List<Place> places = placeRepository.findByKakaoIdIn(targetKakaoIds);
-        if (places == null || places.isEmpty()) {
-            log.warn("[Chat] [Course] KakaoId 목록에 해당하는 장소를 찾을 수 없습니다. (Require Size of Places: {})", targetKakaoIds.size());
+        if (places == null || places.size() != targetKakaoIds.size()) {
+            log.warn("[Chat] [Course] KakaoId 목록에 해당하는 장소를 찾을 수 없습니다. (요청 개수: {}, 찾은 개수: {})", targetKakaoIds.size(), places == null ? 0 : places.size());
             throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
         }
         //1.2 빠른 조회를 위해 가져온 List<Place>를 Map<String(kakaoId), Place>로 변환
         Map<String, Place> placeByKakaoId = places.stream()
-                .collect(Collectors.toMap(Place::getKakaoId, p -> p));
+                .collect(Collectors.toMap(
+                        Place::getKakaoId,
+                        p -> p,
+                        (existing, replacement) -> existing));
         //1.3 List<CourseSpotDto>
         return spotKakaoIds.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -365,14 +339,38 @@ public class ChatService {
                 .toList();
     }
 
-    //++++++++++++++++++++++++++++++++++++++++++++++++++++++ 추가 필요+++++++++++++++++++++++++++++++++++++++++++++++
     //코스순서-카카오ID를 mapping
-    private Map<Integer, String> sortTravelSpotOrder(FastApi.ChatResponseDto aiChatResponseDto){
-        return null;
+    private Map<Integer, String> sortTravelSpotOrder(List<FastApi.RouteDto> routeDtoList) {
+        return routeDtoList.stream()
+                .collect(Collectors.toMap(
+                        FastApi.RouteDto::order,
+                        FastApi.RouteDto::kakaoId,
+                        (existing, replacement) -> existing // 중복 순서 발생 시 처리 로직 (기존 값 유지)
+                ));
+    }
+
+    private ChatSession.Message createAiMessageFromDto(FastApi.ChatResponseDto aiChatResponseDto) {
+        return ChatSession.Message.builder()
+                .id(UUID.randomUUID().toString())
+                .messagedAt(LocalDateTime.now())
+                .authorType(AuthorType.AI)
+                .content(aiChatResponseDto.answer())
+                .chatResponseType(
+                        aiChatResponseDto.fastApiChatResponseType() != null
+                                ? ChatResponseType.valueOf(aiChatResponseDto.fastApiChatResponseType().toUpperCase())
+                                : null
+                )
+                .chatResponseProvider(
+                        aiChatResponseDto.fastApiChatProvider() != null
+                                ? ChatResponseProvider.valueOf(aiChatResponseDto.fastApiChatProvider().toUpperCase())
+                                : null
+                )
+                .build();
     }
 
 
-    private record UserAiTraitsDto(String persona, String mbti, String sasang) {}
+    private record UserAiTraitsDto(String persona, String mbti, String sasang) {
+    }
 
     private UserAiTraitsDto getUserAiTraits(String identifier, boolean isGuest) {
         if (isGuest) {
@@ -404,12 +402,25 @@ public class ChatService {
 
         //2. OpenFeign으로 FastAPI에 채팅 생성 요청 보내기
         log.debug("[Chat] FastAPI 채팅 요청 전송");
-        FastApi.ChatResponseDto chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(userMessage, identifier, userData.persona, userData.mbti, userData.sasang));
-        //3. error 응답이 오면 exception throw
-        if (!StringUtils.hasText(chatResponseDto.answer())) {
-            log.warn("[Chat] FastAPI 응답 오류");
-            throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+
+        FastApi.ChatResponseDto chatResponseDto;
+        try {
+            //OpenFeign 호출
+            chatResponseDto = aiChatClient.getAnswerMessage(FastApi.ChatRequestDto.of(userMessage, identifier, userData.persona, userData.mbti, userData.sasang));
+        } catch (feign.FeignException e) {
+            log.error("[Chat] FastAPI 서버 통신 오류: {}", e.getMessage());
+            throw new CustomException(ErrorCode.AI_SERVER_ERROR, "AI 서버와의 통신이 원할하지 않습니다.");
+        } catch (Exception e) {
+            log.error("[Chat] AI 서버 요청 중 알 수 없는 오류: {}", e.getMessage());
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "AI 요청 처리 중 오류가 발생했습니다.");
         }
+        if(chatResponseDto == null || !StringUtils.hasText(chatResponseDto.answer())){
+            log.warn("[Chat] FastAPI 응답 값이 비어있음");
+            throw new CustomException(ErrorCode.AI_SERVER_ERROR, "응답 값(Answer)이 비어있습니다.");
+        }
+
+        log.info("[Chat] FastAPI 채팅 응답 성공 (IsCourse: {}, ResponseType: {}, provider: {})",
+                chatResponseDto.isCourse(), chatResponseDto.fastApiChatResponseType(), chatResponseDto.fastApiChatProvider());
 
         return chatResponseDto;
     }
@@ -441,7 +452,6 @@ public class ChatService {
         String memberId = memberRepository.findMemberIdByEmailOrElseThrow(identifier);
 
         return chatSessionRepository.findFirstByMemberIdOrderByCreatedAtDesc(memberId)
-
                 .orElseGet(() -> {
                     log.info("[Chat] 정회원 채팅 세션이 없음-신규 채팅 세션 생성");
                     LocalDateTime now = LocalDateTime.now();
@@ -463,46 +473,48 @@ public class ChatService {
     public ChatResponse.TravelCourseIdDto saveTravelCourse(String identifier, ChatRequest.TravelCourseDto travelCourseDto) {
         Member member = memberRepository.getMemberByEmail(identifier);
 
-        List<ChatRequest.CourseSpotDto> courseSpotDtos = travelCourseDto.courseSpots();
+        //1. 기존 코스가 있다면 ID를 유지, 없으면 새로 생성
+        String courseId = (member.getTravelCourse() != null)
+                ? member.getTravelCourse().getId()
+                : UUID.randomUUID().toString();
 
-        // DTO -> Entity 변환 (CourseSpot)
-        List<Member.CourseSpot> courseSpots = courseSpotDtos.stream()
-                .map(data -> Member.CourseSpot.builder()
-                        .spotOrder(data.spotOrder())
-                        .name(data.name())
-                        .address(data.address())
-                        .thumbnailUrl(data.thumbnailUrl())
-                        .coursePlaceCategory(data.coursePlaceCategory())
-                        .kakaoId(data.kakaoId())
-                        .expertComment(data.expertComment())
-                        .geoJsonPoint(new GeoJsonPoint(data.x(), data.y()))
-                        .build())
+        //2. DTO -> Entity 변환
+        List<Member.CourseSpot> courseSpots = travelCourseDto.courseSpots().stream()
+                .map(data -> {
+                    String kakaoId = data.kakaoUrl().replace("https://place.map.kakao.com/", "");
+                    String naegiftId = StringUtils.hasText(data.naegiftUrl()) ? data.naegiftUrl().replace("https://shopuser-qa.naegift.com/", "").split("\\?")[0] : null;
+
+                    return Member.CourseSpot.builder()
+                            .spotOrder(data.spotOrder())
+                            .name(data.name())
+                            .address(data.address())
+                            .thumbnailUrl(data.thumbnailUrl())
+                            .naegiftId(naegiftId)
+                            .coursePlaceCategory(data.coursePlaceCategory())
+                            .kakaoId(kakaoId)
+                            .expertComment(data.expertComment())
+                            .geoJsonPoint(new GeoJsonPoint(data.x(), data.y()))
+                            .build();
+                })
                 .toList();
 
-        // 신규 여행 코스 생성
+        //3. TravelCourse 객체 생성
         Member.TravelCourse travelCourse = Member.TravelCourse.builder()
-                .id(UUID.randomUUID().toString())
+                .id(courseId)
                 .title(travelCourseDto.title())
-                .isSelected(hasNoSelectedCourse(member.getTravelCourses()))
-                .createdAt(LocalDateTime.now())
+                .createdAt(member.getTravelCourse() != null ? member.getTravelCourse().getCreatedAt() : LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .spots(courseSpots)
                 .build();
 
-        // Member 리스트에 추가
-        member.getTravelCourses().add(travelCourse);
-        memberRepository.save(member);
+        //4. toBuilder로 새로운 Member 생성
+        Member updatedMember = member.toBuilder().
+                travelCourse(travelCourse)
+                .build();
+
+        memberRepository.save(updatedMember);
 
         return new ChatResponse.TravelCourseIdDto(travelCourse.getId());
-    }
-
-    private boolean hasNoSelectedCourse(List<Member.TravelCourse> travelCourses){
-        if (travelCourses == null || travelCourses.isEmpty()) {
-            return true;
-        }
-
-        return travelCourses.stream()
-                .noneMatch(Member.TravelCourse::isSelected);
     }
 
 

@@ -8,6 +8,7 @@ import com.example.IncheonMate.member.domain.type.CoursePlaceCategory;
 import com.example.IncheonMate.place.domain.Place;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.poi.ss.formula.functions.T;
+import org.springframework.util.StringUtils;
 
 import javax.swing.plaf.basic.BasicTreeUI;
 import java.time.LocalDateTime;
@@ -88,22 +89,26 @@ public class ChatResponse {
             String name, // 장소명
             String address, //주소
             String thumbnailUrl, //사진
-            CoursePlaceCategory coursePlaceCategory, //카테고리(
-            String kakaoId, //카카오 ID || 카카오 URL ????
+            CoursePlaceCategory coursePlaceCategory, //카테고리
+            String kakaoUrl, //카카오 URL
             String naegiftUrl, //내기프트 URL
             String expertComment,
             Double x,
             Double y
     ) {
         public static CourseSpotDto of(int spotOrder, Place place) {
+            String naegiftUrl = StringUtils.hasText(place.getNaegiftId())
+                    ? "https://shopuser-qa.naegift.com/" + place.getNaegiftId() + "?channel_no=1"
+                    : null;
+
             return new CourseSpotDto(
                     spotOrder,
                     place.getName(),
                     place.getAddress(),
                     place.getThumbnailUrl(),
                     place.getCoursePlaceCategory(),
-                    place.getKakaoId(), //id로할지 url로 할지
-                    "https://shopuser-qa.naegift.com/" + place.getNaegiftId() + "?channel_no=1", //https://shopuser-qa.naegift.com/xxxxx?channel_no=1
+                    "https://place.map.kakao.com/" + place.getKakaoId(), //https://place.map.kakao.com/xxxxx
+                    naegiftUrl,
                     place.getExpertComment(),
                     place.getX(),
                     place.getY()

@@ -1,6 +1,9 @@
 package com.example.IncheonMate.chat.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mongodb.lang.Nullable;
+
+import java.util.List;
 
 public class FastApi {
     public record ChatRequestDto(
@@ -20,7 +23,41 @@ public class FastApi {
             @JsonProperty("answer") String answer,
             @JsonProperty("isCourse") boolean isCourse,
             @JsonProperty("responseType") String fastApiChatResponseType,
-            @JsonProperty("provider") String fastApiChatProvider
+            @JsonProperty("provider") String fastApiChatProvider,
+            @JsonProperty("places") List<PlaceDto> placesDto,
+            @JsonProperty("route") List<RouteDto> routeDto
+
     ) {
     }
+
+    public record PlaceDto(
+            int rank,
+            String placeName,
+            String category,
+            String subCategory,
+            String address,
+            String region,
+            double rating,
+            String kakaoId,
+            @Nullable String imageUrl,
+            double x,
+            double y,
+            @Nullable String naegiftId
+    ){}
+
+    public record RouteDto(
+            int order,
+            String placeName,
+            String category,
+            String subCategory,
+            String address,
+            String region,
+            double rating,
+            String kakaoId,
+            @Nullable String imageUrl,
+            double x,
+            double y,
+            @Nullable String naegiftId,
+            double distanceFromPrev
+    ) {}
 }

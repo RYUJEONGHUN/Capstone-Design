@@ -29,6 +29,7 @@ public enum ErrorCode {
     STATION_NOT_FOUND(HttpStatus.NOT_FOUND,"ROUTE 004","출발지 또는 도착지 주변에 정류장이 없습니다."),
     NO_SEARCH_RESULT(HttpStatus.NOT_FOUND, "ROUTE 007", "대중교통 길찾기 검색 결과가 없습니다."),
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND,"PLACE 001" ,"해당하는 장소를 찾을 수 없습니다." ),
+    COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE 001", "해당하는 코스를 찾을 수 없습니다."),
 
     //409
     DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "COMMON 409", "이미 존재하는 리소스입니다."),
