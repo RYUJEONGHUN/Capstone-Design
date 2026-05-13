@@ -28,7 +28,7 @@ public class RewardCourse {
     private String title;
     private boolean isVisible;
 
-    private String rewardComment;
+    private String rewardDescription;
 
     @CreatedDate
     private LocalDateTime createdAt;
