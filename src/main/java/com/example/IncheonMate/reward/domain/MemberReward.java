@@ -27,9 +27,11 @@ public class MemberReward {
     private String rewardCourseId;
 
     //코스 완료 및 보상 상태 저장 필드
-    private boolean isCompleted;
+    @Builder.Default
+    private boolean isCompleted = false;
     private LocalDateTime completedAt;
-    private boolean isRewarded;
+    @Builder.Default
+    private boolean isRewarded = false;
     private LocalDateTime rewardedAt;
 
     @Builder.Default
@@ -41,7 +43,8 @@ public class MemberReward {
     @NoArgsConstructor
     public static class RewardSpotProgress{
         private String placeId;
-        private boolean isVerified;
+        @Builder.Default
+        private boolean isVerified = false;
         private LocalDateTime verifiedAt;
     }
 }
