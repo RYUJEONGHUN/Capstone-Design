@@ -47,6 +47,7 @@ public class RewardController {
 
     //QR코드를 인증하면 달성률 변경
     //가정: 우리 서비스 내에서 웹 카메라를 띄워 상점 방문을 확인한다고 가정
+    //기능 추가 가능: X,Y 좌표를 Body에 같이 보내면 Place Collection의 X,Y와 대조해 방문여부 더 확실하게 파악 가능
     @PostMapping("/{reward-course-id}/spots/{place-id}/verify")
     public ResponseEntity<RewardResponse.VerifySpotResponseDto> verifyVisit(
             @AuthenticationPrincipal CustomOAuth2User user,
@@ -56,7 +57,7 @@ public class RewardController {
 
         log.info("[Reward] [Verify] 리워드 스팟 방문 인증 요청 (RewardCourseId : {}, PlaceId: {})",rewardCourseId,placeId);
 
-        RewardResponse.VerifySpotResponseDto result = rewardService.validateVisit(user.getIdentifier(), rewardCourseId, placeId, verifySpotRequest.qrCodeUrl());
+        RewardResponse.VerifySpotResponseDto result = rewardService.validateVisit(user.getIdentifier(), rewardCourseId, placeId, verifySpotRequest);
         log.info("[Reward] [Verify] 리워드 스팟 방문 인증 성공 (verifiedAt: {})", result.verifiedAt());
 
         return ResponseEntity.status(HttpStatus.OK)

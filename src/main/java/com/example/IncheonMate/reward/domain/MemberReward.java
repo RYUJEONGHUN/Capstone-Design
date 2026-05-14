@@ -1,5 +1,7 @@
 package com.example.IncheonMate.reward.domain;
 
+import com.example.IncheonMate.common.exception.CustomException;
+import com.example.IncheonMate.common.exception.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -46,5 +48,22 @@ public class MemberReward {
         @Builder.Default
         private boolean isVerified = false;
         private LocalDateTime verifiedAt;
+
+
+        public void verifyVisit(){
+            if(this.isVerified){
+                throw new CustomException(ErrorCode.ALREADY_VERIFIED);
+            }
+            this.isVerified = true;
+            this.verifiedAt = LocalDateTime.now();
+        }
+    }
+
+    public void updateCompletionStatus(){
+        if(this.isCompleted){
+            throw new CustomException(ErrorCode.ALREADY_COMPLETE);
+        }
+            this.isCompleted = true;
+            this.completedAt = LocalDateTime.now();
     }
 }
