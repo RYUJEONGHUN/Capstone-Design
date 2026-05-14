@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "리워드 코스 관리자 API", description = "여행 코스 탭 리워드 코스 관리자에게 필요한 API")
+@Tag(name = "리워드 관리자 API", description = "리워드(쿠폰) 관리에 필요한 관리자용 API")
 @RestController
 @Slf4j
 @RequiredArgsConstructor
@@ -61,5 +61,6 @@ public class AdminRewardController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(result);
     }
+
 
 }

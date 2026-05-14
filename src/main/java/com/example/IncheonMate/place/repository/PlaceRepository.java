@@ -32,4 +32,5 @@ public interface PlaceRepository extends MongoRepository<Place, String> {
 
     List<Place> findByKakaoIdIn(List<String> targetKakaoIds);
 
+    Optional<Place> findByNaegiftId(String naegiftId);
 }
