@@ -25,12 +25,12 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class AdminRewardService {
 
-    private final RewardRepository rewardRepositoryrepository;
+    private final RewardRepository rewardRepository;
     private final PlaceRepository placeRepository;
 
     //GET: /api/admin/rewards
     public List<AdminRewardResponse.RewardDto> retrieveRewards() {
-        List<Reward> rewardList = rewardRepositoryrepository.findAll();
+        List<Reward> rewardList = rewardRepository.findAll();
         if (rewardList.isEmpty()) {
             log.info("[Reward] [Admin] 등록된 리워드/쿠폰 목록이 없음");
             return rewardList.stream()
@@ -46,7 +46,7 @@ public class AdminRewardService {
 
     //GET: /api/admin/rewards/{naegift-id}
     public AdminRewardResponse.RewardDto retrieveRewardDetail(String naegiftId) {
-        Optional<Reward> rewardOpt = rewardRepositoryrepository.findByNaegiftId(naegiftId);
+        Optional<Reward> rewardOpt = rewardRepository.findByNaegiftId(naegiftId);
         if (!rewardOpt.isPresent()) {
             log.info("[Reward] [Admin] 등록된 리워드/쿠폰이 없음");
             return AdminRewardResponse.RewardDto.from(null);
@@ -58,7 +58,7 @@ public class AdminRewardService {
     //DELETE: /api/admin/rewards/{naegift-id}/coupons/{coupon-id}
     @Transactional
     public AdminRewardResponse.CouponDeleteDto removeCouponFromReward(String naegiftId, String couponId) {
-        Optional<Reward> rewardOpt = rewardRepositoryrepository.findByNaegiftId(naegiftId);
+        Optional<Reward> rewardOpt = rewardRepository.findByNaegiftId(naegiftId);
         if (!rewardOpt.isPresent()) {
             log.info("[Reward] [Admin] 등록된 리워드/쿠폰이 없음");
             return null;
@@ -66,20 +66,17 @@ public class AdminRewardService {
         Reward targetReward = rewardOpt.get();
 
         Reward.Coupon targetCoupon = targetReward.getCoupons().stream()
-                .filter(coupon -> coupon.getId().equals(couponId))
+                .filter(coupon -> coupon.getCouponId().equals(couponId))
                 .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REWARD_CONDITION, "해당하는 쿠폰을 찾을 수 업습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REWARD_CONDITION, "해당하는 쿠폰을 찾을 수 없습니다."));
 
-        if (!targetCoupon.getCouponId().equals(couponId) && !targetReward.getNaegiftId().equals(naegiftId)) {
-            log.info("[Reward] [Admin] [Remove] 쿠폰 삭제 실패 (NaegiftId: {}, CouponId: {})", naegiftId, couponId);
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "내기프트ID or 쿠폰ID를 잘못 입력하였습니다.");
-        }
         if (!targetReward.getCoupons().remove(targetCoupon)) {
             log.info("[Reward] [Admin] [Remove] 쿠폰 삭제 실패 (NaegiftId: {}, CouponId: {})", naegiftId, couponId);
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "내기프트ID or 쿠폰ID를 잘못 입력하였습니다.");
         }
 
-        rewardRepositoryrepository.save(targetReward);
+        targetReward.updateRemainStock();
+        rewardRepository.save(targetReward);
         log.info("[Reward] [Admin] [Remove] 쿠폰 삭제 성공 (NaegiftId: {}, CouponId: {})", naegiftId, couponId);
 
         return AdminRewardResponse.CouponDeleteDto.of(couponId, true, LocalDateTime.now());
@@ -90,41 +87,46 @@ public class AdminRewardService {
 
         String naegiftId = couponInfoDto.naegiftId();
         String couponId = couponInfoDto.couponId();
+
         Optional<Place> placeOpt = placeRepository.findByNaegiftId(naegiftId);
         if (!placeOpt.isPresent()) {
-            log.warn("[Rward] [Admin] 내기프트ID에 해당하는 Place 없음");
+            log.warn("[Reward] [Admin] 내기프트ID에 해당하는 Place 없음");
             throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
         }
+
         Reward.Coupon targetCoupon = Reward.Coupon.builder()
                 .couponId(couponId)
                 .purchasedAt(LocalDateTime.now())
-                .rewardCourseId(couponInfoDto.rewaradCourseId())
+                .rewardCourseId(couponInfoDto.rewardCourseId())
                 .isDelivered(false)
                 .deliveredUserId(null)
                 .deliveredAt(null)
                 .expiredAt(LocalDate.now().plusMonths(couponInfoDto.expirationPeriodMonths()))
                 .build();
 
-        //1. 내기프트ID를 포함하는 reward collection이 있는지 확인하고 없으면 생성
-        Reward targetReward = rewardRepositoryrepository.findByNaegiftId(naegiftId)
-                .orElseGet(() -> {
-                    List<Reward.Coupon> initialCoupons = new ArrayList<>();
-                    initialCoupons.add(targetCoupon);
 
-                    return Reward.builder()
-                            .placeId(placeOpt.get().getId())
-                            .naegiftId(naegiftId)
-                            .remainStock(1)
-                            .isActive(true)
-                            .coupons(initialCoupons)
-                            .build();
-                });
+        Reward targetReward = rewardRepository.findByNaegiftId(naegiftId)
+                .orElseGet(() -> Reward.builder()
+                        .placeId(placeOpt.get().getId())
+                        .naegiftId(naegiftId)
+                        .remainStock(1)
+                        .isActive(true)
+                        .coupons(new ArrayList<>())
+                        .build()
+                );
 
-        //2. 내기프트ID를 포함하는 reward collection에 coupon 넣고 쿠폰 재고 1증가시키기
+        boolean isDuplicateCoupon = targetReward.getCoupons().stream()
+                .anyMatch(coupon -> coupon.getCouponId().equals(couponId));
+
+        if (isDuplicateCoupon) {
+            log.warn("[Reward] [Admin] [Create] 이미 존재하는 쿠폰 ID 등록 시도 (NaegiftId: {}, CouponId: {})", naegiftId, couponId);
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "이미 등록된 쿠폰 ID입니다.");
+        }
+
         targetReward.getCoupons().add(targetCoupon);
-        targetReward.increaseRemainStock();
+        targetReward.updateRemainStock();
 
-        rewardRepositoryrepository.save(targetReward);
-        return AdminRewardResponse.CouponRegistrationDto.of(targetReward,targetCoupon);
+        rewardRepository.save(targetReward);
+        return AdminRewardResponse.CouponRegistrationDto.of(targetReward, targetCoupon);
     }
 }
