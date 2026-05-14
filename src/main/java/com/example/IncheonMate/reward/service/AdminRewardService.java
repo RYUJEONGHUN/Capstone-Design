@@ -5,8 +5,10 @@ import com.example.IncheonMate.common.exception.ErrorCode;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.repository.PlaceRepository;
 import com.example.IncheonMate.reward.domain.Reward;
+import com.example.IncheonMate.reward.domain.RewardCourse;
 import com.example.IncheonMate.reward.dto.AdminRewardRequest;
 import com.example.IncheonMate.reward.dto.AdminRewardResponse;
+import com.example.IncheonMate.reward.repository.RewardCourseRepository;
 import com.example.IncheonMate.reward.repository.RewardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class AdminRewardService {
 
     private final RewardRepository rewardRepository;
     private final PlaceRepository placeRepository;
+    private final RewardCourseRepository rewardCourseRepository;
 
     //GET: /api/admin/rewards
     public List<AdminRewardResponse.RewardDto> retrieveRewards() {
@@ -88,13 +92,32 @@ public class AdminRewardService {
         String naegiftId = couponInfoDto.naegiftId();
         String couponId = couponInfoDto.couponId();
 
+        //UUID 형식 검증
+        if(!isValidUUID(couponId)){
+            log.warn("[Reward] [Admin] CouponID의 형식이 올바르지 않습니다.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "CouponID 형식이 올바르지 않습니다.");
+        }
+
+        //DB 전체를 대상으로 한 쿠폰 ID 중복 검사
+        if(rewardRepository.existsByCouponsCouponId(couponId)){
+            log.warn("[Reward] [Admin] [Create] 이미 DB에 존재하는 쿠폰 ID 등록 시도 (CouponId: {})", couponId);
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "전체 시스템에 이미 등록된 쿠폰 ID입니다.");
+        }
+
         Optional<Place> placeOpt = placeRepository.findByNaegiftId(naegiftId);
         if (!placeOpt.isPresent()) {
             log.warn("[Reward] [Admin] 내기프트ID에 해당하는 Place 없음");
             throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
         }
 
+        Optional<RewardCourse> rewardCourseOpt = rewardCourseRepository.findById(couponInfoDto.rewardCourseId());
+        if(!rewardCourseOpt.isPresent()){
+            log.warn("[Reward] [Admin] 쿠폰을 연결 할 수 있는 리워드 코스가 아님 (RewardCourseId: {})",couponInfoDto.rewardCourseId());
+            throw new CustomException(ErrorCode.COURSE_NOT_FOUND,"리워드 코스ID가 올바르지 않습니다.");
+        }
+
         Reward.Coupon targetCoupon = Reward.Coupon.builder()
+                .id(UUID.randomUUID().toString())
                 .couponId(couponId)
                 .purchasedAt(LocalDateTime.now())
                 .rewardCourseId(couponInfoDto.rewardCourseId())
@@ -115,18 +138,22 @@ public class AdminRewardService {
                         .build()
                 );
 
-        boolean isDuplicateCoupon = targetReward.getCoupons().stream()
-                .anyMatch(coupon -> coupon.getCouponId().equals(couponId));
-
-        if (isDuplicateCoupon) {
-            log.warn("[Reward] [Admin] [Create] 이미 존재하는 쿠폰 ID 등록 시도 (NaegiftId: {}, CouponId: {})", naegiftId, couponId);
-            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "이미 등록된 쿠폰 ID입니다.");
-        }
-
         targetReward.getCoupons().add(targetCoupon);
         targetReward.updateRemainStock();
 
         rewardRepository.save(targetReward);
         return AdminRewardResponse.CouponRegistrationDto.of(targetReward, targetCoupon);
+    }
+
+    private boolean isValidUUID(String uuidString) {
+        if (uuidString == null) {
+            return false;
+        }
+        try {
+            UUID.fromString(uuidString);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }

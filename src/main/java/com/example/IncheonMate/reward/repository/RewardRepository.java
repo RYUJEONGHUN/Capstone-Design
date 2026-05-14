@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface RewardRepository extends MongoRepository<Reward, String> {
 
     Optional<Reward> findByNaegiftId(String naegiftId);
+
+    boolean existsByCouponsCouponId(String couponId);
 }
