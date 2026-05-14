@@ -24,6 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       AI_SERVER_URL: ${AI_SERVER_URL}
       ODSAY_KEY: ${ODSAY_KEY}
+      ADMIN_PASSWARD: ${ADMIN_PASSWARD}
       TZ: Asia/Seoul
     networks:
       - incheon_mate_network

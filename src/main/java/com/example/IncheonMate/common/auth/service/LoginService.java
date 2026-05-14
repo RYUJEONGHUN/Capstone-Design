@@ -62,6 +62,9 @@ public class LoginService {
     @Value("${google.redirect-uri}")
     private String googleRedirectUri;
 
+    @Value("${ADMIN_PASSWARD}")
+    private String adminPassword;
+
     public Tokens processSocialLogin(LoginDto.UserRequest userRequest, CustomOAuth2User user) {
         // 게스트 사용자가 소셜 인증을 완료한 경우에도 즉시 정회원으로 승격하지 않는다.
         // 추가 회원가입 절차를 진행하도록 ROLE_PENDING 토큰을 발급한다.
@@ -278,4 +281,26 @@ public class LoginService {
         return guestProfile;
     }
 
+    public LoginDto.Response adminLogin(LoginDto.AdminRequest adminRequest) {
+        // 1. 아이디 검증
+        if (!"admin".equals(adminRequest.id())) {
+            log.warn("[Auth] 관리자 로그인 실패: 존재하지 않는 ID ({})", adminRequest.id());
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "관리자 로그인 정보가 일치하지 않습니다.");
+        }
+
+        // 2. 비밀번호 검증
+        if (!adminPassword.equals(adminRequest.password())) {
+            log.warn("[Auth] 관리자 로그인 실패: 비밀번호 불일치");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "관리자 로그인 정보가 일치하지 않습니다.");
+        }
+
+        // 3. 토큰 생성 및 응답
+        long accessTime = 60 * 60 * 1000L; // 1시간
+        String roleValue = Role.ADMIN.getValue();
+        String accessToken = jwtUtil.createAdminJwt(adminRequest.id(), roleValue, accessTime);
+
+        log.info("[Auth] 관리자 로그인 성공 (ID: {})", adminRequest.id());
+
+        return new LoginDto.Response(accessToken, roleValue, null, null, null, null);
+    }
 }

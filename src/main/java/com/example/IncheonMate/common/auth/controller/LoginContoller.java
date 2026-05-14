@@ -102,4 +102,14 @@ public class LoginContoller {
                 .body(LoginDto.Response.from(result.tokens(), result.guestProfile()));
     }
 
+    @PostMapping("/admin/login")
+    public ResponseEntity<LoginDto.Response> adminLogin(@RequestBody LoginDto.AdminRequest adminRequest){
+        log.info("[Auth] 관리자 로그인 요청");
+
+        LoginDto.Response result = loginService.adminLogin(adminRequest);
+        log.info("[Auth] 관리자 로그인 성공");
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(result);
+    }
+
 }
