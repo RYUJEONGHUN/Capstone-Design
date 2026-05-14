@@ -25,6 +25,7 @@ services:
       AI_SERVER_URL: ${AI_SERVER_URL}
       ODSAY_KEY: ${ODSAY_KEY}
       ADMIN_PASSWARD: ${ADMIN_PASSWARD}
+      NAEGIFT_REWARD_URL: ${NAEGIFT_REWARD_URL}
       TZ: Asia/Seoul
     networks:
       - incheon_mate_network
