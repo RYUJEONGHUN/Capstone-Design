@@ -55,8 +55,8 @@ public class Reward {
         private LocalDate expiredAt; //만료일(내기프트 기본값: 구매일로부터 3개월)
     }
 
-    public void increaseRemainStock(){
-        this.remainStock = remainStock + 1;
+    public void updateRemainStock(){
+        this.remainStock = (this.coupons != null) ? this.coupons.size() : 0;
     }
 
 }

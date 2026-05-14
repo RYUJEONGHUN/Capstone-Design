@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface RewardCourseRepository extends MongoRepository<RewardCourse, String> {
     List<RewardCourse> findAllByIsVisibleTrue();
+
+    boolean existsByTitle(String title);
 }

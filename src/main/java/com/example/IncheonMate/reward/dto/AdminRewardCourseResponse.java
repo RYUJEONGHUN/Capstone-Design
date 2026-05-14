@@ -17,7 +17,20 @@ public class AdminRewardCourseResponse {
             String rewardDescription,
             LocalDateTime createdAt,
             List<RewardCourseSpotDto> rewardCourseSpotDtos
-    ){}
+    ){
+        public static RewardCourseDto from(RewardCourse rewardCourse){
+            return new RewardCourseDto(
+                    rewardCourse.getId(),
+                    rewardCourse.getTitle(),
+                    rewardCourse.isVisible(),
+                    rewardCourse.getRewardDescription(),
+                    rewardCourse.getCreatedAt(),
+                    rewardCourse.getRewardSpots().stream()
+                            .map(rewardSpot -> RewardCourseSpotDto.from(rewardSpot))
+                            .toList()
+            );
+        }
+    }
 
     public record RewardCourseSpotDto(
             int spotOrder,
