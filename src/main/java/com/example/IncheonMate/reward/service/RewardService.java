@@ -2,21 +2,27 @@ package com.example.IncheonMate.reward.service;
 
 import com.example.IncheonMate.common.exception.CustomException;
 import com.example.IncheonMate.common.exception.ErrorCode;
+import com.example.IncheonMate.member.domain.Member;
 import com.example.IncheonMate.member.repository.MemberRepository;
 import com.example.IncheonMate.place.domain.Place;
 import com.example.IncheonMate.place.repository.PlaceRepository;
+import com.example.IncheonMate.reward.client.RewardDeliveryClient;
 import com.example.IncheonMate.reward.domain.MemberReward;
+import com.example.IncheonMate.reward.domain.Reward;
 import com.example.IncheonMate.reward.domain.RewardCourse;
+import com.example.IncheonMate.reward.dto.Naegift;
 import com.example.IncheonMate.reward.dto.RewardRequest;
 import com.example.IncheonMate.reward.dto.RewardResponse;
 import com.example.IncheonMate.reward.repository.MemberRewardRepository;
 import com.example.IncheonMate.reward.repository.RewardCourseRepository;
+import com.example.IncheonMate.reward.repository.RewardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +39,8 @@ public class RewardService {
     private final RewardCourseRepository rewardCourseRepository;
     private final MemberRepository memberRepository;
     private final PlaceRepository placeRepository;
+    private final RewardRepository rewardRepository;
+    private final RewardDeliveryClient rewardDeliveryClient;
 
     private static final String QR_URL_PATTERN = "^https://shopuser-qa\\.naegift\\.com/[a-zA-Z0-9]+$";
 
@@ -128,6 +136,7 @@ public class RewardService {
 
 
     //POST: api/rewards/{reward-course-id}/reward
+    @Transactional
     public RewardResponse.IssuedRewardResponseDto validateAndIssueCoupon(String identifier, String rewardCourseId) {
 
         MemberReward targetMemberReward = findMemberRewardByEmailAndRewardCourseIdOrThrow(identifier, rewardCourseId);
@@ -149,11 +158,58 @@ public class RewardService {
             throw new CustomException(ErrorCode.INVALID_REWARD_CONDITION, "리워드 발급 조건을 완전히 충족하지 못했습니다.");
         }
 
-        //3. DB에 있는 리워드(UUID) 찾아서 사용자에게 전달(내기프트의 API 사용해야함)
+        //검증: 중복 지급/가게 활성화 상태/재고 확인/할당 대상 확인/지급 여부/만료일 검증
+        //3. 한 명의 유저에게 중복 지급 방지
+        if(targetMemberReward.isRewarded()){
+            log.warn("[Reward] [Issue] 이미 리워드가 지급된 사용자");
+            throw new CustomException(ErrorCode.ALREADY_REWARED);
+        }
 
-        //4. 전달 완료 정보를 받아서 Member collection에 저장
+        Optional<Reward> targetRewardOpt = rewardRepository.findByRewardCourseId(rewardCourseId);
+        if(!targetRewardOpt.isPresent()){
+            log.warn("[Reward] [Issue] 해당 리워드 코스에 할당된 리워드를 찾을 수 없음");
+            throw new CustomException(ErrorCode.COURSE_NOT_FOUND,"해당 코스에 할당된 리워드를 찾을 수 없습니다.");
+        }
+        Reward targetReward = targetRewardOpt.get();
 
-        return null;
+        if (!targetReward.isActive() || targetReward.getRemainStock() <= 0) {
+            log.warn("[Reward] [Issue] 리워드 소진 또는 비활성화 상태. rewardId: {}", targetReward.getId());
+            throw new CustomException(ErrorCode.REWARD_OUT_OF_STOCK, "현재 발급 가능한 쿠폰이 없습니다.");
+        }
+
+        LocalDate today = LocalDate.now();
+        Reward.Coupon availableCoupon = targetReward.getCoupons().stream()
+                .filter(coupon -> rewardCourseId.equals(coupon.getRewardCourseId())) // 해당 코스용인지
+                .filter(coupon -> !coupon.isDelivered())                             // 미지급 상태인지
+                .filter(coupon -> coupon.getExpiredAt() != null && !coupon.getExpiredAt().isBefore(today)) // 만료 전인지
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.REWARD_OUT_OF_STOCK, "유효한 쿠폰을 찾을 수 없습니다."));
+
+        String couponIdToDeliver = availableCoupon.getCouponId();
+
+        // 4.내기프트의 API
+        Naegift.RequestDto requestDto = new Naegift.RequestDto(identifier,couponIdToDeliver);
+        try{
+            Naegift.SuccessResponseDto responseDto = rewardDeliveryClient.deliverReward(requestDto);
+            log.info("[Reward] [Issue] 내기프트 API 호출 성공 (ResponseCode: {})", responseDto.resultCode());
+        } catch(Exception e){
+            log.info("[Reward] [Issue] 내기프트 API 호출 실패");
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "리워드 지급 중 서버 오류 발생");
+        }
+
+        //5. 멤버에 내기프트 쿠폰 전달하기
+        Member targetMember = memberRepository.findByEmailOrElseThrow(identifier);
+        targetMember.deliverNaegiftCoupontoMember(couponIdToDeliver);
+        memberRepository.save(targetMember);
+
+        targetReward.updateDeliverInfo();
+        availableCoupon.updateDeliverInfo(targetMember.getId());
+        memberRewardRepository.save(targetMemberReward);
+        rewardRepository.save(targetReward);
+
+        RewardCourse rewardCourse = rewardCourseRepository.findById(rewardCourseId)
+                .orElseThrow(() -> new CustomException(ErrorCode.COURSE_NOT_FOUND, "코스 정보를 찾을 수 없습니다."));
+        return RewardResponse.IssuedRewardResponseDto.of(rewardCourseId,rewardCourse.getTitle(), availableCoupon.getDeliveredAt(),availableCoupon.getExpiredAt());
     }
 
 

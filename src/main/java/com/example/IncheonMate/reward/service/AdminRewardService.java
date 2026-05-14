@@ -87,6 +87,7 @@ public class AdminRewardService {
     }
 
     //POST: /api/admin/rewards
+    @Transactional
     public AdminRewardResponse.CouponRegistrationDto createReward(AdminRewardRequest.CouponInfoDto couponInfoDto) {
 
         String naegiftId = couponInfoDto.naegiftId();
@@ -132,13 +133,13 @@ public class AdminRewardService {
                 .orElseGet(() -> Reward.builder()
                         .placeId(placeOpt.get().getId())
                         .naegiftId(naegiftId)
-                        .remainStock(1)
                         .isActive(true)
                         .coupons(new ArrayList<>())
                         .build()
                 );
 
         targetReward.getCoupons().add(targetCoupon);
+
         targetReward.updateRemainStock();
 
         rewardRepository.save(targetReward);

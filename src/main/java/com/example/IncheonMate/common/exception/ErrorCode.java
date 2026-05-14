@@ -32,11 +32,13 @@ public enum ErrorCode {
     NO_SEARCH_RESULT(HttpStatus.NOT_FOUND, "ROUTE 007", "대중교통 길찾기 검색 결과가 없습니다."),
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND,"PLACE 001" ,"해당하는 장소를 찾을 수 없습니다." ),
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE 001", "해당하는 코스를 찾을 수 없습니다."),
+    REWARD_OUT_OF_STOCK(HttpStatus.NOT_FOUND,"REWARD  006","현재 발급 가능한 쿠폰이 없습니다." ),
 
     //409
     DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "COMMON 409", "이미 존재하는 리소스입니다."),
     ALREADY_VERIFIED(HttpStatus.CONFLICT, "REWARD 002", "이미 인증된 장소입니다."),
     ALREADY_COMPLETE(HttpStatus.CONFLICT, "REWARD 004", "이미 달성한 코스입니다."),
+    ALREADY_REWARED(HttpStatus.CREATED, "REWARD 005", "이미 리워드가 지급된 사용자입니다."),
 
     //500
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,"SERVER 001", "서버 내부 오류가 발생했습니다."),

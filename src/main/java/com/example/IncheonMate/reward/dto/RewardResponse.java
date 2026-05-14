@@ -5,6 +5,7 @@ import com.example.IncheonMate.reward.domain.MemberReward;
 import com.example.IncheonMate.reward.domain.RewardCourse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +22,8 @@ public class RewardResponse {
             @JsonProperty("isCompleted") boolean isCompleted,
             List<String> thumbnailUrls,
             List<CoursePlaceCategory> coursePlaceCategories
-    ){
-        public static RewardResponse.RewardCourseSummaryDto of(RewardCourse rewardCourse, MemberReward memberReward){
+    ) {
+        public static RewardResponse.RewardCourseSummaryDto of(RewardCourse rewardCourse, MemberReward memberReward) {
             return new RewardCourseSummaryDto(
                     rewardCourse.getId(),
                     rewardCourse.getTitle(),
@@ -38,17 +39,17 @@ public class RewardResponse {
 
     //리워드 코스 전체 정보
     public record RewardCourseDto(
-        String rewardCourseId,
-        String title,
-        String rewardDescription,
-        @JsonProperty("isCompleted") boolean isCompleted,
-        @JsonProperty("isRewarded") boolean isRewarded,
-        int totalCount,
-        int verifiedCount,
-        List<RewardCourseSpotDto> rewardCourseSpotDtos
+            String rewardCourseId,
+            String title,
+            String rewardDescription,
+            @JsonProperty("isCompleted") boolean isCompleted,
+            @JsonProperty("isRewarded") boolean isRewarded,
+            int totalCount,
+            int verifiedCount,
+            List<RewardCourseSpotDto> rewardCourseSpotDtos
 
-    ){
-        public static RewardCourseDto of(RewardCourse rewardCourse, MemberReward memberReward, Map<String, MemberReward.RewardSpotProgress> progressMap){
+    ) {
+        public static RewardCourseDto of(RewardCourse rewardCourse, MemberReward memberReward, Map<String, MemberReward.RewardSpotProgress> progressMap) {
             return new RewardCourseDto(
                     rewardCourse.getId(),
                     rewardCourse.getTitle(),
@@ -59,8 +60,8 @@ public class RewardResponse {
                     (int) memberReward.getSpotProgressList().stream().filter(MemberReward.RewardSpotProgress::isVerified).count(),
                     rewardCourse.getRewardSpots().stream()
                             .map(spot -> {
-                                    MemberReward.RewardSpotProgress progress = progressMap.get(spot.getPlaceId());
-                                    return RewardCourseSpotDto.of(spot,progress);
+                                MemberReward.RewardSpotProgress progress = progressMap.get(spot.getPlaceId());
+                                return RewardCourseSpotDto.of(spot, progress);
                             })
                             .toList());
         }
@@ -81,8 +82,8 @@ public class RewardResponse {
             Double y,
             @JsonProperty("isVerified") boolean isVerified,
             LocalDateTime verifiedAt
-    ){
-        public static RewardResponse.RewardCourseSpotDto of(RewardCourse.RewardSpot rewardSpot, MemberReward.RewardSpotProgress rewardSpotProgress){
+    ) {
+        public static RewardResponse.RewardCourseSpotDto of(RewardCourse.RewardSpot rewardSpot, MemberReward.RewardSpotProgress rewardSpotProgress) {
             return new RewardCourseSpotDto(
                     rewardSpot.getSpotOrder(),
                     rewardSpot.getPlaceId(),
@@ -110,8 +111,8 @@ public class RewardResponse {
             LocalDateTime completedAt,
             int totalCount,
             int verifiedCount
-    ){
-        public static VerifySpotResponseDto of(String placeId,  String redirectUrl, MemberReward.RewardSpotProgress rewardSpotProgress, MemberReward memberReward){
+    ) {
+        public static VerifySpotResponseDto of(String placeId, String redirectUrl, MemberReward.RewardSpotProgress rewardSpotProgress, MemberReward memberReward) {
             return new VerifySpotResponseDto(
                     placeId,
                     rewardSpotProgress.getVerifiedAt(),
@@ -120,15 +121,19 @@ public class RewardResponse {
                     memberReward.getCompletedAt(),
                     memberReward.getSpotProgressList().size(),
                     (int) memberReward.getSpotProgressList().stream().filter(MemberReward.RewardSpotProgress::isVerified).count()
-                    );
+            );
         }
     }
 
     //쿠폰(리워드) 발급 완료 응답
-    //필드 모르겠음...
     public record IssuedRewardResponseDto(
-        String rewardCourseId,
-        String rewardTitle,
-        LocalDateTime issuedAt
-    ){}
+            String rewardCourseId,
+            String rewardTitle,
+            LocalDateTime issuedAt,
+            LocalDate expiredAt
+    ) {
+        public static IssuedRewardResponseDto of(String rewardCourseId, String rewardTitle, LocalDateTime issuedAt, LocalDate expiredAt) {
+            return new IssuedRewardResponseDto(rewardCourseId, rewardTitle, issuedAt, expiredAt);
+        }
+    }
 }

@@ -19,6 +19,7 @@ import java.util.List;
 @Builder
 @Document(collection = "reward")
 public class Reward {
+    //한개의 상점에서 한 종류의 쿠폰만 발급한다고 가정
 
     @Id
     private String id;
@@ -27,7 +28,7 @@ public class Reward {
     @Indexed
     private String naegiftId;
 
-    private int remainStock;//한 상점에서 여러 쿠폰 발급하면 분리 필요
+    private int remainStock;//한 상점에서 여러 종류 쿠폰 발급하면 분리 필요
     @Builder.Default
     private boolean isActive = true;
 
@@ -53,10 +54,26 @@ public class Reward {
         private String deliveredUserId; //어느 사용자에게 지급되었는지
         private LocalDateTime deliveredAt; //지급 시간
         private LocalDate expiredAt; //만료일(내기프트 기본값: 구매일로부터 3개월)
+
+        public void updateDeliverInfo(String userId){
+            this.isDelivered = true;
+            this.deliveredUserId = userId;
+            this.deliveredAt = LocalDateTime.now();
+        }
     }
 
     public void updateRemainStock(){
-        this.remainStock = (this.coupons != null) ? this.coupons.size() : 0;
+        if (this.coupons == null || this.coupons.isEmpty()) {
+            this.remainStock = 0;
+            return;
+        }
+        this.remainStock = (int) this.coupons.stream()
+                .filter(coupon -> !coupon.isDelivered())
+                .count();
+    }
+
+    public void updateDeliverInfo(){
+        this.remainStock = this.remainStock - 1;
     }
 
 }
