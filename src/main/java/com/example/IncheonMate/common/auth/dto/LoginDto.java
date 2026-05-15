@@ -51,4 +51,9 @@ public class LoginDto {
             return new Response(tokens.accessToken(),tokens.role(),null,null,null,tokens.email());
         }
     }
+
+    public record AdminRequest(
+            String id,
+            String password
+    ){}
 }

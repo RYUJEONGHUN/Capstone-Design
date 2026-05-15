@@ -44,6 +44,8 @@ jwt:
 app:
   ai-server:
     url: ${AI_SERVER_URL}
+  naegift:
+    url: ${NAEGIFT_REWARD_URL}
 
 #운영환경에서는 swagger 꺼두기
 springdoc:

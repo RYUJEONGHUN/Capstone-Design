@@ -16,6 +16,8 @@ public enum ErrorCode {
     DISTANCE_TOO_SHORT(HttpStatus.BAD_REQUEST, "ROUTE 006", "출, 도착지가 700m 이내입니다."),
     MISSING_REQUIRED_INFO(HttpStatus.BAD_REQUEST,"AUTH 001", "이메일과 이름 제공에 동의해야 서비스를 이용할 수 있습니다."),
     INVALID_OAUTH_RESPONSE(HttpStatus.BAD_REQUEST, "AUTH 002", "소셜 로그인 중 문제가 발생했습니다."),
+    INVALID_QR_FORMAT(HttpStatus.BAD_REQUEST, "REWARD 001", "유효하지 않은 내기프트 URL입니다."),
+    INVALID_REWARD_CONDITION(HttpStatus.BAD_REQUEST, "REWARD 003", "인증 조건 미달로 리워드 발급이 불가합니다."),
 
     //403
     GUEST_CHAT_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN,"CHAT 003", "게스트 채팅 가능 횟수를 초과했습니다. "),
@@ -30,9 +32,13 @@ public enum ErrorCode {
     NO_SEARCH_RESULT(HttpStatus.NOT_FOUND, "ROUTE 007", "대중교통 길찾기 검색 결과가 없습니다."),
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND,"PLACE 001" ,"해당하는 장소를 찾을 수 없습니다." ),
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE 001", "해당하는 코스를 찾을 수 없습니다."),
+    REWARD_OUT_OF_STOCK(HttpStatus.NOT_FOUND,"REWARD  006","현재 발급 가능한 쿠폰이 없습니다." ),
 
     //409
     DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "COMMON 409", "이미 존재하는 리소스입니다."),
+    ALREADY_VERIFIED(HttpStatus.CONFLICT, "REWARD 002", "이미 인증된 장소입니다."),
+    ALREADY_COMPLETE(HttpStatus.CONFLICT, "REWARD 004", "이미 달성한 코스입니다."),
+    ALREADY_REWARED(HttpStatus.CREATED, "REWARD 005", "이미 리워드가 지급된 사용자입니다."),
 
     //500
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,"SERVER 001", "서버 내부 오류가 발생했습니다."),
