@@ -54,14 +54,21 @@ public class SecurityConfig {
                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                 //26-01-25 /error 엔드포인트 추가: Spring 내부 에러를 401로 둔갑하는것 방지
                 .requestMatchers("/auth/**","/errror").permitAll()
+
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**","/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/my-info/favorite-places").hasRole("USER")
                 .requestMatchers(HttpMethod.POST,"/api/my-info/favorite-places").hasRole("USER")
                 .requestMatchers(HttpMethod.DELETE, "/api/my-info/favorite-places/{favorite-place-id}").hasRole("USER")
+
                 .requestMatchers(HttpMethod.POST, "/api/chat-sessions").hasRole("USER")
+
                 .requestMatchers("/api/onboarding/check").permitAll()
                 .requestMatchers("/api/onboarding/**").hasAnyRole("PENDING","USER")
-                .requestMatchers("/api/courses/**").hasRole("USER")
+
+                .requestMatchers(HttpMethod.DELETE, "/api/courses/recommendations/{course-id}").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/courses/recommendations").hasRole("ADMIN")
+
+                .requestMatchers("/api/courses/**","/api/rewards/**").hasRole("USER")
                 .anyRequest().authenticated());
 
         //로깅 필터 filter chain 최상단에 끼워넣기

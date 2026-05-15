@@ -75,6 +75,10 @@ public class Member {
     @LastModifiedDate
     private LocalDateTime updatedAt; // 수정일
 
+    // --- 추가 내기프트 리워드 정보 ---
+    @Builder.Default
+    private List<String> naegiftCoupons = new ArrayList<>();
+
     // --- 5. 찜 목록 ---
     @Builder.Default // 빌더 사용 시 null 방지
     private List<FavoritePlace> favoritePlaces = new ArrayList<>(); // 찜한 장소들(FavoritePlace의 List형태)
@@ -164,5 +168,7 @@ public class Member {
         private GeoJsonPoint geoJsonPoint;
     }
 
-    //++++++++++++++++++리워드 코스는 따로 만들어야함++++++++++++++++++++
+    public void deliverNaegiftCoupontoMember(String couponId){
+        this.getNaegiftCoupons().add(couponId);
+    }
 }

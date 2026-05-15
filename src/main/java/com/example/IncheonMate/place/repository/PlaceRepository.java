@@ -5,7 +5,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 // JpaRepository -> MongoRepository<엔티티, ID타입(String)>
@@ -32,4 +31,7 @@ public interface PlaceRepository extends MongoRepository<Place, String> {
 
     List<Place> findByKakaoIdIn(List<String> targetKakaoIds);
 
+    Optional<Place> findByNaegiftId(String naegiftId);
+
+    List<Place> findAllByNaegiftIdIn(List<String> naegiftIds);
 }

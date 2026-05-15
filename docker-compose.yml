@@ -24,8 +24,10 @@ services:
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_KEY: ${KAKAO_KEY}
+
       # 리다이렉트 주소 (Spring의 app.frontend.redirect-url 매핑)
-      # APP_FRONTEND_REDIRECT_URL: "https://2025-capstone-design-fe.vercel.app/oauth/callback"
+      ADMIN_PASSWARD: ${ADMIN_PASSWARD}
+      NAEGIFT_REWARD_URL: ${NAEGIFT_REWARD_URL}
     networks:
       - incheon_mate_network
 

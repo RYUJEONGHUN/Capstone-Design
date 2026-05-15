@@ -46,13 +46,7 @@ public class CourseController {
                 .body(result);
     }
 
-    //rewardCourse 도메인으로 이동 예정
-//    //리워드 코스 목록의 간략한 정보
-//    @GetMapping("/rewards")
-//    public ResponseEntity<?> getRewardCourses(@AuthenticationPrincipal CustomOAuth2User user){
-//        log.info("[Course] [Reward] 리워드 코스 목록 조회 요청");
-//        return null;
-//    }
+
 
     //추천 코스의 상세 정보
     @GetMapping("/recommendations/{course-id}")
@@ -65,13 +59,6 @@ public class CourseController {
                 .body(result);
     }
 
-    //rewardCourse 도메인으로 이동 예정
-//    //리워드 코스의 상세 정보
-//    @GetMapping("/rewards/{course-id}")
-//    public ResponseEntity<?> getRewardCourseDetail(@AuthenticationPrincipal CustomOAuth2User user, @PathVariable(name = "course-id") String rewardCourseId){
-//        log.info("[Course] [Reward] [Detail] 리워드 코스 정보 조회 요청 (RewardCourseId: {})", rewardCourseId);
-//        return null;
-//    }
 
     //추천 코스 등록(현재는 5개로 고정)
     @PostMapping("/recommendations")
