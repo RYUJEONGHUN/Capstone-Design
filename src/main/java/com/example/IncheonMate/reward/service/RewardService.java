@@ -16,6 +16,7 @@ import com.example.IncheonMate.reward.dto.RewardResponse;
 import com.example.IncheonMate.reward.repository.MemberRewardRepository;
 import com.example.IncheonMate.reward.repository.RewardCourseRepository;
 import com.example.IncheonMate.reward.repository.RewardRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,23 +46,58 @@ public class RewardService {
     //GET: /api/rewards
     public List<RewardResponse.RewardCourseSummaryDto> retrieveRewardCourses(String identifier) {
 
-        //1. 사용자가 이용할 수 있는 리워드 코스 목록 조회
         String memberId = memberRepository.findMemberIdByEmailOrElseThrow(identifier);
-        List<MemberReward> memberRewards = memberRewardRepository.findAllByMemberId(memberId);
-        if (memberRewards.isEmpty()) {
-            log.info("[Reward] 사용자가 이용할 수 있는 리워드 코스 없음. 신규 등록(연결)");
-            memberRewards = registerMemberRewardCoursesFromRewardCourse(memberId);
-            log.info("[Reward] 리워드 코스 등록 완료");
+        List<MemberReward> existingMemberRewards = memberRewardRepository.findAllByMemberId(memberId);
+
+        // 1. 현재 관리자가 등록한 (활성화된) 전체 리워드 코스 조회
+        List<RewardCourse> activeRewardCourses = rewardCourseRepository.findAllByIsVisibleTrue();
+
+        // 2. 유저가 이미 가지고 있는 코스 ID 목록 추출
+        Set<String> existingCourseIds = existingMemberRewards.stream()
+                .map(MemberReward::getRewardCourseId)
+                .collect(Collectors.toSet());
+
+        // 3. 유저에게 아직 없는 신규 코스만 필터링
+        List<RewardCourse> newCourses = activeRewardCourses.stream()
+                .filter(course -> !existingCourseIds.contains(course.getId()))
+                .toList();
+
+        // 4. 누락된 신규 코스가 있다면 MemberReward를 생성하고 저장
+        if (!newCourses.isEmpty()) {
+            log.info("[Reward] 사용자에게 누락된 신규 리워드 코스 {}건 발견. 신규 등록 진행", newCourses.size());
+
+            List<MemberReward> newMemberRewards = newCourses.stream()
+                    .map(course -> {
+                        List<MemberReward.RewardSpotProgress> rewardSpotProgressList = course.getRewardSpots().stream()
+                                .map(spot -> MemberReward.RewardSpotProgress.builder()
+                                        .placeId(spot.getPlaceId()).build()).toList();
+
+                        return MemberReward.builder()
+                                .memberId(memberId)
+                                .rewardCourseId(course.getId())
+                                .spotProgressList(rewardSpotProgressList)
+                                .build();
+                    }).toList();
+
+            // DB에 저장
+            memberRewardRepository.saveAll(newMemberRewards);
+
+            // 반환할 기존 리스트에 새로 생성된 리워드를 합침 (불변 리스트 에러 방지를 위해 새 리스트 사용)
+            List<MemberReward> updatedMemberRewards = new ArrayList<>(existingMemberRewards);
+            updatedMemberRewards.addAll(newMemberRewards);
+            existingMemberRewards = updatedMemberRewards;
+
+            log.info("[Reward] 신규 리워드 코스 등록 완료");
         }
 
-        //2. DTO 반환을 위해 이용가능한 코스 정보 조회
-        List<String> rewardCourseIds = memberRewards.stream().map(MemberReward::getRewardCourseId).toList();
+        // 5. DTO 반환을 위해 이용가능한 코스 정보 조회 (기존 로직 유지)
+        List<String> rewardCourseIds = existingMemberRewards.stream().map(MemberReward::getRewardCourseId).toList();
         Map<String, RewardCourse> courseMap = rewardCourseRepository.findAllById(rewardCourseIds)
                 .stream()
                 .collect(Collectors.toMap(RewardCourse::getId, course -> course));
 
-        // 3. 스트림을 사용하여 DTO 리스트로 변환
-        return memberRewards.stream()
+        // 6. 스트림을 사용하여 DTO 리스트로 변환 (기존 로직 유지)
+        return existingMemberRewards.stream()
                 .filter(memberReward -> courseMap.containsKey(memberReward.getRewardCourseId()))
                 .map(memberReward -> {
                     RewardCourse rewardCourse = courseMap.get(memberReward.getRewardCourseId());
@@ -125,13 +159,13 @@ public class RewardService {
         boolean isCourseCompleted = validateProgressSpotsIntegrity(targetMemberReward.getSpotProgressList());
 
         //5. 달성도 검증을 통과했다면 Entity 상태 업데이트
-        if(isCourseCompleted) {
+        if (isCourseCompleted) {
             targetMemberReward.updateCompletionStatus();
         }
         //5. 저장
         memberRewardRepository.save(targetMemberReward);
 
-        return RewardResponse.VerifySpotResponseDto.of(placeId, naegiftUrl,targetSpot,targetMemberReward);
+        return RewardResponse.VerifySpotResponseDto.of(placeId, naegiftUrl, targetSpot, targetMemberReward);
     }
 
 
@@ -145,7 +179,7 @@ public class RewardService {
         //1. List<RewardSpotProgress> 검사
         //검사: isVerified가 모두 True/verifiedAt이 모두 현재 시간보다 이전 시간/placeId로 검색한 place가 모두 place Collection에 있는지
         boolean passSpotListValidate = validateProgressSpotsIntegrity(targetRewardSpotProgressList);
-        if(!passSpotListValidate){
+        if (!passSpotListValidate) {
             log.info("[Reward] [Issue] [Validate] 인증 조건 미달로 리워드 발급 불가");
             throw new CustomException(ErrorCode.INVALID_REWARD_CONDITION);
         }
@@ -160,15 +194,15 @@ public class RewardService {
 
         //검증: 중복 지급/가게 활성화 상태/재고 확인/할당 대상 확인/지급 여부/만료일 검증
         //3. 한 명의 유저에게 중복 지급 방지
-        if(targetMemberReward.isRewarded()){
+        if (targetMemberReward.isRewarded()) {
             log.warn("[Reward] [Issue] 이미 리워드가 지급된 사용자");
             throw new CustomException(ErrorCode.ALREADY_REWARED);
         }
 
         Optional<Reward> targetRewardOpt = rewardRepository.findByRewardCourseId(rewardCourseId);
-        if(!targetRewardOpt.isPresent()){
+        if (!targetRewardOpt.isPresent()) {
             log.warn("[Reward] [Issue] 해당 리워드 코스에 할당된 리워드를 찾을 수 없음");
-            throw new CustomException(ErrorCode.COURSE_NOT_FOUND,"해당 코스에 할당된 리워드를 찾을 수 없습니다.");
+            throw new CustomException(ErrorCode.COURSE_NOT_FOUND, "해당 코스에 할당된 리워드를 찾을 수 없습니다.");
         }
         Reward targetReward = targetRewardOpt.get();
 
@@ -178,21 +212,31 @@ public class RewardService {
         }
 
         LocalDate today = LocalDate.now();
-        Reward.Coupon availableCoupon = targetReward.getCoupons().stream()
-                .filter(coupon -> rewardCourseId.equals(coupon.getRewardCourseId())) // 해당 코스용인지
-                .filter(coupon -> !coupon.isDelivered())                             // 미지급 상태인지
-                .filter(coupon -> coupon.getExpiredAt() != null && !coupon.getExpiredAt().isBefore(today)) // 만료 전인지
-                .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.REWARD_OUT_OF_STOCK, "유효한 쿠폰을 찾을 수 없습니다."));
+        Optional<Reward.Coupon> availableCouponOpt = targetReward.getCoupons().stream()
+                .filter(coupon -> rewardCourseId.equals(coupon.getRewardCourseId()))
+                .filter(coupon -> !coupon.isDelivered())
+                .filter(coupon -> coupon.getExpiredAt() != null && !coupon.getExpiredAt().isBefore(today))
+                .findFirst();
 
-        String couponIdToDeliver = availableCoupon.getCouponId();
+        // Optional 체크 및 로그 출력
+        if (!availableCouponOpt.isPresent()) {
+            log.warn("[Reward] [Issue] 발급할 수 있는 유효한 쿠폰이 없습니다. (RewardCourseId: {})", rewardCourseId);
+            throw new CustomException(ErrorCode.REWARD_OUT_OF_STOCK, "유효한 쿠폰을 찾을 수 없습니다.");
+        }
+
+        Reward.Coupon availableCoupon = availableCouponOpt.get();
+        String couponIdToDeliver = availableCouponOpt.get().getCouponId();
 
         // 4.내기프트의 API
-        Naegift.RequestDto requestDto = new Naegift.RequestDto(identifier,couponIdToDeliver);
-        try{
+        Naegift.RequestDto requestDto = new Naegift.RequestDto(identifier, couponIdToDeliver);
+        try {
             Naegift.SuccessResponseDto responseDto = rewardDeliveryClient.deliverReward(requestDto);
             log.info("[Reward] [Issue] 내기프트 API 호출 성공 (ResponseCode: {})", responseDto.resultCode());
-        } catch(Exception e){
+        } catch (FeignException e) {
+            log.error("[Reward] [Issue] 내기프트 API 호출 실패. Status: {}, Body: {}", e.status(), e.contentUTF8());
+            log.error("[Reward] [Issue] Feign 상세 에러 정보", e);
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "리워드 지급 중 서버 오류 발생");
+        } catch (Exception e) {
             log.info("[Reward] [Issue] 내기프트 API 호출 실패");
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "리워드 지급 중 서버 오류 발생");
         }
@@ -203,16 +247,17 @@ public class RewardService {
         memberRepository.save(targetMember);
 
         targetReward.updateDeliverInfo();
+
         availableCoupon.updateDeliverInfo(targetMember.getId());
+
+        targetMemberReward.updateRewardStatus();
         memberRewardRepository.save(targetMemberReward);
         rewardRepository.save(targetReward);
 
         RewardCourse rewardCourse = rewardCourseRepository.findById(rewardCourseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COURSE_NOT_FOUND, "코스 정보를 찾을 수 없습니다."));
-        return RewardResponse.IssuedRewardResponseDto.of(rewardCourseId,rewardCourse.getTitle(), availableCoupon.getDeliveredAt(),availableCoupon.getExpiredAt());
+        return RewardResponse.IssuedRewardResponseDto.of(rewardCourseId, rewardCourse.getTitle(), availableCoupon.getDeliveredAt(), availableCoupon.getExpiredAt());
     }
-
-
 
 
 //==============================================================================================================
@@ -331,19 +376,19 @@ public class RewardService {
         //검사: isComplete가 모두 true/completeAt이 현재 시간보다 이전인지/rewardCourseId에 해당하는 리워드 코스가 있는지/memberId에 해당하는 유저가 있는지(+email 존재 여부도)
 
         boolean isCourseCompleted = targetMemberReward.isCompleted();
-        if(!isCourseCompleted){
+        if (!isCourseCompleted) {
             log.warn("[Reward] [Validate] 달성을 하지 못함 (IsComplete: {})", isCourseCompleted);
             return false;
         }
 
         LocalDateTime completedTime = targetMemberReward.getCompletedAt();
-        if(completedTime.isAfter(LocalDateTime.now())){
+        if (completedTime.isAfter(LocalDateTime.now())) {
             log.warn("[Reward] [Validate] 코스 완료 시간이 리워드 발급 요청시간보다 미래 (CompletedAt: {})", completedTime);
             return false;
         }
 
         String targetRewardCourseId = targetMemberReward.getRewardCourseId();
-        if(!rewardCourseRepository.existsById(targetRewardCourseId)){
+        if (!rewardCourseRepository.existsById(targetRewardCourseId)) {
             log.warn("[Reward] [Validate] 해당하는 리워드 코스가 없습니다.");
             return false;
         }
