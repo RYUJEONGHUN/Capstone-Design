@@ -66,4 +66,12 @@ public class MemberReward {
             this.isCompleted = true;
             this.completedAt = LocalDateTime.now();
     }
+
+    public void updateRewardStatus() {
+        if (this.isRewarded) {
+            throw new CustomException(ErrorCode.ALREADY_REWARED);
+        }
+        this.isRewarded = true;
+        this.rewardedAt = LocalDateTime.now();
+    }
 }
