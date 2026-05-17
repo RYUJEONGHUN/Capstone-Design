@@ -13,6 +13,9 @@ import java.util.Map;
 public class RewardResponse {
 
     //리워드 코스 요약 정보
+    //썸네일 이미지를 보여주기 위해서 /images 중간에 /thumbnail을 끼워넣음(임시)
+    // /images/thumbnail/xxxxx.jpg
+    // /images/xxxx.jpg
     public record RewardCourseSummaryDto(
             String rewardCourseId,
             String title,
@@ -24,6 +27,16 @@ public class RewardResponse {
             List<CoursePlaceCategory> coursePlaceCategories
     ) {
         public static RewardResponse.RewardCourseSummaryDto of(RewardCourse rewardCourse, MemberReward memberReward) {
+            List<String> convertedThumbnails = rewardCourse.getRewardSpots().stream()
+                    .map(RewardCourse.RewardSpot::getThumbnailUrl)
+                    .map(url -> {
+                        if (url != null && url.contains("/images/")) {
+                            return url.replace("/images/", "/images/thumbnail/");
+                        }
+                        return url; // URL이 null이거나 패턴이 맞지 않으면 원본 반환
+                    })
+                    .toList();
+
             return new RewardCourseSummaryDto(
                     rewardCourse.getId(),
                     rewardCourse.getTitle(),
@@ -31,7 +44,7 @@ public class RewardResponse {
                     rewardCourse.getRewardSpots().size(),
                     (int) memberReward.getSpotProgressList().stream().filter(MemberReward.RewardSpotProgress::isVerified).count(),
                     memberReward.isCompleted(),
-                    rewardCourse.getRewardSpots().stream().map(RewardCourse.RewardSpot::getThumbnailUrl).toList(),
+                    convertedThumbnails,
                     rewardCourse.getRewardSpots().stream().map(RewardCourse.RewardSpot::getCoursePlaceCategory).toList()
             );
         }
