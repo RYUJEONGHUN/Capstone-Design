@@ -93,6 +93,9 @@ public class CourseResponse {
         }
     }
 
+    //썸네일 이미지를 보여주기 위해서 /images 중간에 /thumbnail을 끼워넣음(임시)
+    // /images/thumbnail/xxxxx.jpg
+    // /images/xxxx.jpg
     public record TravelCourseSummaryDto(
             String courseId,
             String title,
@@ -102,10 +105,21 @@ public class CourseResponse {
         public static CourseResponse.TravelCourseSummaryDto from(CuratedCourse course){
             if(course == null) return new TravelCourseSummaryDto(null,null,Collections.emptyList(),Collections.emptyList());
 
+            // 각 스팟의 원본 URL에서 '/images/' 부분을 '/images/thumbnail/'로 변환하여 리스트로 수집
+            List<String> convertedThumbnails = course.getSpots().stream()
+                    .map(CuratedCourse.CuratedSpot::getThumbnailUrl)
+                    .map(url -> {
+                        if (url != null && url.contains("/images/")) {
+                            return url.replace("/images/", "/images/thumbnail/");
+                        }
+                        return url; // URL이 null이거나 패턴이 맞지 않으면 원본 반환
+                    })
+                    .toList();
+
             return new TravelCourseSummaryDto(
                     course.getId(),
                     course.getTitle(),
-                    course.getSpots().stream().map(CuratedCourse.CuratedSpot::getThumbnailUrl).toList(),
+                    convertedThumbnails,
                     course.getSpots().stream().map(CuratedCourse.CuratedSpot::getCoursePlaceCategory).toList()
             );
         }
