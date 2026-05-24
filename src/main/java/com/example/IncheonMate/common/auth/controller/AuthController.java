@@ -2,6 +2,7 @@ package com.example.IncheonMate.common.auth.controller;
 
 import com.example.IncheonMate.common.auth.dto.LoginDto;
 import com.example.IncheonMate.common.auth.dto.Tokens;
+import com.example.IncheonMate.common.auth.service.AuthService;
 import com.example.IncheonMate.common.jwt.JWTUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -34,6 +36,10 @@ public class AuthController {
 
     private final JWTUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
+    private final AuthService authService;
+
+    private static final Pattern UUID_PATTERN =
+            Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     @Operation(summary = "Token 재발급 ", description = "Refresh Token을 확인하고 Refresh Token Rotation 방식을 사용하여 Access,Refresh Token을 재발급한다")
     @ApiResponses(value = {
@@ -146,10 +152,16 @@ public class AuthController {
         //3. 유효성 검사 및 Redis에서 삭제
         try{
             //유효성 검사-이메일을 꺼낼 수 없으면 유효하지 않음
-            String email = jwtUtil.getIdentifier(refreshToken);
+            String identifier = jwtUtil.getIdentifier(refreshToken);
+
+            if(isUuid(identifier)){
+                log.info("[Auth] 게스트 로그아웃 요청 감지 - Redis 데이터 전체 삭제 요청");
+                authService.removeGuestInfo(identifier);
+            }
+
             //Redis에서 삭제
-            redisTemplate.delete("RT:" + email);
-            log.info("[Auth] Refresh Token Redis 삭제 완료 (Identifier: {})", email);
+            redisTemplate.delete("RT:" + identifier);
+            log.info("[Auth] Refresh Token Redis 삭제 완료", identifier);
         } catch (Exception e){
             //예외. 어떤 에러가 나더라도 로그아웃은 성공해야함
             log.warn("[Auth] 로그아웃 프로세스 중 토큰 처리 경고 (무시 가능): {}",e.getMessage());
@@ -170,5 +182,12 @@ public class AuthController {
         //6. 결과 반환
         log.info("[Auth] 로그아웃 성공");
         return ResponseEntity.ok(Map.of("message","로그아웃에 성공하였습니다"));
+    }
+
+    private boolean isUuid(String identifier){
+        if(identifier == null){
+            return false;
+        }
+        return UUID_PATTERN.matcher(identifier).matches();
     }
 }
