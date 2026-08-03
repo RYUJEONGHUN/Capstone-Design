@@ -44,8 +44,8 @@ public class RouteService {
     private final KakaoFeignClient kakaoFeignClient;
     private final PlaceRepository placeRepository;
 
-    @Value("${ODSAY_KEY}")
-    private String apiKey;
+    //@Value("${ODSAY_KEY}")
+    //private String apiKey;
 
     @Value("${kakao.api.key}")
     private String kakaoKey;
@@ -154,57 +154,57 @@ public class RouteService {
         return result;
     }
 
-    //4.길찾기 조회 완료 화면: 출발지와 목적지를 입력하고 '길찾기'를 누르면 그에 맞는 경로들을 보여주면서 저장하는 기능-POST/findAndSavePaths(/api/route/paths)
-    @Transactional
-    public OdsayRouteSearchResponse findAndSaveRoutes(String email, boolean isGuest ,RouteRequest.RouteSearchRequest routeSearchRequest) {
-        log.info("[Route] ODsay 길찾기 API 요청");
-        OdsayRouteSearchResponse odsayResponse = odsayClient.searchRoute(
-                routeSearchRequest.sx(), routeSearchRequest.sy(),
-                routeSearchRequest.ex(), routeSearchRequest.ey(), apiKey);
-        //비정상 흐름 처리
-        if (odsayResponse.error() != null) {
-            log.warn("[Route] ODsay 길찾기 에러 (ErrorCode: {})", odsayResponse.error().code());
-            handleOdsayError(odsayResponse.error().code());
-        }
-        if (odsayResponse.result() == null || odsayResponse.result().path() == null) {
-            log.info("[Route] ODsay 경로 탐색 결과 없음");
-            throw new CustomException(ErrorCode.NO_SEARCH_RESULT);
-        }
-
-        log.info("[Route] ODsay 길찾기 응답 성공");
-        if(!isGuest) {
-            //경로 저장 로직
-            GeoJsonPoint departureLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.sx()), Double.parseDouble(routeSearchRequest.sy()));
-            GeoJsonPoint arrivalLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.ex()), Double.parseDouble(routeSearchRequest.ey()));
-
-            Member.RecentRoute recentRoute = Member.RecentRoute.builder()
-                    .id(UUID.randomUUID().toString())
-                    .departureName(routeSearchRequest.departureName())
-                    .arrivalName(routeSearchRequest.arrivalName())
-                    .departureLocation(departureLocation)
-                    .arrivalLocation(arrivalLocation)
-                    .searchedAt(LocalDateTime.now())
-                    .build();
-
-            //저장 로직MongoTemplate(최대 20개)
-            //MongoTempalte: 실행 엔진 계층으로 직접적으로 MongoDB에 BSON을 전송
-            Query query = new Query(Criteria.where("email").is(email));
-
-            Update update = new Update().push("recentRoutes") //Member 엔티티의 필드명
-                    .atPosition(0) //0번 인덱스에 삽입(최신순)
-                    .slice(20) //배열의 크기를 20개로 유지
-                    .each(recentRoute); //삽입할 데이터
-
-            UpdateResult result = mongoTemplate.updateFirst(query, update, Member.class);
-            if (result.getMatchedCount() == 0) {
-                log.error("[Route] 사용자를 찾을 수 없습니다");
-                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
-            }
-            log.info("[Route] 경로 기록 저장 완료");
-        }
-
-        return odsayResponse;
-    }
+//    //4.길찾기 조회 완료 화면: 출발지와 목적지를 입력하고 '길찾기'를 누르면 그에 맞는 경로들을 보여주면서 저장하는 기능-POST/findAndSavePaths(/api/route/paths)
+//    @Transactional
+//    public OdsayRouteSearchResponse findAndSaveRoutes(String email, boolean isGuest ,RouteRequest.RouteSearchRequest routeSearchRequest) {
+//        log.info("[Route] ODsay 길찾기 API 요청");
+//        OdsayRouteSearchResponse odsayResponse = odsayClient.searchRoute(
+//                routeSearchRequest.sx(), routeSearchRequest.sy(),
+//                routeSearchRequest.ex(), routeSearchRequest.ey(), apiKey);
+//        //비정상 흐름 처리
+//        if (odsayResponse.error() != null) {
+//            log.warn("[Route] ODsay 길찾기 에러 (ErrorCode: {})", odsayResponse.error().code());
+//            handleOdsayError(odsayResponse.error().code());
+//        }
+//        if (odsayResponse.result() == null || odsayResponse.result().path() == null) {
+//            log.info("[Route] ODsay 경로 탐색 결과 없음");
+//            throw new CustomException(ErrorCode.NO_SEARCH_RESULT);
+//        }
+//
+//        log.info("[Route] ODsay 길찾기 응답 성공");
+//        if(!isGuest) {
+//            //경로 저장 로직
+//            GeoJsonPoint departureLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.sx()), Double.parseDouble(routeSearchRequest.sy()));
+//            GeoJsonPoint arrivalLocation = new GeoJsonPoint(Double.parseDouble(routeSearchRequest.ex()), Double.parseDouble(routeSearchRequest.ey()));
+//
+//            Member.RecentRoute recentRoute = Member.RecentRoute.builder()
+//                    .id(UUID.randomUUID().toString())
+//                    .departureName(routeSearchRequest.departureName())
+//                    .arrivalName(routeSearchRequest.arrivalName())
+//                    .departureLocation(departureLocation)
+//                    .arrivalLocation(arrivalLocation)
+//                    .searchedAt(LocalDateTime.now())
+//                    .build();
+//
+//            //저장 로직MongoTemplate(최대 20개)
+//            //MongoTempalte: 실행 엔진 계층으로 직접적으로 MongoDB에 BSON을 전송
+//            Query query = new Query(Criteria.where("email").is(email));
+//
+//            Update update = new Update().push("recentRoutes") //Member 엔티티의 필드명
+//                    .atPosition(0) //0번 인덱스에 삽입(최신순)
+//                    .slice(20) //배열의 크기를 20개로 유지
+//                    .each(recentRoute); //삽입할 데이터
+//
+//            UpdateResult result = mongoTemplate.updateFirst(query, update, Member.class);
+//            if (result.getMatchedCount() == 0) {
+//                log.error("[Route] 사용자를 찾을 수 없습니다");
+//                throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+//            }
+//            log.info("[Route] 경로 기록 저장 완료");
+//        }
+//
+//        return odsayResponse;
+//    }
 
     //길찾기 기록 제거 서비스 로직
     @Transactional
