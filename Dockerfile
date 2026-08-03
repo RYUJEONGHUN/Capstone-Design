@@ -88,6 +88,9 @@
 FROM amazoncorretto:17 AS builder
 WORKDIR /app
 
+# xargs 등 gradlew 실행에 필요한 유틸 설치
+RUN yum install -y findutils && yum clean all
+
 # 빌드에 필요한 Gradle 설정 및 소스코드 복사
 COPY gradlew .
 COPY gradle gradle
@@ -103,19 +106,11 @@ RUN ./gradlew bootJar -x test
 FROM amazoncorretto:17-alpine
 WORKDIR /app
 
-# 빌드 단계에서 생성된 실행 가능한 JAR 파일 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-# 타임존 설정 (한국 시간)
 ENV TZ=Asia/Seoul
-
-# 512MB RAM 환경 최적화 JVM 설정
-# -Xms256m: 초기 힙 메모리 256MB
-# -Xmx384m: 최대 힙 메모리 384MB (나머지 128MB는 JVM 메타스페이스 및 스택용)
-# -XX:+UseSerialGC: 단일 코어/소형 메모리 환경에서 GC 스레드 메모리 오버헤드 최소화
 ENV JAVA_OPTS="-Xms256m -Xmx384m -XX:+UseSerialGC"
 
 EXPOSE 8080
 
-# JVM 메모리 옵션을 적용하여 애플리케이션 실행
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
