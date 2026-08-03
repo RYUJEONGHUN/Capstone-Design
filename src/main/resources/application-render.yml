@@ -1,0 +1,76 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  tomcat:
+    remoteip:
+      protocol-header: x-forwarded-proto
+      remote-ip-header: x-forwarded-for
+
+spring:
+  application:
+    name: incheon_mate-backend
+
+  # MongoDB 및 Upstash Redis 설정 (Spring Boot 버전 호환성 고려)
+  mongodb:
+    uri: ${MONGO_URI}
+
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+      auto-index-creation: false
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:true} # Upstash TLS 접속 필수
+
+  # Redis 기본 설정 (구버전 Spring Boot 호환용)
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD}
+
+# OAuth 및 인증 설정 (기존 prod 설정과 동일한 계층 매핑)
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}
+  redirect-uri: ${GOOGLE_FRONTEND_REDIRECT_URI}
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  client-secret: ${KAKAO_CLIENT_SECRET}
+  redirect-uri: ${KAKAO_FRONTEND_REDIRECT_URI}
+  api:
+    key: ${KAKAO_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+# 애플리케이션 커스텀 설정
+app:
+  ai-server:
+    url: ${AI_SERVER_URL:}
+  naegift:
+    url: ${NAEGIFT_REWARD_URL}
+  admin:
+    password: ${ADMIN_PASSWARD:}
+
+# Swagger 설정 (운영 환경이므로 비활성화 유지)
+springdoc:
+  api-docs:
+    enabled: false
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
+# 로깅 설정
+logging:
+  level:
+    root: info
+    com.example.IncheonMate: info
+    org.springframework.data.mongodb: info
+    org.springframework.data.redis: info

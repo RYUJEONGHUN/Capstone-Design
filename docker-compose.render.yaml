@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend:
+    container_name: incheon_mate-backend
+    build: .
+    ports:
+      - "8080:8080"
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: render
+      
+      # MongoDB Atlas 접속 주소 (환경변수 또는 직접 입력)
+      SPRING_DATA_MONGODB_URI: ${MONGO_URI}
+      
+      # Upstash Redis 접속 정보
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}        # 예: xxxx.upstash.io
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT}        # 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD} # Upstash Password
+      SPRING_DATA_REDIS_SSL_ENABLED: "true"        # Upstash 필수 설정
+      
+      # 기타 OAuth 및 인증키
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      KAKAO_FRONTEND_REDIRECT_URI: ${KAKAO_FRONTEND_REDIRECT_URI}
+      GOOGLE_FRONTEND_REDIRECT_URI: ${GOOGLE_FRONTEND_REDIRECT_URI}
+      KAKAO_KEY: ${KAKAO_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      #AI_SERVER_URL: ${AI_SERVER_URL}
+      ADMIN_PASSWARD: ${ADMIN_PASSWARD}
+      NAEGIFT_REWARD_URL: ${NAEGIFT_REWARD_URL}
+      TZ: Asia/Seoul
