@@ -156,7 +156,7 @@ Capstone-Design/
 | --- | --------- | ---------------------------------------------- |
 | 류정훈 | AI 채팅/백엔드 | [@RYUJEONGHUN](https://github.com/RYUJEONGHUN) |
 | 김재원 | 백엔드       | [@QAAAQ123](https://github.com/qaaaq123)       |
-| 이희원 | 프론트엔드     |                                                |
+| 이희원 | 디자인/프론트엔드     |                                                |
 | 이정환 | 디자인/프론트엔드 | [@jhlee-inu](https://github.com/jhlee-inu)     |
 
 
