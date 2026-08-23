@@ -2,6 +2,8 @@
 > **"나의 여행 메이트와 함께하는 특별한 인천 여행"**  
 > AI 페르소나와의 실시간 상호작용을 통해 개인 맞춤형 여행 코스를 생성하고 지역 상권을 연결하는 대화형 관광 플랫폼
 
+<br>
+<br>
 
 ## 1 프로젝트 개요
 
@@ -9,6 +11,8 @@
 
 기존 관광 플랫폼의 획일적인 리스트 나열과 일방향 정보 제공 방식에서 벗어나, **사용자의 성향(사상의학/페르소나)과 현재 위치·상황을 반영한 실시간 상호작용**을 제공합니다 단순한 장소 안내를 넘어 여행 중 친구이자 가이드 역할을 수행하며, AI 기반 여행 코스 생성 및 지역 상권 연계 커머스('내기프트')를 통해 풍부한 여행 경험을 지원합니다
 
+<br>
+<br>
 
 ## 2 기획 배경 및 문제 정의
 
@@ -18,7 +22,8 @@
 | **수동적 정보 탐색의 피로도**<br>여행 중 매번 포털/지도를 개별 검색해야 하는 번거로움 | **선제적 장소 추천 & 대화형 코스 생성**<br>실시간 위치 기반 선제 알림 및 챗봇 기반 자동 일정 생성 |
 | **단절된 오프라인 소비 경험**<br>관광 정보 탐색과 실제 지역 상점 혜택/소비 간의 분리 | **지역 상권 선물하기 플랫폼 연동**<br>'내기프트' API 연동을 통한 관광지 상품/숙박권 구매 및 선물 |
 
-
+<br>
+<br>
 
 ## 3 주요 기능
 
@@ -42,6 +47,9 @@
 ### 5. 간편 인증 및 게스트 모드
 - 카카오/구글 소셜 로그인 지원 및 별도 가입 절차 없이 즉시 둘러볼 수 있는 게스트 모드를 제공하여 초기 사용자 진입 장벽을 최소화했습니다
 
+<br>
+<br>
+
 ##  4 사용자 이용 흐름 (User Flow)
 
 ```mermaid
@@ -58,12 +66,363 @@ flowchart LR
     style E fill:#f0f7ff,stroke:#0052cc,stroke-width:2px,color:#0c2340
 ```
 
+<br>
+<br>
+
 ## 5 시스템 아키텍처 
 
 <img width="1708" height="752" alt="image" src="https://github.com/user-attachments/assets/89f3197d-4fba-41a0-b7e1-3b759f9aed7c" />
 
+<br>
+<br>
 
-##  6 기술 스택 
+## 6 스키마 다이어그램
+
+### 6.1 전체 스키마 다이어그램
+
+```mermaid
+erDiagram
+
+    MEMBER {
+        string id PK
+        string email UK
+        string name
+        string role
+        string provider
+        boolean isPrivacyPolicyAgreed
+        boolean isLocationServiceAgreed
+        boolean isTermsOfServiceAgreed
+        datetime allTermsAgreedAt
+        string termsVersion
+        string lang
+        string nickname UK
+        string profileImageURL
+        boolean profileImageAsMarker
+        date birthDate
+        Gender gender
+        MbtiType mbti
+        SasangType sasang
+        PersonaType selectedPersona
+        datetime createdAt
+        datetime updatedAt
+        string[] naegiftCoupons
+    }
+
+    MEMBER_FAVORITE_PLACE {
+        string id
+        datetime createdAt
+        string kakaoPlaceId
+        string placeName
+        GeoJsonPoint location
+        string address
+        boolean isRegistered
+        double ourRating
+    }
+
+    MEMBER_RECENT_SEARCH {
+        string id
+        string keyword
+        datetime searchedAt
+    }
+
+    MEMBER_RECENT_ROUTE {
+        string id
+        string departureName
+        string arrivalName
+        GeoJsonPoint departureLocation
+        GeoJsonPoint arrivalLocation
+        datetime searchedAt
+    }
+
+    MEMBER_TRAVEL_COURSE {
+        string id
+        string title
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    MEMBER_COURSE_SPOT {
+        int spotOrder
+        string kakaoId
+        string naegiftId
+        string name
+        string address
+        CoursePlaceCategory coursePlaceCategory
+        string thumbnailUrl
+        string expertComment
+        GeoJsonPoint geoJsonPoint
+    }
+
+
+    PLACE {
+        string id PK
+        string kakaoId UK
+        string name
+        string address
+        PlaceCategory placeCategory
+        double x
+        double y
+        string expertComment
+        double ourRating
+        string thumbnailUrl
+        string naegiftId
+        string[] tags
+    }
+
+
+    CHAT_SESSION {
+        string id PK
+        string title
+        datetime createdAt
+        datetime lastMessageAt
+        string memberId FK
+    }
+
+    CHAT_MESSAGE {
+        string id
+        datetime messagedAt
+        AuthorType authorType
+        string content
+        ChatResponseType chatResponseType
+        ChatResponseProvider chatResponseProvider
+    }
+
+    GUEST_CHAT_SESSION {
+        string id PK
+        string title
+        datetime createdAt
+        datetime lastMessageAt
+    }
+
+    GUEST_CHAT_MESSAGE {
+        string id
+        datetime messagedAt
+        AuthorType authorType
+        string content
+        ChatResponseType chatResponseType
+        ChatResponseProvider chatResponseProvider
+    }
+
+
+    CURATED_COURSE {
+        string id PK
+        string title
+        boolean isVisible
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CURATED_SPOT {
+        int spotOrder
+        string kakaoId
+        string placeId FK
+        string naegiftId
+        string name
+        string address
+        CoursePlaceCategory coursePlaceCategory
+        string thumbnailUrl
+        string expertComment
+        GeoJsonPoint geoJsonPoint
+    }
+
+
+    CURATION_SPOT {
+        string id PK
+        string placeId FK
+        string placeName
+        string kakaoId
+        double x
+        double y
+        int triggerRadius
+        map aiComments
+        boolean isActive
+    }
+
+
+    REWARD {
+        string id PK
+        string placeId FK
+        string naegiftId UK
+        int remainStock
+        boolean isActive
+    }
+
+    REWARD_COUPON {
+        string id
+        string couponId
+        datetime purchasedAt
+        string rewardCourseId FK
+        boolean isDelivered
+        string deliveredUserId FK
+        datetime deliveredAt
+        date expiredAt
+    }
+
+
+    REWARD_COURSE {
+        string id PK
+        string title
+        boolean isVisible
+        string rewardDescription
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    REWARD_SPOT {
+        int spotOrder
+        string kakaoId
+        string placeId FK
+        string naegiftId
+        string name
+        string address
+        CoursePlaceCategory coursePlaceCategory
+        string thumbnailUrl
+        string expertComment
+        GeoJsonPoint geoJsonPoint
+    }
+
+
+    MEMBER_REWARD {
+        string id PK
+        string memberId FK
+        string rewardCourseId FK
+        boolean isCompleted
+        datetime completedAt
+        boolean isRewarded
+        datetime rewardedAt
+    }
+
+    REWARD_SPOT_PROGRESS {
+        string placeId FK
+        boolean isVerified
+        datetime verifiedAt
+    }
+
+
+    %% =========================
+    %% Embedded Documents
+    %% =========================
+
+    MEMBER ||--o{ MEMBER_FAVORITE_PLACE : "embedded"
+    MEMBER ||--o{ MEMBER_RECENT_SEARCH : "embedded"
+    MEMBER ||--o{ MEMBER_RECENT_ROUTE : "embedded"
+    MEMBER ||--|| MEMBER_TRAVEL_COURSE : "embedded"
+    MEMBER_TRAVEL_COURSE ||--o{ MEMBER_COURSE_SPOT : "embedded"
+
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : "embedded"
+    GUEST_CHAT_SESSION ||--o{ GUEST_CHAT_MESSAGE : "embedded"
+
+    CURATED_COURSE ||--o{ CURATED_SPOT : "embedded"
+    REWARD ||--o{ REWARD_COUPON : "embedded"
+    REWARD_COURSE ||--o{ REWARD_SPOT : "embedded"
+    MEMBER_REWARD ||--o{ REWARD_SPOT_PROGRESS : "embedded"
+
+
+    %% =========================
+    %% Application-level References
+    %% =========================
+
+    MEMBER ||--o{ CHAT_SESSION : "memberId"
+
+    PLACE ||--o{ CURATED_SPOT : "placeId"
+    PLACE ||--o{ CURATION_SPOT : "placeId"
+    PLACE ||--o{ REWARD : "placeId"
+    PLACE ||--o{ REWARD_SPOT : "placeId"
+    PLACE ||--o{ REWARD_SPOT_PROGRESS : "placeId"
+
+    MEMBER ||--o{ MEMBER_REWARD : "memberId"
+    REWARD_COURSE ||--o{ MEMBER_REWARD : "rewardCourseId"
+
+    REWARD_COURSE ||--o{ REWARD_COUPON : "rewardCourseId"
+    MEMBER ||--o{ REWARD_COUPON : "deliveredUserId"
+
+    CURATED_SPOT }o--|| PLACE : "placeId"
+    REWARD_SPOT }o--|| PLACE : "placeId"
+    CURATION_SPOT }o--|| PLACE : "placeId"
+
+```
+
+### 6.2 요약 스키마 다이어그램
+```mermaid
+flowchart TB
+
+    MEMBER[(members)]
+    PLACE[(place)]
+
+    CHAT[(chatSessions)]
+    CURATED[(curated_courses)]
+    CURATION[(curation_spots)]
+
+    REWARD_COURSE[(reward_course)]
+    REWARD[(reward)]
+    MEMBER_REWARD[(member_reward)]
+
+    GUEST["GUEST_CHAT(Redis)"]
+
+    MEMBER -->|memberId| CHAT
+
+    PLACE -->|placeId| CURATED
+    PLACE -->|placeId| CURATION
+
+    PLACE -->|placeId| REWARD
+    PLACE -->|placeId| REWARD_COURSE
+
+    MEMBER -->|memberId| MEMBER_REWARD
+    REWARD_COURSE -->|rewardCourseId| MEMBER_REWARD
+
+    REWARD_COURSE -->|rewardCourseId| REWARD
+
+    MEMBER -.->|Guest 비회원| GUEST
+```
+### 6.3 스키마 다이어그램 상세 설명 
+
+- `members`
+  - 사용자 기본 정보
+  - 찜 목록, 최근 검색/경로 기록을 Embedded Document로 저장
+  - 사용자별 AI 여행 코스를 Embedded Document로 저장
+
+- `place`
+  - 카카오 장소를 기준으로 하는 공통 장소 원본 데이터
+  - `kakaoId`에 Unique Index 적용
+
+- `chatSessions`
+  - 회원의 채팅 세션
+  - 메시지는 `messages` Embedded Document로 저장
+  - `memberId`를 통해 `members`와 애플리케이션 레벨에서 연결
+
+- `curated_courses`
+  - 관리자가 직접 구성한 추천 코스
+  - `spots`를 Embedded Document로 저장
+  - 각 Spot은 `placeId`를 통해 `place`와 연결
+
+- `curation_spots`
+  - 위치 기반 큐레이션/지오펜싱 대상 장소
+  - `placeId`를 통해 `place`와 연결
+
+- `reward_course`
+  - 리워드 코스
+  - `rewardSpots`를 Embedded Document로 저장
+
+- `reward`
+  - 장소별 쿠폰 재고 및 쿠폰 데이터 관리
+  - `coupons`를 Embedded Document로 저장
+
+- `member_reward`
+  - 회원별 리워드 코스 진행 상태
+  - 방문 인증 및 보상 지급 상태 관리
+  - `spotProgressList`를 Embedded Document로 저장
+
+### Redis
+
+- `GUEST_CHAT:{guestUUID}`
+  - 비회원 채팅 세션
+  - TTL: 14일
+  - 메시지는 `messages` Embedded Object 형태로 저장
+
+<br>
+<br>
+
+##  7 기술 스택 
 ### Backend
 - Language & Framework: Java 17, Spring Boot 4.0.0
 - Security & Auth: Spring Security, OAuth2 Client (Google, Kakao), JWT
@@ -75,7 +434,10 @@ flowchart LR
 - Web Server: Nginx
 - Cloud: AWS EC2, AWS DocumentDB
 
-##  7 빠른 시작 (Dev용)
+<br>
+<br>
+
+##  8 빠른 시작 (Dev용)
 
 ### 필수 요구사항
 - Java 17+
@@ -122,7 +484,10 @@ NAEGIFT_REWARD_URL=http://localhost:3000/reward/callback
 - 웹: http://localhost:8080
 - API 문서: http://localhost:8080/swagger-ui.html (Swagger 사용 시)
 
-##  8 프로젝트 구조 
+<br>
+<br>
+
+##  9 프로젝트 구조 
 ```text
 Capstone-Design/
 ├── src/main/java/com/example/IncheonMate/
@@ -150,7 +515,10 @@ Capstone-Design/
 └── build.gradle               # 의존성 관리
 ```
 
-##  9 개발 팀 / 연락처 
+<br>
+<br>
+
+##  10 개발 팀 / 연락처 
 
 | 이름  | 역할        | GitHub                                         |
 | --- | --------- | ---------------------------------------------- |
@@ -159,8 +527,10 @@ Capstone-Design/
 | 이희원 | 디자인/프론트엔드     |                                                |
 | 이정환 | 디자인/프론트엔드 | [@jhlee-inu](https://github.com/jhlee-inu)     |
 
+<br>
+<br>
 
-## 10 향후 계획
+## 11 향후 계획
 - 공공 API 기반 MCP도입: 공공데이터 포털 관광 API와 연계하여 최신 축제 및 공식 관광지 정보 실시간 제공
 - 개인화 추천 알고리즘 고도화: 사용자 피드백 반영 및 멀티 에이전트 구조 고도화
 - 성능 최적: 응답 지연 시간 단축
